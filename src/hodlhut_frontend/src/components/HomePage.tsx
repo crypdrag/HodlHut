@@ -4,7 +4,23 @@ import { useAuth } from '../contexts/AuthContext';
 import AssetIcon from './AssetIcon';
 import '../styles/HomePage.css';
 import HeroAnimationVideo from '../../assets/images/Hero_Animation.mp4';
-import HeroBgSvg from '../../assets/images/HERO_bg.svg';
+import { 
+  Radio,      // Personal Sovereignty - Broadcasting personal control
+  Network,    // Universal Router - Network/routing
+  Brain,      // Intelligent Abstraction - AI/Smart features  
+  TrendingUp, // Hut Garden Tiki Rewards - Profits/growth
+  Shield,     // Full Stack Security - Protection
+  PieChart    // Diverse Portfolio - Portfolio management
+} from 'lucide-react';
+// import HeroBgImage from '../../assets/images/Hero_bg.png';
+
+// Lucide icon components with proper TypeScript support
+const PersonalSovereigntyIcon: React.FC = () => <Radio size={48} color="#f1760f" />;
+const UniversalRouterIcon: React.FC = () => <Network size={48} color="#f1760f" />;
+const IntelligentAbstractionIcon: React.FC = () => <Brain size={48} color="#f1760f" />;
+const TikiRewardsIcon: React.FC = () => <TrendingUp size={48} color="#f1760f" />;
+const FullStackSecurityIcon: React.FC = () => <Shield size={48} color="#f1760f" />;
+const DiversePortfolioIcon: React.FC = () => <PieChart size={48} color="#f1760f" />;
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -124,16 +140,12 @@ const HomePage: React.FC = () => {
                 </button>
               </>
             )}
-            <div className="nav-dropdown">
-              <button className="nav-btn tertiary">
-                Learn ▼
-              </button>
-              <div className="dropdown-content">
-                <a href="https://internetcomputer.org/docs/" target="_blank" rel="noopener noreferrer">
-                  📚 Documentation
-                </a>
-              </div>
-            </div>
+            <button 
+              className="nav-btn tertiary"
+              onClick={() => window.open('https://internetcomputer.org/docs/', '_blank')}
+            >
+              Learn
+            </button>
           </div>
         </nav>
       </header>
@@ -154,9 +166,17 @@ const HomePage: React.FC = () => {
           </video>
         </div>
 
-        {/* Hero Background */}
+        {/* Hero Background - Video with last frame fallback */}
         <div className="hero-background">
-          <img src={HeroBgSvg} alt="Hero Background" className="hero-bg-svg" />
+          <video 
+            className="hero-bg-video" 
+            autoPlay 
+            muted 
+            loop
+            poster="" // Last frame will show when video loads
+          >
+            <source src={HeroAnimationVideo} type="video/mp4" />
+          </video>
         </div>
 
         {/* Hero Card */}
@@ -186,7 +206,7 @@ const HomePage: React.FC = () => {
           <div className="features-grid">
             <div className="feature-card">
               <div className="feature-icon">
-                <AssetIcon asset="ICP" size={48} />
+                <PersonalSovereigntyIcon />
               </div>
               <h3 className="feature-title subtitle-font">Personal Sovereignty</h3>
               <p className="feature-description body-font">
@@ -196,7 +216,7 @@ const HomePage: React.FC = () => {
 
             <div className="feature-card">
               <div className="feature-icon">
-                <AssetIcon asset="BTC" size={48} />
+                <UniversalRouterIcon />
               </div>
               <h3 className="feature-title subtitle-font">Universal Router</h3>
               <p className="feature-description body-font">
@@ -206,7 +226,7 @@ const HomePage: React.FC = () => {
 
             <div className="feature-card">
               <div className="feature-icon">
-                <AssetIcon asset="ETH" size={48} />
+                <IntelligentAbstractionIcon />
               </div>
               <h3 className="feature-title subtitle-font">Intelligent Abstraction</h3>
               <p className="feature-description body-font">
@@ -216,17 +236,17 @@ const HomePage: React.FC = () => {
 
             <div className="feature-card">
               <div className="feature-icon">
-                <AssetIcon asset="SOL" size={48} />
+                <TikiRewardsIcon />
               </div>
-              <h3 className="feature-title subtitle-font">Hut Garden Tiki Rewards</h3>
+              <h3 className="feature-title subtitle-font">My Garden Rewards</h3>
               <p className="feature-description body-font">
-                Gardens offer gamified yield farming rewards for hodling and portfolio diversity. Weekly Reef Raffles and Tsunami Sweeps keep things hopping in the Tiki Tent.
+                My Garden is where yield farming rewards for hodling and portfolio diversity happen. Weekly Reef Raffles and Tsunami Sweeps keep things hopping.
               </p>
             </div>
 
             <div className="feature-card">
               <div className="feature-icon">
-                <AssetIcon asset="ckBTC" size={48} />
+                <FullStackSecurityIcon />
               </div>
               <h3 className="feature-title subtitle-font">Full Stack Security</h3>
               <p className="feature-description body-font">
@@ -236,7 +256,7 @@ const HomePage: React.FC = () => {
 
             <div className="feature-card">
               <div className="feature-icon">
-                <AssetIcon asset="ckUSDC" size={48} />
+                <DiversePortfolioIcon />
               </div>
               <h3 className="feature-title subtitle-font">Diverse Portfolio</h3>
               <p className="feature-description body-font">
