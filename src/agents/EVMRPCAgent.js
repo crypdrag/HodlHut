@@ -1,4 +1,25 @@
 // EVMRPCAgent.js - Ethereum Virtual Machine RPC Integration Agent
+//
+// ETHEREUM NETWORK INTELLIGENCE & DYNAMIC FEE OPTIMIZATION
+// =========================================================
+//
+// Replaces hardcoded 0.003 ETH fees with real-time EIP-1559 gas estimation:
+//
+// INTELLIGENT FEATURES:
+// - Dynamic base fee + priority fee calculation from network conditions
+// - ERC-20 vs native ETH gas complexity handling (65k vs 21k gas limits)
+// - Network congestion analysis with automatic priority recommendations
+// - Separate gas token requirements for ERC-20 operations
+//
+// PRODUCTION INTEGRATION ARCHITECTURE:
+// Primary:   Ethereum RPC Canister on ICP → getEthereumGasPrices()
+// Fallback1: Public Ethereum RPC endpoints (Alchemy, Infura)  
+// Fallback2: Gas oracle APIs (ETH Gas Station, BlockNative)
+//
+// CANISTER COORDINATION:
+// - Agent estimates optimal gas → EVM Canister executes withdrawal
+// - Handles USDC/USDT contract interactions via Chain Fusion
+// - Manages threshold cryptography for secure address generation
 const axios = require('axios');
 
 class EVMRPCAgent {

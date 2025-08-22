@@ -1,4 +1,28 @@
 // MasterAgent.js - Central Coordination Agent with HutFactoryAgent Integration
+//
+// ARCHITECTURE: DFINITY LLM Intelligence Layer Pattern
+// =====================================================
+// 
+// This agent implements the DFINITY LLM tool-based architecture where:
+// - Intelligence Layer (Agents): Decision making, routing, optimization
+// - Execution Layer (Canisters): Blockchain operations, Chain Fusion
+// 
+// MasterAgent serves as the orchestration hub for 7 specialized agents:
+// 1. BitcoinRPCAgent   - Bitcoin network intelligence & fee optimization
+// 2. EVMRPCAgent       - Ethereum EIP-1559 gas analysis & ERC-20 handling  
+// 3. SVMRPCAgent       - Solana network analysis & SPL token support
+// 4. DEXRoutingAgent   - Intelligent ICP hub routing & slippage optimization
+// 5. HutFactoryAgent   - Sovereign canister lifecycle management
+// 6. TransactionMonitorAgent - Multi-chain operation tracking
+// 7. MasterAgent       - Frontend orchestration & session management
+//
+// PRODUCTION-READY FEATURES:
+// - Real-time network fee estimation replacing hardcoded values
+// - Intelligent hub routing via ICP for optimal liquidity
+// - Comprehensive error handling & fallback mechanisms
+// - Multi-step operation coordination across networks
+// - Internet Identity integration for decentralized auth
+// - Sovereign canister (MyHut) architecture for user assets
 
 const { BitcoinRPCAgent } = require('./BitcoinRPCAgent');
 const { EVMRPCAgent } = require('./EVMRPCAgent');

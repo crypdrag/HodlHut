@@ -1,4 +1,27 @@
 // DEXRoutingAgent.js - Enhanced with Frontend Integration & Live Data
+//
+// INTELLIGENT ICP HUB ROUTING SYSTEM
+// ===================================
+//
+// This agent implements sophisticated DEX routing intelligence that positions 
+// ICP as a natural hub for multi-chain liquidity optimization:
+//
+// CORE INTELLIGENCE:
+// - Automatic slippage analysis (direct vs hub routes)
+// - Real-time liquidity depth comparison across DEXs
+// - Dynamic route optimization when direct pairs have >2% slippage  
+// - Multi-hop fee calculation with transparent cost breakdown
+//
+// HUB ROUTING EXAMPLES:
+// Direct Route:  ckBTC → ckUSDC (3.2% slippage, low liquidity)
+// Optimal Route: ckBTC → ICP → ckUSDC (0.8% total slippage via deep pools)
+//
+// CANISTER INTEGRATION POINTS:
+// - Connects to ICPSwap/KongSwap canisters for live liquidity data
+// - Routes swap execution to appropriate DEX canisters
+// - Coordinates with Chain Fusion for cross-chain operations
+//
+// This demonstrates advanced DEX aggregation not available in simple interfaces.
 const axios = require('axios');
 
 class DEXRoutingAgent {
