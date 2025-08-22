@@ -2946,3 +2946,24 @@ html body .dashboard .dashboard-container .dex-header,
 html body .dashboard .dashboard-container .section-nav button {
   color: #8B4513 !important;
 }
+
+/* Prevent rate text from wrapping in TO container */
+.asset-selector.to .balance-text {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Fix TO container height expansion issue */
+.asset-selector.to .balance-row {
+  height: 20px !important;
+  max-height: 20px !important;
+  overflow: hidden !important;
+  align-items: center !important;
+}
+
+.asset-selector.to {
+  min-height: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+}

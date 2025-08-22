@@ -803,8 +803,7 @@ const Dashboard: React.FC = () => {
   const renderSwapAssetsSection = () => (
     <div className="section-content">
       <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <div className="card-title">Sovereign Multi-Chain Routing</div>
-        <div className="card-subtitle">Minter operations + DEX aggregation • Complete transparency • True sovereignty</div>
+        <div className="card-title">Sovereign Multichain Custom Routing</div>
       </div>
       
       <div className="enhanced-swap-interface">
@@ -913,18 +912,30 @@ const Dashboard: React.FC = () => {
               </div>
               <div className="balance-row">
                 <span className="balance-text">
-                  Rate: {swapAnalysis?.rate ? `1 ${fromAsset} = ${formatAmount(swapAnalysis.rate)} ${toAsset}` : '--'}
-                </span>
-                <span className="balance-text price-impact" style={{
-                  color: '#000000',
-                  fontWeight: 600
-                }}>
-                  Impact: {swapAnalysis?.priceImpact ? `${(swapAnalysis.priceImpact * 100).toFixed(2)}%` : '--'}
+                  Balance: You'll receive {toAsset}
                 </span>
               </div>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Exchange Rate Display */}
+      <div style={{ 
+        textAlign: 'center', 
+        marginTop: '1rem', 
+        padding: '0.75rem',
+        background: 'rgba(255, 215, 0, 0.1)',
+        border: '2px solid #FFD700',
+        borderRadius: '10px',
+        fontSize: '0.9rem',
+        fontWeight: '600',
+        color: '#8B4513'
+      }}>
+        {swapAnalysis?.outputAmount && swapAmount ? 
+          `Rate: 1 ${fromAsset} = ${(swapAnalysis.outputAmount / parseFloat(swapAmount)).toFixed(2)} ${toAsset}` : 
+          'Enter amount to see exchange rate'
+        }
       </div>
 
       {/* STEP 1: What's Happening (Route Explanation) - ALWAYS SHOWN FIRST */}
