@@ -106,7 +106,7 @@ const CustomDropdown: React.FC<{
           display: 'flex',
           alignItems: 'center',
           padding: '8px 12px',
-          border: '2px solid #FFD700',
+          border: '2px solid var(--tertiary-500)',
           borderRadius: '8px',
           background: 'white',
           cursor: 'pointer',
@@ -119,65 +119,32 @@ const CustomDropdown: React.FC<{
             <span>{selectedOption.label}</span>
           </>
         ) : (
-          <span style={{ color: '#999' }}>{placeholder}</span>
+          <span style={{ color: 'var(--text-secondary)' }}>{placeholder}</span>
         )}
         <span style={{ marginLeft: 'auto', fontSize: '12px' }}>▼</span>
       </div>
       
       {isOpen && (
         <div 
-          className="dropdown-menu"
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            maxHeight: '200px',
-            overflowY: 'auto',
-            background: 'white',
-            border: '2px solid #FFD700',
-            borderRadius: '8px',
-            borderTop: 'none',
-            zIndex: 1000,
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-          }}
+          className="dropdown-container"
         >
           <input
             type="text"
             placeholder="Search assets..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              border: 'none',
-              borderBottom: '1px solid #eee',
-              outline: 'none'
-            }}
+            className="dropdown-search"
+            style={{ width: '100%' }}
             onClick={(e) => e.stopPropagation()}
           />
           {filteredOptions.map(option => (
             <div
               key={option.value}
-              className="dropdown-option"
+              className={`dropdown-option ${value === option.value ? 'selected' : ''}`}
               onClick={() => {
                 onChange(option.value);
                 setIsOpen(false);
                 setSearchTerm('');
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '8px 12px',
-                cursor: 'pointer',
-                borderBottom: '1px solid #f0f0f0',
-                background: value === option.value ? '#f8f9fa' : 'transparent'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#f8f9fa';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = value === option.value ? '#f8f9fa' : 'transparent';
               }}
             >
               <AssetIcon asset={option.value} size={20} />
@@ -292,22 +259,18 @@ const Dashboard: React.FC = () => {
           <React.Fragment key={index}>
             <div style={{
               background: 'white',
-              border: '2px solid #FFD700',
+              border: '2px solid var(--tertiary-500)',
               borderRadius: '10px',
               padding: '0.75rem 1rem',
               fontWeight: 600,
-              color: '#8B4513',
+              color: 'var(--text-primary)',
               textAlign: 'center',
               minWidth: '120px'
             }}>
               {ASSET_ICONS[step] || '●'} {step}
             </div>
             {index < route.steps.length - 1 && (
-              <div style={{
-                color: '#32CD32',
-                fontSize: '1.5rem',
-                fontWeight: 'bold'
-              }}>→</div>
+              <div className="primary-arrow">→</div>
             )}
           </React.Fragment>
         ))}
@@ -352,63 +315,6 @@ const Dashboard: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Force all numbers to black - JavaScript override
-  useEffect(() => {
-    const forceNumbersBlack = () => {
-      // Find all elements that might contain numbers
-      const selectors = [
-        '.portfolio-overview *',
-        '.asset-selector.to *', 
-        '.preview-section *',
-        '.preview-grid *',
-        '.smart-solutions-panel *',
-        '.solution-receive',
-        '.solution-cost',
-        '.solution-receive strong',
-        '.solution-cost strong',
-        '.price-impact',
-        '.balance-text',
-        '.preview-value',
-        '.asset-value',
-        '.total-value',
-        '.summary-value'
-      ];
-
-      selectors.forEach(selector => {
-        const elements = document.querySelectorAll(selector);
-        elements.forEach(el => {
-          const element = el as HTMLElement;
-          const text = element.textContent || '';
-          
-          // Check if element contains numbers, currency symbols, or percentage
-          if (text.match(/[\d$%,.]/)) {
-            element.style.setProperty('color', '#000000', 'important');
-            element.style.setProperty('font-weight', '600', 'important');
-          }
-        });
-      });
-    };
-
-    // Run immediately
-    forceNumbersBlack();
-
-    // Run after a small delay to catch dynamically loaded content
-    const timeoutId = setTimeout(forceNumbersBlack, 100);
-
-    // Set up mutation observer to catch dynamic changes
-    const observer = new MutationObserver(forceNumbersBlack);
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['style', 'class']
-    });
-
-    return () => {
-      clearTimeout(timeoutId);
-      observer.disconnect();
-    };
-  }, [portfolio, smartSolutions, swapAnalysis]); // Re-run when data changes
   
   // Auto-analyze swap when parameters change
   useEffect(() => {
@@ -549,7 +455,7 @@ const Dashboard: React.FC = () => {
     return (
       <div className="slippage-settings">
         <div className="slippage-header">
-          <span style={{fontWeight: 600, color: '#8B4513'}}>⚙️ Slippage Tolerance</span>
+          <span className="text-primary-bold">⚙️ Slippage Tolerance</span>
           <div className="slippage-buttons">
             <button 
               className={`slippage-btn ${slippageTolerance === 0.5 ? 'active' : ''}`}
@@ -588,7 +494,7 @@ const Dashboard: React.FC = () => {
     return (
       <div className="gas-optimization">
         <div className="gas-header">
-          <span style={{fontWeight: 600, color: '#8B4513'}}>⛽ Gas Optimization</span>
+          <span className="text-primary-bold">⛽ Gas Optimization</span>
           <span className="gas-price">Current: {currentGasPrice} gwei</span>
         </div>
         <div className="gas-recommendation">
@@ -921,17 +827,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Exchange Rate Display */}
-      <div style={{ 
-        textAlign: 'center', 
-        marginTop: '1rem', 
-        padding: '0.75rem',
-        background: 'rgba(255, 215, 0, 0.1)',
-        border: '2px solid #FFD700',
-        borderRadius: '10px',
-        fontSize: '0.9rem',
-        fontWeight: '600',
-        color: '#8B4513'
-      }}>
+      <div className="exchange-rate-display">
         {swapAnalysis?.outputAmount && swapAmount ? 
           `Rate: 1 ${fromAsset} = ${(swapAnalysis.outputAmount / parseFloat(swapAmount)).toFixed(2)} ${toAsset}` : 
           'Enter amount to see exchange rate'
@@ -941,15 +837,15 @@ const Dashboard: React.FC = () => {
       {/* STEP 1: What's Happening (Route Explanation) - ALWAYS SHOWN FIRST */}
       {showRouteDetails && swapAnalysis && (
         <div className="route-display" style={{
-          background: fromAsset === toAsset ? 'linear-gradient(135deg, #F7931A, #FF8C00)' : '#FFF8DC',
-          borderColor: fromAsset === toAsset ? '#F7931A' : '#FFD700'
+          background: fromAsset === toAsset ? 'var(--gradient-secondary)' : 'var(--tertiary-50)',
+          borderColor: fromAsset === toAsset ? 'var(--secondary-500)' : 'var(--tertiary-500)'
         }}>
           <div className="route-header" style={{ justifyContent: 'center' }}>
             <span>What's Happening: Your Transaction Explained</span>
           </div>
           
           {fromAsset === toAsset ? (
-            <div style={{ color: '#ffffff', textAlign: 'center', fontSize: '1.2rem', fontWeight: 600, padding: '2rem' }}>
+            <div className="same-token-warning">
               Hold on there surfer! 🏄‍♂️<br />
               You are trying to swap the same token.<br />
               Please check your swap and try again.
@@ -1035,7 +931,7 @@ const Dashboard: React.FC = () => {
             ))}
           </div>
 
-          <div style={{ textAlign: 'center', marginTop: '1rem', color: '#666', fontSize: '0.9rem' }}>
+          <div className="choice-matters-text">
             <strong>Your Choice Matters:</strong> We show you all options with real data - you decide what's most important for your trade.
           </div>
         </div>
@@ -1052,8 +948,8 @@ const Dashboard: React.FC = () => {
                 onClick={resetSolutionsView}
                 style={{ 
                   marginLeft: 'auto', 
-                  background: '#f8f9fa', 
-                  border: '1px solid #dee2e6', 
+                  background: 'var(--surface-primary)', 
+                  border: '1px solid var(--border-primary)', 
                   borderRadius: '4px', 
                   padding: '0.25rem 0.5rem',
                   fontSize: '0.8rem',
@@ -1121,7 +1017,7 @@ const Dashboard: React.FC = () => {
                   {/* Show confirmation when selected */}
                   {isSelected && (
                     <div className="solution-confirmation">
-                      <div style={{ color: '#000000', fontWeight: 600, marginBottom: '0.5rem' }}>
+                      <div className="solution-approved-text">
                         ✅ Solution Approved
                       </div>
                       <button 
@@ -1143,7 +1039,7 @@ const Dashboard: React.FC = () => {
           {(() => {
             if (selectedSolution !== null && !showAllSolutions) {
               return (
-                <div style={{ textAlign: 'center', marginTop: '1rem', color: '#000000', fontSize: '0.9rem', background: '#d4edda', padding: '0.75rem', borderRadius: '8px', border: '1px solid #c3e6cb' }}>
+                <div className="contextual-message">
                   🎉 <strong>Perfect!</strong> You've chosen your fee payment method. Click "Execute & Continue Swap" above to proceed.
                 </div>
               );
@@ -1158,7 +1054,7 @@ const Dashboard: React.FC = () => {
               const firstSolution = smartSolutions[0];
               if (firstSolution.badge === 'RECOMMENDED') {
                 return (
-                  <div style={{ textAlign: 'center', marginTop: '1rem', color: '#000000', fontSize: '0.9rem', background: '#f8f9fa', padding: '0.75rem', borderRadius: '8px', border: '1px solid #d4edda' }}>
+                  <div className="solution-message">
                     ✅ <strong>Best Option Found!</strong> This is the easiest way to handle your fee payment. Approve it or see alternatives.
                   </div>
                 );
@@ -1167,19 +1063,19 @@ const Dashboard: React.FC = () => {
             
             if (hasRecommended) {
               return (
-                <div style={{ textAlign: 'center', marginTop: '1rem', color: '#000000', fontSize: '0.9rem', background: '#f8f9fa', padding: '0.75rem', borderRadius: '8px', border: '1px solid #d4edda' }}>
+                <div className="solution-message">
                   ✅ <strong>Great news!</strong> We found easy solutions for your fee payments. The recommended option is usually the best choice.
                 </div>
               );
             } else if (hasRequiredSteps) {
               return (
-                <div style={{ textAlign: 'center', marginTop: '1rem', color: '#000000', fontSize: '0.9rem', background: '#f8f9fa', padding: '0.75rem', borderRadius: '8px', border: '1px solid #f5c6cb' }}>
+                <div className="warning-message">
                   ⚠️ <strong>Manual Steps Required:</strong> You'll need to complete some DEX swaps first to get the required fee tokens.
                 </div>
               );
             } else if (hasAlternatives) {
               return (
-                <div style={{ textAlign: 'center', marginTop: '1rem', color: '#000000', fontSize: '0.9rem', background: '#f8f9fa', padding: '0.75rem', borderRadius: '8px', border: '1px solid #dee2e6' }}>
+                <div className="warning-message">
                   💡 <strong>Alternative Options:</strong> Here are different ways to handle fee payments based on your portfolio.
                 </div>
               );
@@ -1348,9 +1244,9 @@ const Dashboard: React.FC = () => {
         {/* Current Yield Stats Title */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <h2 style={{ 
-            fontFamily: 'inherit', 
-            fontSize: '2rem', 
-            background: 'linear-gradient(135deg, #FF8C00, #FFA500, #FFD700)', 
+            fontFamily: 'var(--font-display)', 
+            fontSize: 'var(--text-3xl)', 
+            background: 'var(--gradient-primary)', 
             WebkitBackgroundClip: 'text', 
             WebkitTextFillColor: 'transparent', 
             margin: 0 
@@ -1422,39 +1318,31 @@ const Dashboard: React.FC = () => {
     const assetsWithBalance = fromAssets.filter(asset => portfolio[asset] && portfolio[asset] > 0);
     
     return (
-      <div className="portfolio-overview">
-        <h3>Portfolio Overview</h3>
-        
-        <div className="portfolio-value">
-          <div className="total-value">${calculatePortfolioValue().toLocaleString()}</div>
-          <div className="value-change">+2.4% today</div>
+      <div className="portfolio-overview-horizontal">
+        <div className="portfolio-header">
+          <h3>Portfolio Overview</h3>
+          <div className="portfolio-value">
+            <div className="total-value">${calculatePortfolioValue().toLocaleString()}</div>
+            <div className="value-change">+2.4% today</div>
+          </div>
         </div>
         
-        <div className="portfolio-assets">
+        <div className="portfolio-assets-grid">
           {assetsWithBalance.map((asset) => {
             const amount = portfolio[asset];
             return (
-              <div key={asset} className="portfolio-asset">
-                <div className="asset-info">
-                  <AssetIcon asset={asset} size={32} />
-                  <div className="asset-details">
-                    <div className="asset-name">{asset}</div>
-                    <div className="asset-amount">{amount}</div>
-                  </div>
+              <div key={asset} className="portfolio-asset-card">
+                <div className="asset-icon-center">
+                  <AssetIcon asset={asset} size={24} />
                 </div>
+                <div className="asset-name">{asset}</div>
+                <div className="asset-amount">{amount}</div>
                 <div className="asset-value">
                   ${((MASTER_ASSETS[asset]?.price || 0) * amount).toLocaleString()}
                 </div>
               </div>
             );
           })}
-        </div>
-        
-        <div className="portfolio-summary">
-          <div className="summary-item">
-            <span className="summary-label">Diversity Score</span>
-            <span className="summary-value">{calculatePortfolioDiversity()}x</span>
-          </div>
         </div>
       </div>
     );
@@ -1521,13 +1409,13 @@ const Dashboard: React.FC = () => {
           <p>Deposit, Swap, Stake, Play, & Score!</p>
         </div>
         {renderNavigation()}
+        
+        {/* Portfolio Overview - Now above main content */}
+        {renderPortfolioOverview()}
+        
         <div className="main-content">
           <div className="content-area">
             {renderActiveSection()}
-          </div>
-          
-          <div className="sidebar">
-            {renderPortfolioOverview()}
           </div>
         </div>
       </div>
