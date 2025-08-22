@@ -1,0 +1,469 @@
+/* ===================================================================
+   HODLHUT DESIGN SYSTEM - TAILWIND-INSPIRED VARIABLES
+   ================================================================= */
+
+:root {
+  /* ===============================================
+     SINGLE PRIMARY PALETTE - WEST-SIDE ORANGE
+     =============================================== */
+  --primary-50: #fff8eb;
+  --primary-100: #fde9c8;
+  --primary-200: #fbd28c;
+  --primary-300: #f9b450;
+  --primary-400: #f7931a;
+  --primary-500: #f1760f;   /* Main Primary - West-side Orange */
+  --primary-600: #d65309;   /* Primary Hover */
+  --primary-700: #b1360c;   /* Primary Active */
+  --primary-800: #902b10;
+  --primary-900: #762311;
+  --primary-950: #440f04;
+
+  /* ===============================================
+     TAILWIND-INSPIRED NEUTRALS
+     =============================================== */
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+  --gray-950: #030712;
+
+  /* ===============================================
+     TAILWIND ORANGE-ONLY COLOR SYSTEM - PROPER CONTRAST
+     =============================================== */
+
+  /* Text Colors - Tailwind contrast rules using orange palette */
+  --text-dark: var(--primary-950);        /* Darkest orange for light backgrounds */
+  --text-medium: var(--primary-900);      /* Dark orange for medium backgrounds */
+  --text-light: var(--primary-50);        /* Light orange for dark backgrounds */
+  --text-muted: var(--primary-700);       /* Muted orange text */
+
+  /* Background Colors - Orange palette only */
+  --bg-lightest: var(--primary-50);       /* Lightest orange */
+  --bg-light: var(--primary-100);         /* Light orange */
+  --bg-medium: var(--primary-200);        /* Medium orange */
+  --bg-main: var(--primary-500);          /* Main orange */
+  --bg-dark: var(--primary-900);          /* Dark orange */
+  --bg-darkest: var(--primary-950);       /* Darkest orange */
+
+  /* Borders - Orange palette */
+  --border-light: var(--primary-200);     /* Light orange border */
+  --border-medium: var(--primary-300);    /* Medium orange border */
+  --border-dark: var(--primary-700);      /* Dark orange border */
+
+  /* Legacy Fallbacks - Orange assignments */
+  --text-primary: var(--primary-950);
+  --text-secondary: var(--primary-700);
+  --surface-primary: var(--primary-100);
+  --border-primary: var(--primary-200);
+
+  /* ===============================================
+     COMPONENT-SPECIFIC VARIABLES
+     =============================================== */
+
+  /* Buttons - ORANGE PALETTE ONLY */
+  --btn-primary-bg: var(--primary-500);
+  --btn-primary-hover: var(--primary-600);
+  --btn-primary-active: var(--primary-700);
+  --btn-primary-text: var(--primary-50);
+
+  --btn-secondary-bg: var(--primary-100);
+  --btn-secondary-hover: var(--primary-200);
+  --btn-secondary-active: var(--primary-300);
+  --btn-secondary-text: var(--primary-950);
+
+  --btn-tertiary-bg: var(--primary-50);
+  --btn-tertiary-hover: var(--primary-100);
+  --btn-tertiary-active: var(--primary-200);
+  --btn-tertiary-text: var(--primary-950);
+
+  /* Navigation - ORANGE PALETTE ONLY */
+  --nav-bg: var(--primary-50);
+  --nav-border: var(--primary-200);
+  --nav-text: var(--primary-950);
+  --nav-text-hover: var(--primary-500);
+
+  /* Cards - ORANGE PALETTE ONLY */
+  --card-bg: var(--primary-100);
+  --card-border: var(--primary-200);
+  --card-shadow: 0 4px 6px -1px var(--primary-300);
+  --card-shadow-hover: 0 10px 15px -3px var(--primary-400);
+  --card-text: var(--primary-950);
+  --card-text-muted: var(--primary-700);
+
+  /* Forms - ORANGE PALETTE ONLY */
+  --input-bg: var(--primary-100);
+  --input-border: var(--primary-200);
+  --input-border-focus: var(--primary-500);
+  --input-text: var(--primary-950);
+  --input-placeholder: var(--primary-600);
+  --input-text-dark: var(--primary-50);
+
+  /* Garden/Planting Theme - ORANGE PALETTE ONLY */
+  --soil-dark: var(--primary-900);                  /* Rich soil */
+  --soil-medium: var(--primary-800);                /* Medium soil */
+  --soil-light: var(--primary-700);                 /* Light soil */
+  --plant-orange: var(--primary-500);               /* Growing plants */
+  --harvest-orange: var(--primary-400);             /* Harvest/rewards */
+
+
+  /* ===============================================
+     SPACING (Tailwind-inspired)
+     =============================================== */
+  --space-1: 0.25rem;   /* 4px */
+  --space-2: 0.5rem;    /* 8px */
+  --space-3: 0.75rem;   /* 12px */
+  --space-4: 1rem;      /* 16px */
+  --space-5: 1.25rem;   /* 20px */
+  --space-6: 1.5rem;    /* 24px */
+  --space-8: 2rem;      /* 32px */
+  --space-10: 2.5rem;   /* 40px */
+  --space-12: 3rem;     /* 48px */
+  --space-16: 4rem;     /* 64px */
+  --space-20: 5rem;     /* 80px */
+  --space-24: 6rem;     /* 96px */
+  --space-32: 8rem;     /* 128px */
+
+  /* ===============================================
+     BORDER RADIUS
+     =============================================== */
+  --radius-sm: 0.125rem;  /* 2px */
+  --radius-base: 0.25rem; /* 4px */
+  --radius-md: 0.375rem;  /* 6px */
+  --radius-lg: 0.5rem;    /* 8px */
+  --radius-xl: 0.75rem;   /* 12px */
+  --radius-2xl: 1rem;     /* 16px */
+  --radius-3xl: 1.5rem;   /* 24px */
+  --radius-full: 9999px;  /* Full rounded */
+
+  /* ===============================================
+     SHADOWS - TAILWIND INSPIRED
+     =============================================== */
+  --shadow-sm: 0 1px 2px 0 var(--gray-200);
+  --shadow-base: 0 1px 3px 0 var(--gray-300), 0 1px 2px 0 var(--gray-200);
+  --shadow-md: 0 4px 6px -1px var(--gray-300), 0 2px 4px -1px var(--gray-200);
+  --shadow-lg: 0 10px 15px -3px var(--gray-300), 0 4px 6px -2px var(--gray-200);
+  --shadow-xl: 0 20px 25px -5px var(--gray-300), 0 10px 10px -5px var(--gray-200);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-inner: inset 0 2px 4px 0 var(--gray-200);
+
+  /* ===============================================
+     TYPOGRAPHY
+     =============================================== */
+  --font-sans: 'Glacial Indifference', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+  --font-display: 'Lilita One', 'Fredoka One', cursive;
+  --font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
+
+  /* Font Sizes with Hierarchy Rules */
+  --text-xs: 0.75rem;     /* 12px - Glacial Indifference */
+  --text-sm: 0.875rem;    /* 14px - Glacial Indifference */
+  --text-base: 1rem;      /* 16px - Glacial Indifference */
+  --text-lg: 1.125rem;    /* 18px - Glacial Indifference */
+  --text-xl: 1.25rem;     /* 20px - Glacial Indifference Bold */
+  --text-2xl: 1.5rem;     /* 24px - Lilita One */
+  --text-3xl: 1.875rem;   /* 30px - Lilita One */
+  --text-4xl: 2.25rem;    /* 36px - Lilita One */
+  --text-5xl: 3rem;       /* 48px - Lilita One */
+  --text-6xl: 3.75rem;    /* 60px - Lilita One */
+
+  /* Font Weights */
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  --font-extrabold: 800;
+
+  /* Line Heights */
+  --leading-tight: 1.25;
+  --leading-snug: 1.375;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+  --leading-loose: 2;
+
+  /* ===============================================
+     GRADIENTS - ORANGE PALETTE ONLY
+     =============================================== */
+  --gradient-primary: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+  --gradient-secondary: linear-gradient(135deg, var(--primary-100), var(--primary-200));
+  --gradient-tertiary: linear-gradient(135deg, var(--primary-50), var(--primary-100));
+  --gradient-success: linear-gradient(135deg, var(--primary-400), var(--primary-600));
+  --gradient-warm: linear-gradient(135deg, var(--primary-200), var(--primary-300));
+  --gradient-hero: linear-gradient(135deg, var(--primary-50), var(--primary-100));
+}
+
+/* ===============================================
+   DARK MODE FOUNDATION (READY FOR FUTURE)
+   =============================================== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Dark mode overrides - ORANGE PALETTE ONLY */
+    --bg-primary: var(--primary-900);
+    --bg-secondary: var(--primary-800);
+    --bg-tertiary: var(--primary-700);
+    
+    --text-primary: var(--primary-50);
+    --text-secondary: var(--primary-200);
+    --text-muted: var(--primary-400);
+    
+    --surface-primary: var(--primary-800);
+    --surface-secondary: var(--primary-700);
+    
+    --border-primary: var(--primary-600);
+    --border-secondary: var(--primary-500);
+    
+    --card-bg: var(--primary-800);
+    --card-shadow: 0 4px 6px -1px var(--primary-600);
+  }
+}
+
+/* Dark mode toggle class (when implemented) */
+.dark {
+  --bg-primary: var(--primary-900);
+  --bg-secondary: var(--primary-800);
+  --bg-tertiary: var(--primary-700);
+  
+  --text-primary: var(--primary-50);
+  --text-secondary: var(--primary-200);
+  --text-muted: var(--primary-400);
+  
+  --surface-primary: var(--primary-800);
+  --surface-secondary: var(--primary-700);
+  
+  --border-primary: var(--primary-600);
+  --border-secondary: var(--primary-500);
+  
+  --card-bg: var(--primary-800);
+  --card-shadow: 0 4px 6px -1px var(--primary-600);
+}
+
+/* ===============================================
+   TYPOGRAPHY UTILITY CLASSES - FONT HIERARCHY
+   =============================================== */
+
+/* Small Text - Glacial Indifference */
+.text-xs {
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-xs) !important;
+  font-weight: var(--font-normal) !important;
+}
+
+.text-sm {
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-sm) !important;
+  font-weight: var(--font-normal) !important;
+}
+
+.text-base {
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-base) !important;
+  font-weight: var(--font-normal) !important;
+}
+
+.text-lg {
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-lg) !important;
+  font-weight: var(--font-normal) !important;
+}
+
+/* XL Text - Glacial Indifference Bold */
+.text-xl {
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-xl) !important;
+  font-weight: var(--font-bold) !important;
+}
+
+/* Large Titles - Lilita One */
+.text-2xl {
+  font-family: var(--font-display) !important;
+  font-size: var(--text-2xl) !important;
+  font-weight: var(--font-normal) !important;
+}
+
+.text-3xl {
+  font-family: var(--font-display) !important;
+  font-size: var(--text-3xl) !important;
+  font-weight: var(--font-normal) !important;
+}
+
+.text-4xl {
+  font-family: var(--font-display) !important;
+  font-size: var(--text-4xl) !important;
+  font-weight: var(--font-normal) !important;
+}
+
+.text-5xl {
+  font-family: var(--font-display) !important;
+  font-size: var(--text-5xl) !important;
+  font-weight: var(--font-normal) !important;
+}
+
+.text-6xl {
+  font-family: var(--font-display) !important;
+  font-size: var(--text-6xl) !important;
+  font-weight: var(--font-normal) !important;
+}
+
+/* Heading Defaults - Following Hierarchy */
+h1 {
+  font-family: var(--font-display) !important;
+  font-size: var(--text-4xl) !important;
+  font-weight: var(--font-normal) !important;
+  /* Color inherited from parent container */
+}
+
+h2 {
+  font-family: var(--font-display) !important;
+  font-size: var(--text-3xl) !important;
+  font-weight: var(--font-normal) !important;
+  /* Color inherited from parent container */
+}
+
+h3 {
+  font-family: var(--font-display) !important;
+  font-size: var(--text-2xl) !important;
+  font-weight: var(--font-normal) !important;
+  /* Color inherited from parent container */
+}
+
+h4 {
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-xl) !important;
+  font-weight: var(--font-bold) !important;
+  /* Color inherited from parent container */
+}
+
+h5,
+h6 {
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-lg) !important;
+  font-weight: var(--font-semibold) !important;
+  /* Color inherited from parent container */
+}
+
+/* Body Text */
+p,
+body {
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-base) !important;
+  font-weight: var(--font-normal) !important;
+  /* Color inherited from parent container - allows contrast-aware styling */
+  line-height: var(--leading-normal) !important;
+}
+
+/* Override specific large titles to use Lilita One */
+.hero-section h1,
+.hero-card-title,
+.garden-title,
+.fields-title,
+.section-title,
+.cta-title {
+  font-family: var(--font-display) !important;
+}
+
+/* Ensure everything else uses Glacial Indifference */
+.hero-section p,
+.hero-card-subtitle,
+.garden-subtitle,
+.fields-subtitle,
+.cta-subtitle,
+.nav-btn,
+.button,
+.btn,
+.asset-name,
+.transaction-type,
+.dex-name,
+.modal-header h2,
+.processing-container h3,
+.success-container h3,
+label,
+.amount-label,
+.wallet-selection-title,
+.feature-title,
+.category-title,
+.footer-title,
+.logo-text,
+.dex-badge,
+.stat-label,
+.stat-value,
+.solutions-header,
+.solution-title {
+  font-family: var(--font-sans) !important;
+}
+
+/* ===============================================
+   TAILWIND ORANGE PALETTE UTILITY CLASSES - PROPER CONTRAST
+   =============================================== */
+
+/* 🎯 BACKGROUND + TEXT PAIRS - Tailwind Orange Contrast Rules */
+.bg-orange-50 {
+  background: var(--primary-50) !important;
+  color: var(--primary-950) !important;
+}
+
+.bg-orange-100 {
+  background: var(--primary-100) !important;
+  color: var(--primary-950) !important;
+}
+
+.bg-orange-200 {
+  background: var(--primary-200) !important;
+  color: var(--primary-950) !important;
+}
+
+.bg-orange-500 {
+  background: var(--primary-500) !important;
+  color: var(--primary-50) !important;
+}
+
+.bg-orange-600 {
+  background: var(--primary-600) !important;
+  color: var(--primary-50) !important;
+}
+
+.bg-orange-900 {
+  background: var(--primary-900) !important;
+  color: var(--primary-50) !important;
+}
+
+.bg-orange-950 {
+  background: var(--primary-950) !important;
+  color: var(--primary-50) !important;
+}
+
+/* 🎯 BORDER UTILITIES - ORANGE PALETTE */
+.border-orange-200 {
+  border-color: var(--primary-200) !important;
+}
+
+.border-orange-300 {
+  border-color: var(--primary-300) !important;
+}
+
+.border-orange-500 {
+  border-color: var(--primary-500) !important;
+}
+
+/* 🎯 TEXT UTILITIES - ORANGE PALETTE */
+.text-orange-50 {
+  color: var(--primary-50) !important;
+}
+
+.text-orange-500 {
+  color: var(--primary-500) !important;
+}
+
+.text-orange-700 {
+  color: var(--primary-700) !important;
+}
+
+.text-orange-950 {
+  color: var(--primary-950) !important;
+}
+
+/* 🎯 TAILWIND APPROACH - No universal overrides needed!
+   Each utility class sets proper background + text contrast pairs */
