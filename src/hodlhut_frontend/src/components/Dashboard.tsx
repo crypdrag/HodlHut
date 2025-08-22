@@ -342,9 +342,6 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // Debug: Check what stats are loaded
-  console.log('🔍 KongSwap stats loaded:', DEX_OPTIONS_ENHANCED.KongSwap.stats);
-  console.log('🔍 Full DEX_OPTIONS object:', DEX_OPTIONS);
 
   // Countdown timer
   useEffect(() => {
@@ -354,6 +351,64 @@ const Dashboard: React.FC = () => {
     
     return () => clearInterval(timer);
   }, []);
+
+  // Force all numbers to black - JavaScript override
+  useEffect(() => {
+    const forceNumbersBlack = () => {
+      // Find all elements that might contain numbers
+      const selectors = [
+        '.portfolio-overview *',
+        '.asset-selector.to *', 
+        '.preview-section *',
+        '.preview-grid *',
+        '.smart-solutions-panel *',
+        '.solution-receive',
+        '.solution-cost',
+        '.solution-receive strong',
+        '.solution-cost strong',
+        '.price-impact',
+        '.balance-text',
+        '.preview-value',
+        '.asset-value',
+        '.total-value',
+        '.summary-value'
+      ];
+
+      selectors.forEach(selector => {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(el => {
+          const element = el as HTMLElement;
+          const text = element.textContent || '';
+          
+          // Check if element contains numbers, currency symbols, or percentage
+          if (text.match(/[\d$%,.]/)) {
+            element.style.setProperty('color', '#000000', 'important');
+            element.style.setProperty('font-weight', '600', 'important');
+          }
+        });
+      });
+    };
+
+    // Run immediately
+    forceNumbersBlack();
+
+    // Run after a small delay to catch dynamically loaded content
+    const timeoutId = setTimeout(forceNumbersBlack, 100);
+
+    // Set up mutation observer to catch dynamic changes
+    const observer = new MutationObserver(forceNumbersBlack);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['style', 'class']
+    });
+
+    return () => {
+      clearTimeout(timeoutId);
+      observer.disconnect();
+    };
+  }, [portfolio, smartSolutions, swapAnalysis]); // Re-run when data changes
   
   // Auto-analyze swap when parameters change
   useEffect(() => {
@@ -861,8 +916,8 @@ const Dashboard: React.FC = () => {
                   Rate: {swapAnalysis?.rate ? `1 ${fromAsset} = ${formatAmount(swapAnalysis.rate)} ${toAsset}` : '--'}
                 </span>
                 <span className="balance-text price-impact" style={{
-                  color: swapAnalysis?.priceImpact > 0.05 ? '#FF6347' : 
-                         swapAnalysis?.priceImpact > 0.02 ? '#FF8C00' : '#32CD32'
+                  color: '#000000',
+                  fontWeight: 600
                 }}>
                   Impact: {swapAnalysis?.priceImpact ? `${(swapAnalysis.priceImpact * 100).toFixed(2)}%` : '--'}
                 </span>
@@ -1055,7 +1110,7 @@ const Dashboard: React.FC = () => {
                   {/* Show confirmation when selected */}
                   {isSelected && (
                     <div className="solution-confirmation">
-                      <div style={{ color: '#28a745', fontWeight: 600, marginBottom: '0.5rem' }}>
+                      <div style={{ color: '#000000', fontWeight: 600, marginBottom: '0.5rem' }}>
                         ✅ Solution Approved
                       </div>
                       <button 
@@ -1077,7 +1132,7 @@ const Dashboard: React.FC = () => {
           {(() => {
             if (selectedSolution !== null && !showAllSolutions) {
               return (
-                <div style={{ textAlign: 'center', marginTop: '1rem', color: '#28a745', fontSize: '0.9rem', background: '#d4edda', padding: '0.75rem', borderRadius: '8px', border: '1px solid #c3e6cb' }}>
+                <div style={{ textAlign: 'center', marginTop: '1rem', color: '#000000', fontSize: '0.9rem', background: '#d4edda', padding: '0.75rem', borderRadius: '8px', border: '1px solid #c3e6cb' }}>
                   🎉 <strong>Perfect!</strong> You've chosen your fee payment method. Click "Execute & Continue Swap" above to proceed.
                 </div>
               );
@@ -1092,7 +1147,7 @@ const Dashboard: React.FC = () => {
               const firstSolution = smartSolutions[0];
               if (firstSolution.badge === 'RECOMMENDED') {
                 return (
-                  <div style={{ textAlign: 'center', marginTop: '1rem', color: '#28a745', fontSize: '0.9rem', background: '#f8f9fa', padding: '0.75rem', borderRadius: '8px', border: '1px solid #d4edda' }}>
+                  <div style={{ textAlign: 'center', marginTop: '1rem', color: '#000000', fontSize: '0.9rem', background: '#f8f9fa', padding: '0.75rem', borderRadius: '8px', border: '1px solid #d4edda' }}>
                     ✅ <strong>Best Option Found!</strong> This is the easiest way to handle your fee payment. Approve it or see alternatives.
                   </div>
                 );
@@ -1101,19 +1156,19 @@ const Dashboard: React.FC = () => {
             
             if (hasRecommended) {
               return (
-                <div style={{ textAlign: 'center', marginTop: '1rem', color: '#28a745', fontSize: '0.9rem', background: '#f8f9fa', padding: '0.75rem', borderRadius: '8px', border: '1px solid #d4edda' }}>
+                <div style={{ textAlign: 'center', marginTop: '1rem', color: '#000000', fontSize: '0.9rem', background: '#f8f9fa', padding: '0.75rem', borderRadius: '8px', border: '1px solid #d4edda' }}>
                   ✅ <strong>Great news!</strong> We found easy solutions for your fee payments. The recommended option is usually the best choice.
                 </div>
               );
             } else if (hasRequiredSteps) {
               return (
-                <div style={{ textAlign: 'center', marginTop: '1rem', color: '#dc3545', fontSize: '0.9rem', background: '#f8f9fa', padding: '0.75rem', borderRadius: '8px', border: '1px solid #f5c6cb' }}>
+                <div style={{ textAlign: 'center', marginTop: '1rem', color: '#000000', fontSize: '0.9rem', background: '#f8f9fa', padding: '0.75rem', borderRadius: '8px', border: '1px solid #f5c6cb' }}>
                   ⚠️ <strong>Manual Steps Required:</strong> You'll need to complete some DEX swaps first to get the required fee tokens.
                 </div>
               );
             } else if (hasAlternatives) {
               return (
-                <div style={{ textAlign: 'center', marginTop: '1rem', color: '#6c757d', fontSize: '0.9rem', background: '#f8f9fa', padding: '0.75rem', borderRadius: '8px', border: '1px solid #dee2e6' }}>
+                <div style={{ textAlign: 'center', marginTop: '1rem', color: '#000000', fontSize: '0.9rem', background: '#f8f9fa', padding: '0.75rem', borderRadius: '8px', border: '1px solid #dee2e6' }}>
                   💡 <strong>Alternative Options:</strong> Here are different ways to handle fee payments based on your portfolio.
                 </div>
               );

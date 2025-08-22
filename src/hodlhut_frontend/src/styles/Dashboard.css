@@ -2673,3 +2673,276 @@
     margin-bottom: 0;
   }
 }
+
+/* ===============================================
+   UNIVERSAL NUMBER STYLING - NO BROWN NUMBERS
+   =============================================== */
+
+/* All numbers, token amounts, decimals, and USD values should be black */
+.token-amount,
+.decimal-number,
+.usd-amount,
+.balance-amount,
+.asset-balance,
+.price-display,
+.amount-display,
+.fee-amount,
+.swap-amount,
+.portfolio-value,
+.garden-amount,
+.planted-amount,
+.harvest-amount,
+span[class*="amount"],
+span[class*="balance"],
+span[class*="price"],
+div[class*="amount"],
+div[class*="balance"],
+div[class*="price"],
+.balance-text,
+.amount-input,
+.preview-value,
+.solution-amount,
+.route-amount {
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+/* Override specific brown number elements from existing CSS */
+.stat-value,
+.asset-value,
+.summary-value,
+.total-value,
+.route-detail-value,
+.preview-value,
+.fee-breakdown .fee-item span:last-child,
+.portfolio-item .asset-value,
+.balance-row .balance-text,
+input[type="number"],
+.max-button + span {
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+/* Override brown colors when used inline for numbers */
+*[style*="color: #8B4513"] input,
+*[style*="color: #8B4513"] .amount,
+*[style*="color: #8B4513"] .balance,
+*[style*="color: #8B4513"] .value {
+  color: #000000 !important;
+}
+
+/* Specific overrides for common brown number patterns */
+.card-balance,
+.asset-card .asset-balance,
+.portfolio-item .balance,
+.garden-balance,
+.swap-preview .amount,
+.fee-breakdown .amount,
+.bonus-multiplier,
+.equivalent-amount,
+.harvest-btn {
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+/* Portfolio Overview - Override all brown numbers */
+.portfolio-overview .asset-value,
+.portfolio-overview .total-value,
+.portfolio-overview .summary-value,
+.portfolio-overview span,
+.portfolio-overview div[class*="value"],
+.portfolio-overview .portfolio-item span:last-child,
+.portfolio-overview .category-item span:last-child {
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+/* Transaction Preview - TO "You'll Receive" field */
+.swap-grid .asset-selector.to .equivalent-amount,
+.swap-grid .asset-selector.to input,
+.swap-grid .asset-selector.to .balance-text,
+.asset-selector.to .amount-input,
+.asset-selector.to .equivalent-amount,
+.preview-section .preview-value,
+.preview-grid .preview-value {
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+/* Smart Solutions - Override green and red numbers */
+.smart-solutions-panel .solution-amount,
+.smart-solutions-panel span[style*="color: green"],
+.smart-solutions-panel span[style*="color: #32cd32"],
+.smart-solutions-panel span[style*="color: #00ff00"],
+.smart-solutions-panel span[style*="color: red"],
+.smart-solutions-panel span[style*="color: #ff0000"],
+.smart-solutions-panel span[style*="color: #dc3545"],
+.smart-solutions-panel .cost,
+.smart-solutions-panel .receive,
+.smart-solutions-panel .amount {
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+/* Override ANY colored numbers anywhere */
+span[style*="color: green"],
+span[style*="color: #32cd32"],
+span[style*="color: #32CD32"],
+span[style*="color: #00ff00"],
+span[style*="color: red"],
+span[style*="color: #ff0000"],
+span[style*="color: #FF6347"],
+span[style*="color: #FF8C00"],
+span[style*="color: #dc3545"],
+span[style*="color: #28a745"],
+div[style*="color: green"],
+div[style*="color: #32cd32"],
+div[style*="color: #32CD32"],
+div[style*="color: #00ff00"],
+div[style*="color: red"],
+div[style*="color: #ff0000"],
+div[style*="color: #FF6347"],
+div[style*="color: #FF8C00"],
+div[style*="color: #dc3545"],
+div[style*="color: #28a745"] {
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+/* Target price-impact specifically (inline styled elements) */
+.price-impact,
+.balance-text.price-impact,
+span.price-impact,
+.solution-confirmation div,
+.solution-confirmation span {
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+/* Catch all potential numeric displays that might use inline colors */
+.enhanced-swap-interface *[style*="color:"],
+.portfolio-overview *[style*="color:"],
+.smart-solutions-panel *[style*="color:"],
+.preview-section *[style*="color:"],
+.transaction-preview *[style*="color:"] {
+  /* Override only if it appears to be a number/amount */
+}
+
+/* More specific targeting for numbered content */
+*[style*="color:"] + *[style*="color:"] /* Adjacent colored elements often numbers */,
+.solution-details *[style*="color:"],
+.route-details *[style*="color:"],
+.fee-breakdown *[style*="color:"] {
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+/* ===============================================
+   AGGRESSIVE OVERRIDES FOR PERSISTENT COLORS
+   =============================================== */
+
+/* Portfolio Overview - Force all numbers to black */
+.portfolio-overview * {
+  color: #000000 !important;
+}
+
+/* Restore text labels but keep numbers black */
+.portfolio-overview h3,
+.portfolio-overview .portfolio-label,
+.portfolio-overview .category-title {
+  color: #8B4513 !important; /* Restore brown for labels */
+}
+
+/* Swap Assets TO field - Force black numbers */
+.asset-selector.to *,
+.asset-selector.to input,
+.asset-selector.to .balance-text,
+.asset-selector.to .equivalent-amount,
+.asset-selector.to .amount-input {
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+/* Restore label text */
+.asset-selector.to .asset-label {
+  color: #8B4513 !important;
+}
+
+/* Transaction Preview - Force all values to black */
+.preview-section *,
+.preview-grid *,
+.preview-item .preview-value,
+.fees-breakdown *,
+.total-section * {
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+/* Restore labels */
+.preview-item .preview-label,
+.preview-label,
+.fees-breakdown .preview-label {
+  color: #8B4513 !important;
+  font-weight: 600 !important;
+}
+
+/* Smart Solutions - Nuclear option for green/red numbers */
+.smart-solutions-panel * {
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+/* Restore specific text elements */
+.smart-solutions-panel .solutions-header,
+.smart-solutions-panel .solution-title,
+.smart-solutions-panel strong {
+  color: #8B4513 !important;
+}
+
+/* Override ALL inline styles in these sections */
+.portfolio-overview [style],
+.asset-selector.to [style],
+.preview-section [style],
+.preview-grid [style],
+.smart-solutions-panel [style] {
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+/* Fix specific green/red CSS classes */
+.solution-receive,
+.solution-cost {
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+/* Override strong tags in solution details */
+.solution-receive strong,
+.solution-cost strong,
+.solution-details strong {
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+/* ===============================================
+   FINAL NUCLEAR OPTION - MAXIMUM SPECIFICITY
+   =============================================== */
+
+html body .dashboard .dashboard-container * {
+  color: black !important;
+}
+
+html body .dashboard .dashboard-container h1,
+html body .dashboard .dashboard-container h2, 
+html body .dashboard .dashboard-container h3,
+html body .dashboard .dashboard-container h4,
+html body .dashboard .dashboard-container .card-title,
+html body .dashboard .dashboard-container .card-subtitle,
+html body .dashboard .dashboard-container .asset-label,
+html body .dashboard .dashboard-container .preview-label,
+html body .dashboard .dashboard-container .category-title,
+html body .dashboard .dashboard-container .solutions-header,
+html body .dashboard .dashboard-container .dex-header,
+html body .dashboard .dashboard-container .section-nav button {
+  color: #8B4513 !important;
+}
