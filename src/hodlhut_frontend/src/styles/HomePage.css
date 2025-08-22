@@ -1,0 +1,540 @@
+/* Custom Font Face Declarations */
+@font-face {
+  font-family: 'Glacial Indifference';
+  src: url('../../assets/fonts/GlacialIndifference-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Glacial Indifference';
+  src: url('../../assets/fonts/GlacialIndifference-Bold.woff2') format('woff2');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Google Fonts Import for Lilita One */
+@import url('https://fonts.googleapis.com/css2?family=Lilita+One&display=swap');
+
+/* Universal Font Classes */
+.title-font {
+  font-family: 'Lilita One', 'Fredoka One', cursive;
+}
+
+.subtitle-font {
+  font-family: 'Glacial Indifference', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+}
+
+.body-font {
+  font-family: 'Glacial Indifference', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+}
+
+/* Homepage Container */
+.homepage {
+  font-family: 'Glacial Indifference', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+  overflow-x: hidden;
+}
+
+/* Header */
+.header {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  padding: 1rem 2rem;
+  background: rgba(255, 248, 220, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(34, 139, 34, 0.2);
+  z-index: 1000;
+}
+
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.logo {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #8B4513;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Lilita One', 'Fredoka One', cursive;
+}
+
+.logo-image {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+}
+
+.logo-text {
+  font-weight: 800;
+  color: #8B4513;
+}
+
+.user-principal {
+  margin-left: 1rem;
+  font-size: 0.9rem;
+  color: #32CD32;
+  font-weight: 600;
+  background: rgba(50, 205, 50, 0.1);
+  padding: 0.25rem 0.75rem;
+  border-radius: 15px;
+  border: 1px solid #32CD32;
+}
+
+.nav-buttons {
+  display: flex;
+  gap: 1rem;
+}
+
+.nav-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 25px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  font-family: 'Glacial Indifference', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+}
+
+.nav-btn.primary {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #8B4513;
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+}
+
+.nav-btn.secondary {
+  background: rgba(34, 139, 34, 0.1);
+  color: #228B22;
+  border: 2px solid #228B22;
+}
+
+.nav-btn.tertiary {
+  background: rgba(139, 69, 19, 0.1);
+  color: #8B4513;
+  border: 2px solid #8B4513;
+}
+
+/* Navigation Dropdown */
+.nav-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  right: 0;
+  background: white;
+  min-width: 200px;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+  border-radius: 10px;
+  border: 2px solid #FFD700;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.nav-dropdown:hover .dropdown-content {
+  display: block;
+}
+
+.dropdown-content a {
+  color: #8B4513;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+  transition: background-color 0.3s ease;
+}
+
+.dropdown-content a:hover {
+  background: rgba(255, 215, 0, 0.1);
+}
+
+.nav-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+}
+
+/* Hero Section */
+.hero {
+  height: 70vh;
+  min-height: 500px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  margin-top: 80px;
+  background: #4A3728;
+  padding-bottom: 15vh;
+}
+
+/* Animation Container */
+.hero-animation-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  transition: opacity 2s ease-out;
+}
+
+.hero-animation-container.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Hero Animation Videos */
+.hero-animation-landscape {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  opacity: 0;
+  transition: opacity 0.5s ease-in;
+}
+
+.hero-animation-landscape.loaded {
+  opacity: 1;
+}
+
+/* Hero Background */
+.hero-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.hero-bg-svg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* Hero Content */
+.hero-content {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 800px;
+  padding: 0 2rem;
+}
+
+/* Hero Card */
+.hero-card {
+  background: rgba(255, 248, 220, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 25px;
+  border: 3px solid #FFD700;
+  padding: 3rem 2rem;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  max-width: 500px;
+  transition: transform 0.3s ease;
+}
+
+.hero-card:hover {
+  transform: translateY(-5px);
+}
+
+.hero-card-title {
+  font-size: 3rem;
+  color: #8B4513;
+  margin-bottom: 1rem;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+}
+
+.hero-card-subtitle {
+  font-size: 1.25rem;
+  color: #666;
+  margin-bottom: 2rem;
+  line-height: 1.4;
+}
+
+.hero-card-button {
+  padding: 1rem 2.5rem;
+  border: none;
+  border-radius: 25px;
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #8B4513;
+  font-weight: 600;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+}
+
+.hero-card-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 215, 0, 0.6);
+}
+
+
+/* Container */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+/* Features Section */
+.features {
+  padding: 6rem 0;
+  background: #4A3728;
+}
+
+.section-title {
+  text-align: center;
+  font-size: 2.5rem;
+  color: #FFA500;
+  margin-bottom: 3rem;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.feature-card {
+  background: rgba(255, 248, 220, 0.95);
+  padding: 2rem;
+  border-radius: 20px;
+  text-align: center;
+  border: 3px solid #FFD700;
+  transition: transform 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+}
+
+.feature-icon {
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.feature-title {
+  font-size: 1.5rem;
+  color: #8B4513;
+  margin-bottom: 1rem;
+}
+
+.feature-description {
+  color: #666;
+  line-height: 1.6;
+}
+
+/* Supported Assets Section */
+.supported-assets {
+  padding: 6rem 0;
+  background: rgba(255, 248, 220, 0.95);
+}
+
+.supported-assets .section-title {
+  color: #32CD32;
+}
+
+/* Deposit Categories */
+.deposit-category {
+  margin-bottom: 3rem;
+}
+
+.deposit-category:last-child {
+  margin-bottom: 0;
+}
+
+.category-description {
+  text-align: center;
+  color: #666;
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+}
+
+/* Asset Grid */
+.asset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.asset-card {
+  background: rgba(255, 215, 0, 0.1);
+  border: 2px solid #FFD700;
+  border-radius: 15px;
+  padding: 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.asset-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(255, 215, 0, 0.3);
+  border-color: #32CD32;
+}
+
+.asset-icon-container {
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.asset-name {
+  font-weight: 600;
+  color: #8B4513;
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.asset-balance {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.category-title {
+  font-size: 1.25rem;
+  color: #8B4513;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+/* CTA Section */
+.cta {
+  padding: 6rem 0;
+  background: linear-gradient(135deg, #32CD32, #228B22);
+  text-align: center;
+}
+
+.cta-content {
+  color: white;
+}
+
+.cta-title {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.cta-subtitle {
+  font-size: 1.25rem;
+  margin-bottom: 2rem;
+  opacity: 0.9;
+}
+
+.cta-button {
+  padding: 1.25rem 3rem;
+  border: none;
+  border-radius: 25px;
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #8B4513;
+  font-weight: 600;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+}
+
+.cta-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 215, 0, 0.6);
+}
+
+/* Footer */
+.footer {
+  padding: 3rem 0;
+  background: #2C1810;
+  color: white;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.footer-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.footer-links {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.footer-link {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.footer-link:hover {
+  color: #FFD700;
+}
+
+.footer-bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  padding-top: 1rem;
+  text-align: center;
+}
+
+.footer-text {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 2.5rem;
+  }
+  
+  .hero-subtitle {
+    font-size: 1.1rem;
+  }
+  
+  .hero-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .nav-buttons {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .footer-content {
+    flex-direction: column;
+    text-align: center;
+  }
+}

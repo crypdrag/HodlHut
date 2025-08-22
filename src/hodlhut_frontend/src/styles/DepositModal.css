@@ -1,0 +1,345 @@
+/* Deposit Modal Styles */
+.deposit-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 20px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid #DDD;
+  padding-bottom: 1rem;
+}
+
+.modal-header h2 {
+  color: #8B4513;
+  margin: 0;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #999;
+  padding: 0;
+}
+
+.close-btn:hover {
+  color: #666;
+}
+
+/* Step 1: Amount Input */
+.deposit-asset-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.selected-asset-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.selected-asset-name {
+  color: #8B4513;
+  margin: 0;
+}
+
+.amount-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #8B4513;
+}
+
+.deposit-amount-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #32CD32;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: right;
+  margin-bottom: 2rem;
+}
+
+.deposit-amount-input:focus {
+  outline: none;
+  border-color: #228B22;
+  box-shadow: 0 0 0 3px rgba(50, 205, 50, 0.1);
+}
+
+.connect-wallet-btn {
+  width: 100%;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #32CD32, #228B22);
+  color: white;
+  border: none;
+  border-radius: 15px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.connect-wallet-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(50, 205, 50, 0.4);
+}
+
+/* Step 2: Wallet Selection */
+.wallet-selection-title {
+  color: #8B4513;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.wallet-grid {
+  display: grid;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.wallet-option {
+  background: white;
+  border: 2px solid #DDD;
+  border-radius: 15px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  color: #8B4513;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.wallet-option:hover {
+  border-color: #32CD32;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(50, 205, 50, 0.3);
+}
+
+.wallet-icon {
+  font-size: 1.2rem;
+}
+
+.wallet-name {
+  font-size: 1rem;
+}
+
+/* Step 3: Processing */
+.processing-container {
+  text-align: center;
+  padding: 2rem;
+}
+
+.processing-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.processing-container h3 {
+  color: #8B4513;
+  margin-bottom: 1rem;
+}
+
+.processing-message {
+  color: #666;
+  font-size: 1rem;
+  margin-bottom: 2rem;
+}
+
+/* Block Confirmation Animations */
+.bitcoin-confirmation,
+.ethereum-confirmation,
+.solana-confirmation {
+  background: #f8f9fa;
+  border: 2px solid #FFD700;
+  border-radius: 15px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+}
+
+.ethereum-confirmation {
+  border-color: #627eea;
+  background: #f0f7ff;
+}
+
+.solana-confirmation {
+  border-color: #9945FF;
+  background: #f8f5ff;
+}
+
+.confirmation-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.confirmation-progress {
+  margin: 1rem 0;
+}
+
+.confirmation-bar {
+  background: #E0E0E0;
+  height: 20px;
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 1rem 0;
+  border: 2px solid #DDD;
+}
+
+.confirmation-fill {
+  height: 100%;
+  width: 0%;
+  transition: width 0.5s ease;
+  border-radius: 8px;
+  animation: confirmationProgress 8s ease-in-out forwards;
+}
+
+.confirmation-fill.bitcoin {
+  background: linear-gradient(90deg, #FFA500, #32CD32);
+}
+
+.confirmation-fill.ethereum {
+  background: linear-gradient(90deg, #627eea, #32CD32);
+}
+
+.confirmation-fill.solana {
+  background: linear-gradient(90deg, #9945FF, #32CD32);
+}
+
+.confirmation-status {
+  font-weight: 600;
+  color: #8B4513;
+  margin: 0.5rem 0;
+}
+
+.confirmation-count {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #FFA500;
+  font-family: monospace;
+}
+
+.ethereum-confirmation .confirmation-count {
+  color: #627eea;
+}
+
+.solana-confirmation .confirmation-count {
+  color: #9945FF;
+}
+
+.confirmation-count.complete {
+  color: #32CD32;
+}
+
+.confirmation-info {
+  font-style: italic;
+  font-size: 0.9rem;
+  color: #666;
+  margin-top: 1rem;
+}
+
+/* Step 4: Success */
+.success-container {
+  text-align: center;
+  padding: 2rem;
+}
+
+.success-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.success-container h3 {
+  color: #32CD32;
+  margin-bottom: 1rem;
+}
+
+.success-message {
+  color: #666;
+  margin-bottom: 2rem;
+}
+
+.continue-btn {
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #32CD32, #228B22);
+  color: white;
+  border: none;
+  border-radius: 15px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.continue-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(50, 205, 50, 0.4);
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% { 
+    opacity: 1; 
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes confirmationProgress {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .modal-content {
+    padding: 1rem;
+    margin: 1rem;
+    max-height: 90vh;
+  }
+  
+  .selected-asset-icon {
+    font-size: 2rem;
+  }
+  
+  .confirmation-icon {
+    font-size: 1.5rem;
+  }
+  
+  .processing-icon,
+  .success-icon {
+    font-size: 2rem;
+  }
+}

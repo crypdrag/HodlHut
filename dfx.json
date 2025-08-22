@@ -1,5 +1,19 @@
 {
   "canisters": {
+    "internet_identity": {
+      "type": "pull",
+      "id": "rdmx6-jaaaa-aaaaa-aaadq-cai"
+    },
+    "hodlhut_frontend": {
+      "dependencies": ["hodlhut_backend"],
+      "frontend": {
+        "entrypoint": "dist/hodlhut_frontend/index.html"
+      },
+      "source": [
+        "dist/hodlhut_frontend/"
+      ],
+      "type": "assets"
+    },
     "hodlhut_backend": {
       "main": "src/hodlhut_backend/main.mo",
       "type": "motoko"
@@ -11,6 +25,11 @@
       "packtool": ""
     }
   },
-  "output_env_file": ".env",
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:4943",
+      "type": "ephemeral"
+    }
+  },
   "version": 1
 }
