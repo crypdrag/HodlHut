@@ -221,21 +221,24 @@
 .confirmation-fill {
   height: 100%;
   width: 0%;
-  transition: width 0.5s ease;
   border-radius: 8px;
-  animation: confirmationProgress 8s ease-in-out forwards;
+  animation: confirmationProgress 8s ease-in-out forwards, shimmer 2s ease-in-out infinite;
+  animation-fill-mode: forwards;
 }
 
 .confirmation-fill.bitcoin {
-  background: linear-gradient(90deg, var(--secondary-500), var(--primary-500));
+  background: linear-gradient(90deg, #f7931a, #ff6b35, #f1760f);
+  background-size: 200% 100%;
 }
 
 .confirmation-fill.ethereum {
-  background: linear-gradient(90deg, var(--info), var(--primary-500));
+  background: linear-gradient(90deg, #627eea, #4285f4, #0066cc);
+  background-size: 200% 100%;
 }
 
 .confirmation-fill.solana {
-  background: linear-gradient(90deg, var(--primary-500), var(--primary-500));
+  background: linear-gradient(90deg, #9945ff, #14f195, #00d4aa);
+  background-size: 200% 100%;
 }
 
 .confirmation-status {
@@ -323,6 +326,11 @@
 @keyframes confirmationProgress {
   0% { width: 0%; }
   100% { width: 100%; }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 /* Responsive Design */

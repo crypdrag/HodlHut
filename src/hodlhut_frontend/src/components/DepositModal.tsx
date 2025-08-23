@@ -402,13 +402,13 @@ const DepositModal: React.FC<DepositModalProps> = ({
         
         {/* Block confirmation visualizations would go here */}
         {(['BTC'].includes(selectedAsset) && processingMessage === '') && (
-          <BitcoinConfirmationAnimation />
+          <BitcoinConfirmationAnimation key={`btc-${Date.now()}`} />
         )}
         {(['ETH', 'USDC', 'USDT'].includes(selectedAsset) && processingMessage === '') && (
-          <EthereumConfirmationAnimation />
+          <EthereumConfirmationAnimation key={`eth-${Date.now()}`} />
         )}
         {(['SOL'].includes(selectedAsset) && processingMessage === '') && (
-          <SolanaConfirmationAnimation />
+          <SolanaConfirmationAnimation key={`sol-${Date.now()}`} />
         )}
       </div>
     </div>
