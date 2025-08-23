@@ -1228,7 +1228,7 @@ const Dashboard: React.FC = () => {
             {isPlanted ? (
               <>
                 🌱 Growing (45 days)
-                <br />Yield: +${weeklyYield.toFixed(0)}/week
+                <br />Yield/Week
               </>
             ) : (
               <>
@@ -1238,8 +1238,8 @@ const Dashboard: React.FC = () => {
             )}
           </div>
           {isPlanted ? (
-            <button className="harvest-btn" onClick={() => alert(`🌾 Harvested $${weeklyYield.toFixed(0)} from ${asset}!`)}>
-              Harvest ${weeklyYield.toFixed(0)} 🌾
+            <button className="harvest-btn" onClick={() => alert(`🌾 Harvested from ${asset}!`)} style={{ color: '#440f04', textAlign: 'center' }}>
+              Claim Yield
             </button>
           ) : (
             <button className="plant-btn" onClick={() => alert(`🌱 Plant ${asset} feature coming soon!`)}>
