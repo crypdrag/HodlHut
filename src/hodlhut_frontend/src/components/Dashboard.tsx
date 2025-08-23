@@ -760,7 +760,7 @@ const Dashboard: React.FC = () => {
               <label className="asset-label swap-white-label">Amount</label>
               <input 
                 type="number" 
-                className="amount-input swap-brown-input" 
+                className="amount-input" 
                 placeholder="0.00" 
                 step="0.000001" 
                 min="0"
@@ -833,7 +833,7 @@ const Dashboard: React.FC = () => {
             
             <div>
               <label className="asset-label swap-white-label">You'll Receive</label>
-              <div className="amount-input equivalent-amount swap-brown-input">
+              <div className="amount-input equivalent-amount">
                 {swapAnalysis?.outputAmount ? formatAmount(swapAnalysis.outputAmount) : '0'}
               </div>
               <div className="balance-row">

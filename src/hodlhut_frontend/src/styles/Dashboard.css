@@ -386,10 +386,11 @@
   color: white !important;
 }
 
-/* Amount and You'll Receive input fields */
-.swap-brown-input {
-  color: #440f04 !important;
-  background-color: #fff8eb !important;
+/* Amount and You'll Receive input fields - Using Primary Palette */
+.amount-input,
+.equivalent-amount {
+  background: var(--primary-50) !important;  /* #fff8eb */
+  color: var(--primary-950) !important;      /* #440f04 */
 }
 
 /* ===============================================
@@ -2352,8 +2353,6 @@
 }
 
 .equivalent-amount {
-  background: var(--tertiary-50);
-  color: var(--text-primary);
   cursor: not-allowed;
   border-color: var(--border-primary);
 }
