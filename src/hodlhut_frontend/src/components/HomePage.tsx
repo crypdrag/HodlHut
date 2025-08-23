@@ -41,8 +41,8 @@ const HomePage: React.FC = () => {
 
   const handleGetHut = async () => {
     if (isAuthenticated) {
-      // User is already authenticated, navigate to dashboard
-      navigate('/dashboard');
+      // User is already authenticated, navigate to Add Assets
+      navigate('/dashboard', { state: { activeSection: 'addAssets' } });
     } else {
       // Show Internet Identity login modal
       setShowIILogin(true);
@@ -51,8 +51,8 @@ const HomePage: React.FC = () => {
 
   const handleMyHuts = async () => {
     if (isAuthenticated) {
-      // User is authenticated, show their huts (for now, navigate to dashboard)
-      navigate('/dashboard');
+      // User is authenticated, navigate to Add Assets  
+      navigate('/dashboard', { state: { activeSection: 'addAssets' } });
     } else {
       // Show Internet Identity login modal
       setShowIILogin(true);
@@ -64,7 +64,8 @@ const HomePage: React.FC = () => {
       const success = await login();
       if (success) {
         setShowIILogin(false);
-        navigate('/dashboard');
+        // Navigate to Dashboard with Add Assets section active
+        navigate('/dashboard', { state: { activeSection: 'addAssets' } });
       }
     } catch (error) {
       console.error('Internet Identity login failed:', error);

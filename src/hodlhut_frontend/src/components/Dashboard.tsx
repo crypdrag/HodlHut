@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import DepositModal from './DepositModal';
 import { MASTER_ASSETS, Portfolio } from '../../assets/master_asset_data';
 import { 
@@ -225,7 +225,11 @@ const PORTFOLIO_SCENARIOS = {
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState('addAssets');
+  const location = useLocation();
+  
+  // Check if navigation state specifies an active section
+  const initialSection = (location.state as any)?.activeSection || 'addAssets';
+  const [activeSection, setActiveSection] = useState(initialSection);
   const [currentScenario, setCurrentScenario] = useState<keyof typeof PORTFOLIO_SCENARIOS>('defi-user');
   const [portfolio, setPortfolio] = useState<Portfolio>(PORTFOLIO_SCENARIOS[currentScenario]);
   
