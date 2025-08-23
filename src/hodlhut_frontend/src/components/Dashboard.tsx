@@ -1330,16 +1330,98 @@ const Dashboard: React.FC = () => {
     );
   };
 
-  const renderTransactionHistorySection = () => (
-    <div className="section-content">
-      <h2>📋 Transaction History</h2>
-      <p>View all your trading and deposit activity</p>
-      <div className="history-placeholder">
-        <div>📋 Transaction history coming soon!</div>
-        <div>Complete audit trail of all your DeFi activities...</div>
+  const renderTransactionHistorySection = () => {
+    const mockTransactions = [
+      {
+        id: 1,
+        type: 'Chain Fusion',
+        from: 'ckBTC',
+        to: 'USDC-ETH',
+        amount: '0.05',
+        value: '$4,875.12',
+        fee: '$9.60',
+        time: '2 hours ago',
+        status: 'Completed'
+      },
+      {
+        id: 2,
+        type: 'DEX Swap',
+        from: 'ckUSDT',
+        to: 'ckSOL',
+        amount: '2,500',
+        value: '$2,500.00',
+        fee: '$7.50',
+        time: '1 day ago',
+        status: 'Completed'
+      },
+      {
+        id: 3,
+        type: 'Chain Fusion',
+        from: 'ckSOL',
+        to: 'SOL',
+        amount: '10.5',
+        value: '$2,520.00',
+        fee: '$0.24',
+        time: '2 days ago',
+        status: 'Completed'
+      },
+      {
+        id: 4,
+        type: 'DEX + Chain Fusion',
+        from: 'ckUSDC',
+        to: 'BTC',
+        amount: '48,800',
+        value: '$48,800.00',
+        fee: '$48.80',
+        time: '3 days ago',
+        status: 'Completed'
+      },
+      {
+        id: 5,
+        type: 'Deposit',
+        from: 'ETH',
+        to: 'ckETH',
+        amount: '1.25',
+        value: '$4,000.00',
+        fee: '$12.00',
+        time: '5 days ago',
+        status: 'Completed'
+      }
+    ];
+
+    return (
+      <div className="section-content">
+        <h2 style={{ color: '#440f04' }}>📋 Transaction History</h2>
+        <p style={{ color: '#440f04' }}>View all your trading and deposit activity</p>
+        <div className="transaction-history-container">
+          {mockTransactions.map((tx) => (
+            <div key={tx.id} className="transaction-item" style={{ backgroundColor: '#fff8eb', color: '#440f04' }}>
+              <div className="transaction-header">
+                <span className="transaction-type">{tx.type}</span>
+                <span className="transaction-time">{tx.time}</span>
+              </div>
+              <div className="transaction-details">
+                <div className="transaction-assets">
+                  <AssetIcon asset={tx.from} size={20} />
+                  <span>{tx.amount} {tx.from}</span>
+                  <span className="arrow">→</span>
+                  <AssetIcon asset={tx.to} size={20} />
+                  <span>{tx.to}</span>
+                </div>
+                <div className="transaction-amounts">
+                  <span className="transaction-value">{tx.value}</span>
+                  <span className="transaction-fee">Fee: {tx.fee}</span>
+                </div>
+              </div>
+              <div className="transaction-status">
+                <span className="status-badge completed">✅ {tx.status}</span>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderPortfolioOverview = () => {
     // Only show assets available in the FROM dropdown that have a balance > 0

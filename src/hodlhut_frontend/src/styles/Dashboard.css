@@ -2714,3 +2714,118 @@ input[type="number"] {
   color: var(--text-on-light) !important;
 }
 
+/* ===============================================
+   TRANSACTION HISTORY STYLES
+   =============================================== */
+
+.transaction-history-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.transaction-item {
+  background: #fff8eb !important;
+  color: #440f04 !important;
+  border: 2px solid #f9b450;
+  border-radius: var(--radius-xl);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+  display: grid;
+  grid-template-columns: 1fr 80px;
+  grid-template-rows: auto auto auto;
+  gap: var(--space-2);
+}
+
+.transaction-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.transaction-header {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 80px;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.transaction-type {
+  font-weight: var(--font-semibold);
+  font-size: var(--text-sm);
+  color: #440f04 !important;
+  flex: 1;
+  text-align: left;
+}
+
+.transaction-time {
+  font-size: var(--text-xs);
+  color: #762311 !important;
+  white-space: nowrap;
+  text-align: right;
+  min-width: 80px;
+  width: 80px;
+  background: rgba(249, 180, 80, 0.1);  /* Temporary debug - shows alignment box */
+}
+
+.transaction-details {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 120px;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.transaction-assets {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  text-align: left;
+  flex: 1;
+}
+
+.transaction-assets .arrow {
+  color: #762311 !important;
+  font-weight: bold;
+}
+
+.transaction-amounts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+  text-align: right;
+  min-width: 120px;
+}
+
+.transaction-value {
+  font-weight: var(--font-semibold);
+  color: #440f04 !important;
+}
+
+.transaction-fee {
+  font-size: var(--text-xs);
+  color: #762311 !important;
+}
+
+.transaction-status {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.status-badge {
+  font-size: var(--text-xs);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+}
+
+.status-badge.completed {
+  background: var(--success-100);
+  color: var(--success-800);
+  border: 1px solid var(--success-300);
+}
+
