@@ -244,7 +244,7 @@ const Dashboard: React.FC = () => {
   const [showDEXSelection, setShowDEXSelection] = useState(false);
   const [slippageTolerance, setSlippageTolerance] = useState(1.0);
   const [currentGasPrice, setCurrentGasPrice] = useState(25);
-  const [timeRemaining, setTimeRemaining] = useState(300); // 5 minutes
+  const [timeRemaining, setTimeRemaining] = useState(1800); // 30 minutes for Hut activation
   
   // Enhanced Smart Solutions State
   const [smartSolutions, setSmartSolutions] = useState<EnhancedSmartSolution[]>([]);
@@ -557,7 +557,7 @@ const Dashboard: React.FC = () => {
     <div className="status-bar">
       <div className="status-items">
         <div><PieChart className="inline w-4 h-4 mr-1" /> Portfolio: ${calculatePortfolioValue().toLocaleString()}</div>
-        <div>⏰ Session: {formatTime(timeRemaining)}</div>
+        <div>⏰ Add Assets to activate your Sovereign Hut: {formatTime(timeRemaining)}</div>
         <div><span className="status-indicator"></span> Connected Live Onchain (Demo Mode)</div>
       </div>
     </div>
