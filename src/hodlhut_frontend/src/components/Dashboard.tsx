@@ -1227,7 +1227,7 @@ const Dashboard: React.FC = () => {
           <div className={`field-growth ${isPlanted ? 'planted' : ''}`}>
             {isPlanted ? (
               <>
-                🌱 Growing ({Math.floor(Math.random() * 90 + 10)} days)
+                🌱 Growing (45 days)
                 <br />Yield: +${weeklyYield.toFixed(0)}/week
               </>
             ) : (
@@ -1278,31 +1278,31 @@ const Dashboard: React.FC = () => {
         {/* Stats Grid */}
         <div className="stats-grid">
           <div className="stat-card">
-            <div className="stat-icon"><DollarSign className="w-6 h-6" /></div>
+            <div className="stat-icon"><DollarSign className="w-6 h-6" style={{ color: 'white' }} /></div>
             <div className="stat-value">${calculateTotalYield().toFixed(0)}</div>
             <div className="stat-label">Total Garden Yield</div>
             <div className="stat-details">This week: +${(calculateTotalYield() * 0.1).toFixed(0)}</div>
           </div>
           
           <div className="stat-card">
-            <div className="stat-icon"><Clock className="w-6 h-6" /></div>
-            <div className="stat-value">{Math.floor(Math.random() * 60 + 20)}</div>
+            <div className="stat-icon"><Clock className="w-6 h-6" style={{ color: 'white' }} /></div>
+            <div className="stat-value">42</div>
             <div className="stat-label">Average Hodl Days</div>
-            <div className="stat-details">Longest: {Math.floor(Math.random() * 100 + 50)} days</div>
+            <div className="stat-details">Longest: 127 days</div>
           </div>
           
           <div className="stat-card">
-            <div className="stat-icon"><Target className="w-6 h-6" /></div>
+            <div className="stat-icon"><Target className="w-6 h-6" style={{ color: 'white' }} /></div>
             <div className="stat-value">{assetsWithBalance.filter(asset => plantedAmounts[asset] > 0).length}/6</div>
             <div className="stat-label">Asset Diversity</div>
             <div className="stat-details">{calculateDiversityMultiplier()}x multiplier active</div>
           </div>
           
           <div className="stat-card">
-            <div className="stat-icon"><Trophy className="w-6 h-6" /></div>
+            <div className="stat-icon"><Trophy className="w-6 h-6" style={{ color: 'white' }} /></div>
             <div className="stat-value">{calculateDiversityMultiplier()}x</div>
             <div className="stat-label">Total Multiplier</div>
-            <div className="stat-details">Next level: {Math.floor(Math.random() * 20 + 5)} days</div>
+            <div className="stat-details">Next level: 15 days</div>
           </div>
         </div>
 
