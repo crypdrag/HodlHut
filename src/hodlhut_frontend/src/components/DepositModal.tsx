@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AssetIcon from './AssetIcon';
 import { 
   PartyPopper,
@@ -117,9 +117,26 @@ const DepositModal: React.FC<DepositModalProps> = ({
   const [currentStep, setCurrentStep] = useState<DepositStep>(DepositStep.AmountInput);
   const [depositAmount, setDepositAmount] = useState<string>('');
   const [selectedWallet, setSelectedWallet] = useState<string>('');
-  const [processingMessage, setProcessingMessage] = useState<string>('Connecting to blockchain...');
+  const [processingMessage, setProcessingMessage] = useState<string>('');
   const [activeTimeouts, setActiveTimeouts] = useState<NodeJS.Timeout[]>([]);
   const [activeIntervals, setActiveIntervals] = useState<NodeJS.Timeout[]>([]);
+
+  // Clean up state when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      // Clear any existing timeouts/intervals
+      activeTimeouts.forEach(timeout => clearTimeout(timeout));
+      activeIntervals.forEach(interval => clearInterval(interval));
+      
+      // Reset to initial state
+      setCurrentStep(DepositStep.AmountInput);
+      setDepositAmount('');
+      setSelectedWallet('');
+      setProcessingMessage('');
+      setActiveTimeouts([]);
+      setActiveIntervals([]);
+    }
+  }, [isOpen, selectedAsset]); // Reset when modal opens or asset changes
 
   if (!isOpen) return null;
 
@@ -139,7 +156,7 @@ const DepositModal: React.FC<DepositModalProps> = ({
     setCurrentStep(DepositStep.AmountInput);
     setDepositAmount('');
     setSelectedWallet('');
-    setProcessingMessage('Connecting to blockchain...');
+    setProcessingMessage('');
     
     onClose();
   };
@@ -159,7 +176,7 @@ const DepositModal: React.FC<DepositModalProps> = ({
     
     setSelectedWallet(walletId);
     setCurrentStep(DepositStep.Processing);
-    setProcessingMessage('Connecting to blockchain...');
+    setProcessingMessage('');
     
     simulateDeposit(walletId);
   };
@@ -316,29 +333,29 @@ const DepositModal: React.FC<DepositModalProps> = ({
 
   const showBitcoinBlockConfirmation = (onComplete: () => void) => {
     setProcessingMessage('');
-    // Show Bitcoin block confirmation UI
+    // Show Bitcoin block confirmation UI - meter fills in 6 seconds
     setTimeout(() => {
       setProcessingMessage('✅ All 12 Bitcoin confirmations complete!');
       setTimeout(onComplete, 2000);
-    }, 8000); // Simulate 8 seconds for demo
+    }, 6500); // Wait for meter to complete (6s) + buffer (0.5s)
   };
 
   const showEthereumBlockConfirmation = (onComplete: () => void) => {
     setProcessingMessage('');
-    // Show Ethereum block confirmation UI  
+    // Show Ethereum block confirmation UI - meter fills in 6 seconds
     setTimeout(() => {
       setProcessingMessage('✅ All 65 Ethereum confirmations complete!');
       setTimeout(onComplete, 2000);
-    }, 6000); // Simulate 6 seconds for demo
+    }, 6500); // Wait for meter to complete (6s) + buffer (0.5s)
   };
 
   const showSolanaBlockConfirmation = (onComplete: () => void) => {
     setProcessingMessage('');
-    // Show Solana block confirmation UI
+    // Show Solana block confirmation UI - meter fills in 6 seconds
     setTimeout(() => {
       setProcessingMessage('✅ Solana transaction confirmed!');
       setTimeout(onComplete, 2000);
-    }, 3000); // Simulate 3 seconds for demo
+    }, 6500); // Wait for meter to complete (6s) + buffer (0.5s)
   };
 
   const completeDeposit = (finalAsset: string, amount: number) => {
