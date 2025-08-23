@@ -11,6 +11,27 @@ import {
 } from '../../assets/master_swap_logic';
 import { getUniversalFeeRules } from '../../assets/universal_fee_rules';
 import { getBracketConfig, type SwapRoute } from '../../assets/visual_brackets';
+import { 
+  Settings,      // Slippage Tolerance
+  Fuel,          // Gas Optimization
+  Lightbulb,     // Smart Solutions / Tips
+  CheckCircle,   // Success/Approved
+  AlertTriangle, // Warning/Required Step
+  Zap,           // Gas/Lightning
+  Scale,         // Trade-offs/Balance
+  Clock,         // Time/Timer
+  Waves,         // Surfer replacement
+  PartyPopper,   // Celebration
+  ArrowLeftRight, // Swap icon
+  Star,          // Best for
+  Target,        // Goals/targets
+  PieChart,      // Portfolio stats
+  Plus,          // Add assets
+  DollarSign,    // Money/earnings
+  Trophy,        // Achievement/best
+  Rocket,        // Launch/execute
+  BarChart3      // Data/stats
+} from 'lucide-react';
 import '../styles/Dashboard.css';
 
 // Import SVG assets properly for webpack
@@ -119,7 +140,7 @@ const CustomDropdown: React.FC<{
             <span>{selectedOption.label}</span>
           </>
         ) : (
-          <span style={{ color: 'var(--text-secondary)' }}>{placeholder}</span>
+          <span style={{ color: '#d65309' }}>{placeholder}</span>
         )}
         <span style={{ marginLeft: 'auto', fontSize: '12px' }}>▼</span>
       </div>
@@ -426,10 +447,10 @@ const Dashboard: React.FC = () => {
     setShowAllSolutions(false);
     
     const solution = smartSolutions[solutionIndex];
-    console.log(`✅ User approved solution: ${solution.title}`);
+    console.log(`User approved solution: ${solution.title}`);
     
     // Here you would normally execute the solution logic
-    alert(`✅ Solution Approved!\n\n${solution.title}\n\n${solution.description}\n\nCost: ${solution.cost}\nYou'll receive: ${solution.receive}`);
+    alert(`Solution Approved!\n\n${solution.title}\n\n${solution.description}\n\nCost: ${solution.cost}\nYou'll receive: ${solution.receive}`);
   };
 
   const handleRejectSolution = (solutionIndex: number) => {
@@ -455,7 +476,7 @@ const Dashboard: React.FC = () => {
     return (
       <div className="slippage-settings">
         <div className="slippage-header">
-          <span className="text-primary-bold">⚙️ Slippage Tolerance</span>
+          <span className="text-primary-bold"><Settings size={16} style={{marginRight: '8px', verticalAlign: 'middle'}} />Slippage Tolerance</span>
           <div className="slippage-buttons">
             <button 
               className={`slippage-btn ${slippageTolerance === 0.5 ? 'active' : ''}`}
@@ -484,17 +505,17 @@ const Dashboard: React.FC = () => {
   const renderGasOptimization = () => {
     let recommendation = '';
     if (currentGasPrice < 20) {
-      recommendation = '💡 Gas is 15% lower than average. Good time to transact!';
+      recommendation = 'Gas is 15% lower than average. Good time to transact!';
     } else if (currentGasPrice < 30) {
-      recommendation = '⚡ Gas is average. Consider waiting for lower fees.';
+      recommendation = 'Gas is average. Consider waiting for lower fees.';
     } else {
-      recommendation = '🔥 Gas is high. Consider delaying or using smart solutions.';
+      recommendation = 'Gas is high. Consider delaying or using smart solutions.';
     }
     
     return (
       <div className="gas-optimization">
         <div className="gas-header">
-          <span className="text-primary-bold">⛽ Gas Optimization</span>
+          <span className="text-primary-bold"><Fuel size={16} style={{marginRight: '8px', verticalAlign: 'middle'}} />Gas Optimization</span>
           <span className="gas-price">Current: {currentGasPrice} gwei</span>
         </div>
         <div className="gas-recommendation">
@@ -532,7 +553,7 @@ const Dashboard: React.FC = () => {
   const renderStatusBar = () => (
     <div className="status-bar">
       <div className="status-items">
-        <div>📊 Portfolio: ${calculatePortfolioValue().toLocaleString()}</div>
+        <div><PieChart className="inline w-4 h-4 mr-1" /> Portfolio: ${calculatePortfolioValue().toLocaleString()}</div>
         <div>⏰ Session: {formatTime(timeRemaining)}</div>
         <div><span className="status-indicator"></span> Connected Live Onchain (Demo Mode)</div>
       </div>
@@ -546,13 +567,13 @@ const Dashboard: React.FC = () => {
           className={`nav-btn ${activeSection === 'addAssets' ? 'active' : ''}`}
           onClick={() => setActiveSection('addAssets')}
         >
-          💰 Add Assets
+          <Plus className="inline w-4 h-4 mr-1" /> Add Assets
         </button>
         <button
           className={`nav-btn ${activeSection === 'swapAssets' ? 'active' : ''}`}
           onClick={() => setActiveSection('swapAssets')}
         >
-          🔄 Swap Assets
+          <ArrowLeftRight size={20} style={{marginRight: '8px', verticalAlign: 'middle'}} />Swap Assets
         </button>
         <button
           className={`nav-btn ${activeSection === 'myGarden' ? 'active' : ''}`}
@@ -777,7 +798,7 @@ const Dashboard: React.FC = () => {
                   setToAsset(temp);
                   setSwapAmount('');
                 } else {
-                  alert('💡 You can only reverse swap if you own both assets!');
+                  alert('You can only reverse swap if you own both assets!');
                 }
               }}
               title="Reverse swap direction"
@@ -846,7 +867,7 @@ const Dashboard: React.FC = () => {
           
           {fromAsset === toAsset ? (
             <div className="same-token-warning">
-              Hold on there surfer! 🏄‍♂️<br />
+              <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px'}}><Waves size={20} />Hold on there surfer!</div>
               You are trying to swap the same token.<br />
               Please check your swap and try again.
             </div>
@@ -902,7 +923,7 @@ const Dashboard: React.FC = () => {
                 onClick={() => setSelectedDEX(key)}
               >
                 <div className={`dex-badge ${dex.badge}`}>
-                  {dex.badge === 'speed' ? '⚡ SPEED FOCUSED' : '💧 LIQUIDITY FOCUSED'}
+                  {dex.badge === 'speed' ? <><Zap className="inline w-4 h-4 mr-1" /> SPEED FOCUSED</> : <><Waves className="inline w-4 h-4 mr-1" /> LIQUIDITY FOCUSED</>}
                 </div>
                 <div className="dex-name">{dex.name}</div>
                 
@@ -919,11 +940,11 @@ const Dashboard: React.FC = () => {
                 {/* Clean Advantages/Trade-offs */}
                 <div className="dex-info-section">
                   <div className="dex-advantages">
-                    <strong>💪 Best for:</strong>
+                    <strong><Star size={16} style={{marginRight: '4px', verticalAlign: 'middle'}} />Best for:</strong>
                     <span>{dex.advantages.join(' • ')}</span>
                   </div>
                   <div className="dex-tradeoffs">
-                    <strong>⚖️ Trade-offs:</strong>
+                    <strong><Scale size={16} style={{marginRight: '4px', verticalAlign: 'middle'}} />Trade-offs:</strong>
                     <span>{dex.tradeoffs.join(' • ')}</span>
                   </div>
                 </div>
@@ -941,7 +962,7 @@ const Dashboard: React.FC = () => {
       {showSmartSolutions && smartSolutions.length > 0 && (
         <div className="smart-solutions-panel">
           <div className="solutions-header">
-            <span style={{ fontSize: '1.2rem' }}>💡</span>
+            <Lightbulb size={20} style={{color: '#f59e0b'}} />
             <span>Smart Solutions for Fee Payment</span>
             {selectedSolution !== null && (
               <button 
@@ -975,10 +996,10 @@ const Dashboard: React.FC = () => {
               return (
                 <div key={actualIndex} className={`solution-card ${solution.badge.toLowerCase().replace(/\s+/g, '-')} ${isSelected ? 'selected' : ''}`}>
                   <div className={`solution-badge ${solution.badge.toLowerCase().replace(/\s+/g, '-')}`}>
-                    {solution.badge === 'RECOMMENDED' ? '✅ RECOMMENDED' : 
-                     solution.badge === 'REQUIRED STEP' ? '⚠️ REQUIRED STEP' : 
-                     solution.badge === 'ALTERNATIVE' ? '💡 ALTERNATIVE' : 
-                     `💡 ${solution.badge}`}
+                    {solution.badge === 'RECOMMENDED' ? <><CheckCircle size={16} style={{marginRight: '4px', verticalAlign: 'middle', color: '#10b981'}} />RECOMMENDED</> : 
+                     solution.badge === 'REQUIRED STEP' ? <><AlertTriangle size={16} style={{marginRight: '4px', verticalAlign: 'middle', color: '#f59e0b'}} />REQUIRED STEP</> : 
+                     solution.badge === 'ALTERNATIVE' ? <><Lightbulb size={16} style={{marginRight: '4px', verticalAlign: 'middle', color: '#6366f1'}} />ALTERNATIVE</> : 
+                     <><Lightbulb size={16} style={{marginRight: '4px', verticalAlign: 'middle', color: '#6366f1'}} />{solution.badge}</>}
                   </div>
                   
                   <div className="solution-title">{solution.title}</div>
@@ -1000,9 +1021,9 @@ const Dashboard: React.FC = () => {
                         className={`solution-btn approve ${solution.badge === 'RECOMMENDED' ? 'primary' : 'secondary'}`}
                         onClick={() => handleApproveSolution(actualIndex)}
                       >
-                        {solution.badge === 'RECOMMENDED' ? '✅ Yes, Use This' : 
-                         solution.badge === 'REQUIRED STEP' ? '⚠️ Complete This Step' : 
-                         '💡 Choose This Option'}
+                        {solution.badge === 'RECOMMENDED' ? <><CheckCircle className="inline w-4 h-4 mr-1" /> Yes, Use This</> : 
+                         solution.badge === 'REQUIRED STEP' ? <><AlertTriangle className="inline w-4 h-4 mr-1" /> Complete This Step</> : 
+                         <><Lightbulb className="inline w-4 h-4 mr-1" /> Choose This Option</>}
                       </button>
                       
                       <button 
@@ -1023,10 +1044,10 @@ const Dashboard: React.FC = () => {
                       <button 
                         className="solution-btn execute"
                         onClick={() => {
-                          alert(`🚀 Executing: ${solution.title}\n\nThis would now execute the selected fee payment solution and proceed with your swap.`);
+                          alert(`Executing: ${solution.title}\n\nThis would now execute the selected fee payment solution and proceed with your swap.`);
                         }}
                       >
-                        🚀 Execute & Continue Swap
+                        <Rocket className="inline w-4 h-4 mr-1" /> Execute & Continue Swap
                       </button>
                     </div>
                   )}
@@ -1040,7 +1061,7 @@ const Dashboard: React.FC = () => {
             if (selectedSolution !== null && !showAllSolutions) {
               return (
                 <div className="contextual-message">
-                  🎉 <strong>Perfect!</strong> You've chosen your fee payment method. Click "Execute & Continue Swap" above to proceed.
+                  <PartyPopper className="inline w-4 h-4 mr-1" /> <strong>Perfect!</strong> You've chosen your fee payment method. Click "Execute & Continue Swap" above to proceed.
                 </div>
               );
             }
@@ -1070,13 +1091,13 @@ const Dashboard: React.FC = () => {
             } else if (hasRequiredSteps) {
               return (
                 <div className="warning-message">
-                  ⚠️ <strong>Manual Steps Required:</strong> You'll need to complete some DEX swaps first to get the required fee tokens.
+                  <AlertTriangle className="inline w-4 h-4 mr-1" /> <strong>Manual Steps Required:</strong> You'll need to complete some DEX swaps first to get the required fee tokens.
                 </div>
               );
             } else if (hasAlternatives) {
               return (
                 <div className="warning-message">
-                  💡 <strong>Alternative Options:</strong> Here are different ways to handle fee payments based on your portfolio.
+                  <Lightbulb className="inline w-4 h-4 mr-1" /> <strong>Alternative Options:</strong> Here are different ways to handle fee payments based on your portfolio.
                 </div>
               );
             }
@@ -1141,7 +1162,7 @@ const Dashboard: React.FC = () => {
             className="execute-swap-btn"
             onClick={() => {
               if (swapAnalysis.needsSmartSolutions) {
-                alert('⚠️ Fee Requirements Not Met\n\nYou need additional assets for fees. Please use one of the Smart Solutions above.');
+                alert('Fee Requirements Not Met\n\nYou need additional assets for fees. Please use one of the Smart Solutions above.');
                 return;
               }
               
@@ -1258,28 +1279,28 @@ const Dashboard: React.FC = () => {
         {/* Stats Grid */}
         <div className="stats-grid">
           <div className="stat-card">
-            <div className="stat-icon">💰</div>
+            <div className="stat-icon"><DollarSign className="w-6 h-6" /></div>
             <div className="stat-value">${calculateTotalYield().toFixed(0)}</div>
             <div className="stat-label">Total Garden Yield</div>
             <div className="stat-details">This week: +${(calculateTotalYield() * 0.1).toFixed(0)}</div>
           </div>
           
           <div className="stat-card">
-            <div className="stat-icon">⏱️</div>
+            <div className="stat-icon"><Clock className="w-6 h-6" /></div>
             <div className="stat-value">{Math.floor(Math.random() * 60 + 20)}</div>
             <div className="stat-label">Average Hodl Days</div>
             <div className="stat-details">Longest: {Math.floor(Math.random() * 100 + 50)} days</div>
           </div>
           
           <div className="stat-card">
-            <div className="stat-icon">🎯</div>
+            <div className="stat-icon"><Target className="w-6 h-6" /></div>
             <div className="stat-value">{assetsWithBalance.filter(asset => plantedAmounts[asset] > 0).length}/6</div>
             <div className="stat-label">Asset Diversity</div>
             <div className="stat-details">{calculateDiversityMultiplier()}x multiplier active</div>
           </div>
           
           <div className="stat-card">
-            <div className="stat-icon">🏆</div>
+            <div className="stat-icon"><Trophy className="w-6 h-6" /></div>
             <div className="stat-value">{calculateDiversityMultiplier()}x</div>
             <div className="stat-label">Total Multiplier</div>
             <div className="stat-details">Next level: {Math.floor(Math.random() * 20 + 5)} days</div>

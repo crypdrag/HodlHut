@@ -1,5 +1,19 @@
 import React, { useState } from 'react';
 import AssetIcon from './AssetIcon';
+import { 
+  PartyPopper,
+  Lock,
+  Zap,
+  Circle,
+  Square,
+  Sun,
+  Wallet,
+  Globe,
+  CreditCard,
+  Link,
+  Plug,
+  User
+} from 'lucide-react';
 import '../styles/DepositModal.css';
 
 export interface DepositModalProps {
@@ -12,79 +26,79 @@ export interface DepositModalProps {
 interface WalletOption {
   id: string;
   name: string;
-  icon: string;
+  icon: JSX.Element;
 }
 
 const WALLET_OPTIONS: Record<string, WalletOption[]> = {
   'BTC': [
-    { id: 'unisat', name: 'Unisat Wallet', icon: '🟠' },
-    { id: 'xverse', name: 'Xverse Wallet', icon: '🔷' },
-    { id: 'leather', name: 'Leather Wallet', icon: '🟤' }
+    { id: 'unisat', name: 'Unisat Wallet', icon: <Circle className="w-4 h-4 text-orange-500" /> },
+    { id: 'xverse', name: 'Xverse Wallet', icon: <Square className="w-4 h-4 text-blue-500" /> },
+    { id: 'leather', name: 'Leather Wallet', icon: <Square className="w-4 h-4 text-amber-600" /> }
   ],
   'ETH': [
-    { id: 'metamask', name: 'MetaMask', icon: '🦊' },
-    { id: 'coinbase', name: 'Coinbase Wallet', icon: '🔵' },
-    { id: 'walletconnect', name: 'WalletConnect', icon: '🔗' }
+    { id: 'metamask', name: 'MetaMask', icon: <Wallet className="w-4 h-4 text-orange-500" /> },
+    { id: 'coinbase', name: 'Coinbase Wallet', icon: <Circle className="w-4 h-4 text-blue-500" /> },
+    { id: 'walletconnect', name: 'WalletConnect', icon: <Link className="w-4 h-4" /> }
   ],
   'USDC': [
-    { id: 'metamask', name: 'MetaMask', icon: '🦊' },
-    { id: 'coinbase', name: 'Coinbase Wallet', icon: '🔵' },
-    { id: 'walletconnect', name: 'WalletConnect', icon: '🔗' }
+    { id: 'metamask', name: 'MetaMask', icon: <Wallet className="w-4 h-4 text-orange-500" /> },
+    { id: 'coinbase', name: 'Coinbase Wallet', icon: <Circle className="w-4 h-4 text-blue-500" /> },
+    { id: 'walletconnect', name: 'WalletConnect', icon: <Link className="w-4 h-4" /> }
   ],
   'USDT': [
-    { id: 'metamask', name: 'MetaMask', icon: '🦊' },
-    { id: 'coinbase', name: 'Coinbase Wallet', icon: '🔵' },
-    { id: 'walletconnect', name: 'WalletConnect', icon: '🔗' }
+    { id: 'metamask', name: 'MetaMask', icon: <Wallet className="w-4 h-4 text-orange-500" /> },
+    { id: 'coinbase', name: 'Coinbase Wallet', icon: <Circle className="w-4 h-4 text-blue-500" /> },
+    { id: 'walletconnect', name: 'WalletConnect', icon: <Link className="w-4 h-4" /> }
   ],
   'SOL': [
-    { id: 'phantom', name: 'Phantom Wallet', icon: '👻' },
-    { id: 'solflare', name: 'Solflare Wallet', icon: '☀️' },
-    { id: 'backpack', name: 'Backpack Wallet', icon: '🎒' }
+    { id: 'phantom', name: 'Phantom Wallet', icon: <Wallet className="w-4 h-4 text-purple-500" /> },
+    { id: 'solflare', name: 'Solflare Wallet', icon: <Sun className="w-4 h-4 text-yellow-500" /> },
+    { id: 'backpack', name: 'Backpack Wallet', icon: <Square className="w-4 h-4 text-gray-600" /> }
   ],
   'ckBTC': [
-    { id: 'plug', name: 'Plug Wallet', icon: '🔌' },
-    { id: 'stoic', name: 'Stoic Wallet', icon: '🌍' },
-    { id: 'nfid', name: 'NFID', icon: '🆔' }
+    { id: 'plug', name: 'Plug Wallet', icon: <Plug className="w-4 h-4 text-green-500" /> },
+    { id: 'stoic', name: 'Stoic Wallet', icon: <Globe className="w-4 h-4 text-blue-500" /> },
+    { id: 'nfid', name: 'NFID', icon: <User className="w-4 h-4 text-gray-600" /> }
   ],
   'ckETH': [
-    { id: 'plug', name: 'Plug Wallet', icon: '🔌' },
-    { id: 'stoic', name: 'Stoic Wallet', icon: '🌍' },
-    { id: 'nfid', name: 'NFID', icon: '🆔' }
+    { id: 'plug', name: 'Plug Wallet', icon: <Plug className="w-4 h-4 text-green-500" /> },
+    { id: 'stoic', name: 'Stoic Wallet', icon: <Globe className="w-4 h-4 text-blue-500" /> },
+    { id: 'nfid', name: 'NFID', icon: <User className="w-4 h-4 text-gray-600" /> }
   ],
   'ckUSDC': [
-    { id: 'plug', name: 'Plug Wallet', icon: '🔌' },
-    { id: 'stoic', name: 'Stoic Wallet', icon: '🌍' },
-    { id: 'nfid', name: 'NFID', icon: '🆔' }
+    { id: 'plug', name: 'Plug Wallet', icon: <Plug className="w-4 h-4 text-green-500" /> },
+    { id: 'stoic', name: 'Stoic Wallet', icon: <Globe className="w-4 h-4 text-blue-500" /> },
+    { id: 'nfid', name: 'NFID', icon: <User className="w-4 h-4 text-gray-600" /> }
   ],
   'ckUSDT': [
-    { id: 'plug', name: 'Plug Wallet', icon: '🔌' },
-    { id: 'stoic', name: 'Stoic Wallet', icon: '🌍' },
-    { id: 'nfid', name: 'NFID', icon: '🆔' }
+    { id: 'plug', name: 'Plug Wallet', icon: <Plug className="w-4 h-4 text-green-500" /> },
+    { id: 'stoic', name: 'Stoic Wallet', icon: <Globe className="w-4 h-4 text-blue-500" /> },
+    { id: 'nfid', name: 'NFID', icon: <User className="w-4 h-4 text-gray-600" /> }
   ],
   'ckSOL': [
-    { id: 'plug', name: 'Plug Wallet', icon: '🔌' },
-    { id: 'stoic', name: 'Stoic Wallet', icon: '🌍' },
-    { id: 'nfid', name: 'NFID', icon: '🆔' }
+    { id: 'plug', name: 'Plug Wallet', icon: <Plug className="w-4 h-4 text-green-500" /> },
+    { id: 'stoic', name: 'Stoic Wallet', icon: <Globe className="w-4 h-4 text-blue-500" /> },
+    { id: 'nfid', name: 'NFID', icon: <User className="w-4 h-4 text-gray-600" /> }
   ],
   'ICP': [
-    { id: 'plug', name: 'Plug Wallet', icon: '🔌' },
-    { id: 'stoic', name: 'Stoic Wallet', icon: '🌍' },
-    { id: 'nfid', name: 'NFID', icon: '🆔' }
+    { id: 'plug', name: 'Plug Wallet', icon: <Plug className="w-4 h-4 text-green-500" /> },
+    { id: 'stoic', name: 'Stoic Wallet', icon: <Globe className="w-4 h-4 text-blue-500" /> },
+    { id: 'nfid', name: 'NFID', icon: <User className="w-4 h-4 text-gray-600" /> }
   ]
 };
 
-const ASSET_ICONS: Record<string, string> = {
-  'BTC': '₿',
-  'ETH': 'Ξ', 
-  'USDC': '💵',
-  'USDT': '💲',
-  'SOL': '☀️',
-  'ckBTC': '₿',
-  'ckETH': 'Ξ',
-  'ckUSDC': '💵',
-  'ckUSDT': '💲',
-  'ckSOL': '☀️',
-  'ICP': '∞'
+const ASSET_ICONS: Record<string, JSX.Element> = {
+  'BTC': <Circle className="w-4 h-4 text-orange-500" />,
+  'ETH': <Circle className="w-4 h-4 text-blue-500" />, 
+  'USDC': <CreditCard className="w-4 h-4 text-green-500" />,
+  'USDT': <CreditCard className="w-4 h-4 text-green-600" />,
+  'SOL': <Sun className="w-4 h-4 text-yellow-500" />,
+  'ckBTC': <Circle className="w-4 h-4 text-orange-500" />,
+  'ckETH': <Circle className="w-4 h-4 text-blue-500" />,
+  'ckUSDC': <CreditCard className="w-4 h-4 text-green-500" />,
+  'ckUSDT': <CreditCard className="w-4 h-4 text-green-600" />,
+  'ckSOL': <Sun className="w-4 h-4 text-yellow-500" />,
+  'ICP': <Globe className="w-4 h-4 text-purple-500" />
 };
 
 enum DepositStep {
@@ -162,7 +176,7 @@ const DepositModal: React.FC<DepositModalProps> = ({
         'Sending BTC to ICP Bitcoin canister...',
         'Bitcoin received!',
         'Minting ckBTC...',
-        'ckBTC is in your Hut! Happy Hodling! 🎉'
+        'ckBTC is in your Hut! Happy Hodling!'
       ];
       handleBitcoinDeposit(messages, finalAsset, amount);
     } else if (['ETH'].includes(selectedAsset)) {
@@ -171,7 +185,7 @@ const DepositModal: React.FC<DepositModalProps> = ({
         'Sending ETH to ICP...',
         'ETH Received!',
         'Minting ckETH!',
-        'Your ckETH is Safu in your Hut! 🎉'
+        'Your ckETH is Safu in your Hut!'
       ];
       handleEthereumDeposit(messages, finalAsset, amount);
     } else if (['USDC'].includes(selectedAsset)) {
@@ -180,7 +194,7 @@ const DepositModal: React.FC<DepositModalProps> = ({
         'Sending USDC to ICP...',
         'USDC Received!',
         'Converting to ckUSDC...',
-        'ckUSDC is in your Hut! 🎉'
+        'ckUSDC is in your Hut!'
       ];
       handleEthereumDeposit(messages, finalAsset, amount);
     } else if (['USDT'].includes(selectedAsset)) {
@@ -189,7 +203,7 @@ const DepositModal: React.FC<DepositModalProps> = ({
         'Sending USDT to ICP...',
         'USDT Received!',
         'Converting to ckUSDT...',
-        'ckUSDT is in your Hut! 🎉'
+        'ckUSDT is in your Hut!'
       ];
       handleEthereumDeposit(messages, finalAsset, amount);
     } else if (['SOL'].includes(selectedAsset)) {
@@ -198,14 +212,14 @@ const DepositModal: React.FC<DepositModalProps> = ({
         'Sending SOL to ICP...',
         'SOL Received!',
         'Converting to ckSOL...',
-        'ckSOL is in your Hut! 🎉'
+        'ckSOL is in your Hut!'
       ];
       handleSolanaDeposit(messages, finalAsset, amount);
     } else {
       // ck-tokens and ICP - direct deposits
       messages = [
         `Sending ${selectedAsset} to your Hut!`,
-        `${selectedAsset} is in your Hut! 🎉`
+        `${selectedAsset} is in your Hut!`
       ];
       handleStandardDeposit(messages, finalAsset, amount);
     }
@@ -403,7 +417,7 @@ const DepositModal: React.FC<DepositModalProps> = ({
   const renderSuccess = () => (
     <div id="deposit-step-4">
       <div className="success-container">
-        <div className="success-icon">🎉</div>
+        <div className="success-icon"><PartyPopper className="w-8 h-8" /></div>
         <h3>Deposit Successful!</h3>
         <p className="success-message">
           Your asset has been added to your hut!
@@ -445,7 +459,7 @@ const BitcoinConfirmationAnimation: React.FC = () => (
       <div className="confirmation-count">0/12 blocks</div>
     </div>
     <div className="confirmation-info">
-      🔒 ICP requires 12 confirmations for Bitcoin finality (~2 hours)
+      <Lock className="inline w-4 h-4 mr-1" /> ICP requires 12 confirmations for Bitcoin finality (~2 hours)
     </div>
   </div>
 );
@@ -462,7 +476,7 @@ const EthereumConfirmationAnimation: React.FC = () => (
       <div className="confirmation-count">0/65 blocks</div>
     </div>
     <div className="confirmation-info">
-      🔒 ICP requires 65 confirmations for Ethereum finality (~13 minutes)
+      <Lock className="inline w-4 h-4 mr-1" /> ICP requires 65 confirmations for Ethereum finality (~13 minutes)
     </div>
   </div>
 );
@@ -479,7 +493,7 @@ const SolanaConfirmationAnimation: React.FC = () => (
       <div className="confirmation-count">Finalizing...</div>
     </div>
     <div className="confirmation-info">
-      ⚡ Solana transactions confirm in seconds
+      <Zap className="inline w-4 h-4 mr-1" /> Solana transactions confirm in seconds
     </div>
   </div>
 );
