@@ -196,7 +196,7 @@
   text-align: center;
   margin-bottom: var(--space-8);
   padding: var(--space-8) 0;
-  background: #f9b450 !important;
+  background: #fde9c8 !important;
   border-radius: var(--radius-2xl);
   border: 2px solid var(--tertiary-500);
 }
@@ -218,7 +218,7 @@
 .card-title {
   font-family: var(--font-display) !important;
   font-size: var(--text-3xl);
-  color: white !important;
+  color: #fff8eb !important;
   font-weight: var(--font-normal);
   margin-bottom: var(--space-4);
 }
@@ -381,9 +381,9 @@
   margin-top: 8px !important;
 }
 
-/* Swap interface labels - white font */
-.swap-white-label {
-  color: white !important;
+/* Swap interface labels - cream font */
+.asset-label.swap-white-label {
+  color: #fff8eb !important;
 }
 
 /* Amount and You'll Receive input fields - Using Primary Palette */
