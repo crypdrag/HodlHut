@@ -50,13 +50,13 @@ const AssetIcon: React.FC<AssetIconProps> = ({
         style={{
           width: size,
           height: size,
-          backgroundColor: '#ddd',
+          backgroundColor: 'var(--gray-200)',
           borderRadius: '50%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           fontSize: size * 0.5,
-          color: '#666',
+          color: 'var(--text-secondary)',
           ...style
         }}
       >

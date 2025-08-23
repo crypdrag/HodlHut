@@ -299,6 +299,7 @@
   margin-bottom: var(--space-6);
   font-size: var(--text-2xl);
   font-weight: var(--font-bold);
+  text-align: center;
 }
 
 .section-content h3 {
@@ -306,12 +307,14 @@
   margin-bottom: var(--space-4);
   font-size: var(--text-lg);
   font-weight: var(--font-semibold);
+  text-align: center;
 }
 
 .section-content p {
   color: var(--text-secondary);
   margin-bottom: var(--space-6);
   line-height: var(--leading-relaxed);
+  text-align: center;
 }
 
 /* ===============================================
@@ -323,6 +326,70 @@
 
 .deposit-category:last-child {
   margin-bottom: 0;
+}
+
+/* Force center alignment for Add Assets page headings - using hierarchy selectors */
+.section-content .add-assets-main-title {
+  text-align: center !important;
+}
+
+.deposit-category .add-assets-section-title {
+  text-align: center !important;
+}
+
+.deposit-category .add-assets-section-subtitle {
+  text-align: center !important;
+}
+
+/* Swap Assets page styling */
+.swap-dex-title {
+  font-size: var(--text-2xl) !important;
+  font-weight: var(--font-bold) !important;
+  color: white !important;
+}
+
+.swap-transaction-title {
+  font-size: var(--text-2xl) !important;
+  font-weight: var(--font-bold) !important;
+  color: white !important;
+}
+
+.swap-smart-solutions-title {
+  font-size: var(--text-2xl) !important;
+  font-weight: var(--font-bold) !important;
+  color: white !important;
+  text-align: center !important;
+}
+
+.swap-asset-box-text {
+  color: #440f04 !important;
+}
+
+/* Smart Solutions styling */
+.solution-title {
+  text-align: center !important;
+}
+
+.solution-description {
+  text-align: center !important;
+}
+
+.solution-details {
+  background-color: #fbd28c !important;
+  border-radius: 8px !important;
+  padding: 12px !important;
+  margin-top: 8px !important;
+}
+
+/* Swap interface labels - white font */
+.swap-white-label {
+  color: white !important;
+}
+
+/* Amount and You'll Receive input fields */
+.swap-brown-input {
+  color: #440f04 !important;
+  background-color: #fff8eb !important;
 }
 
 /* ===============================================

@@ -46,19 +46,19 @@ const ASSET_ICONS: Record<string, string> = {
 // Bracket type configurations
 const BRACKET_TYPES = {
     dex: {
-        color: '#4682B4',
-        backgroundColor: 'rgba(70, 130, 180, 0.1)',
-        borderColor: '#4682B4'
+        color: 'var(--info)',
+        backgroundColor: 'var(--info-bg)',
+        borderColor: 'var(--info)'
     },
     fusion: {
-        color: '#32CD32',
-        backgroundColor: 'rgba(50, 205, 50, 0.1)',
-        borderColor: '#32CD32'
+        color: 'var(--primary-500)',
+        backgroundColor: 'var(--primary-50)',
+        borderColor: 'var(--primary-500)'
     },
     minter: {
-        color: '#FF8C00',
-        backgroundColor: 'rgba(255, 140, 0, 0.1)',
-        borderColor: '#FF8C00'
+        color: 'var(--secondary-500)',
+        backgroundColor: 'var(--secondary-50)',
+        borderColor: 'var(--secondary-500)'
     }
 };
 
@@ -84,18 +84,18 @@ export function createBracketVisualization(route: SwapRoute): JSX.Element {
 
     const stepStyle: React.CSSProperties = {
         background: 'white',
-        border: '2px solid #FFD700',
+        border: '2px solid var(--tertiary-500)',
         borderRadius: '10px',
         padding: '0.75rem 1rem',
         fontWeight: 600,
-        color: '#8B4513',
+        color: 'var(--text-primary)',
         minWidth: '120px',
         textAlign: 'center',
         position: 'relative'
     };
 
     const arrowStyle: React.CSSProperties = {
-        color: '#32CD32',
+        color: 'var(--primary-500)',
         fontSize: '1.5rem',
         fontWeight: 'bold'
     };
@@ -178,7 +178,7 @@ function BracketElement({ bracket, stepCount }: { bracket: BracketConfig; stepCo
         fontSize: '0.8rem',
         fontWeight: 600,
         border: `2px solid ${bracketConfig.borderColor}`,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        boxShadow: '0 2px 8px var(--gray-300)',
         whiteSpace: 'nowrap'
     };
 
@@ -268,17 +268,17 @@ function createRouteHeader(route: SwapRoute, config: RouteDisplayConfig): HTMLEl
     header.className = 'route-header';
     
     let headerHTML = `
-        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; color: #8B4513; font-weight: 600;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; color: var(--text-primary); font-weight: 600;">
             <span>🗺️</span>
             <span>${route.operationType}</span>
     `;
     
     if (config.showComplexity) {
-        headerHTML += `<span style="color: #666; font-weight: normal;">(${route.complexity})</span>`;
+        headerHTML += `<span style="color: var(--gray-600); font-weight: normal;">(${route.complexity})</span>`;
     }
     
     if (config.showEstimatedTime) {
-        headerHTML += `<span style="color: #32CD32; margin-left: auto;">⏱️ ${route.estimatedTime}</span>`;
+        headerHTML += `<span style="color: var(--primary-500); margin-left: auto;">⏱️ ${route.estimatedTime}</span>`;
     }
     
     headerHTML += `</div>`;
@@ -312,11 +312,11 @@ function createRouteStepsContainer(route: SwapRoute, config: RouteDisplayConfig)
         stepsHTML += `
             <div class="route-step-enhanced" data-step-index="${index}" style="
                 background: white;
-                border: 2px solid #FFD700;
+                border: 2px solid var(--tertiary-500);
                 border-radius: 10px;
                 padding: 0.75rem 1rem;
                 font-weight: 600;
-                color: #8B4513;
+                color: var(--text-primary);
                 min-width: 120px;
                 text-align: center;
                 position: relative;
@@ -329,7 +329,7 @@ function createRouteStepsContainer(route: SwapRoute, config: RouteDisplayConfig)
         if (index < route.steps.length - 1) {
             stepsHTML += `
                 <div class="route-arrow-enhanced" style="
-                    color: #32CD32;
+                    color: var(--primary-500);
                     font-size: 1.5rem;
                     font-weight: bold;
                 ">→</div>
@@ -367,12 +367,12 @@ function createRouteDetails(route: SwapRoute): HTMLElement {
                 background: white;
                 padding: 0.75rem;
                 border-radius: 8px;
-                border-left: 4px solid #32CD32;
+                border-left: 4px solid var(--primary-500);
             ">
-                <div style="font-size: 0.8rem; color: #666; margin-bottom: 0.25rem;">
+                <div style="font-size: 0.8rem; color: var(--gray-600); margin-bottom: 0.25rem;">
                     ${detail.label}
                 </div>
-                <div style="font-weight: 600; color: #8B4513;">
+                <div style="font-weight: 600; color: var(--text-primary);">
                     ${detail.value}
                 </div>
             </div>
@@ -477,7 +477,7 @@ function addRouteBracket(
         font-size: 0.8rem;
         font-weight: 600;
         border: 2px solid ${bracketConfig.borderColor};
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 8px var(--gray-300);
         white-space: nowrap;
     `;
     labelElement.textContent = label;

@@ -262,12 +262,6 @@ const Dashboard: React.FC = () => {
 
   // Simple Route Visualization - Clean and Clear
   const SimpleRouteDisplay: React.FC<{ route: SwapRoute }> = ({ route }) => {
-    const ASSET_ICONS: Record<string, string> = {
-      'ckBTC': '₿', 'BTC': '₿', 'ckETH': 'Ξ', 'ETH': 'Ξ',
-      'ckUSDC': '💵', 'USDC': '💵', 'ckUSDT': '₮', 'USDT': '₮',
-      'ckSOL': '◉', 'SOL': '◉', 'USDC-SOL': '💵', 'ICP': '∞'
-    };
-
     return (
       <div style={{ 
         display: 'flex',
@@ -284,11 +278,16 @@ const Dashboard: React.FC = () => {
               borderRadius: '10px',
               padding: '0.75rem 1rem',
               fontWeight: 600,
-              color: 'var(--text-primary)',
               textAlign: 'center',
-              minWidth: '120px'
+              minWidth: '120px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              justifyContent: 'center'
             }}>
-              {ASSET_ICONS[step] || '●'} {step}
+              <span className="swap-asset-box-text">
+                <AssetIcon asset={step} size={16} /> {step}
+              </span>
             </div>
             {index < route.steps.length - 1 && (
               <div className="primary-arrow">→</div>
@@ -599,12 +598,12 @@ const Dashboard: React.FC = () => {
 
   const renderAddAssetsSection = () => (
     <div className="section-content">
-      <h2>Add Assets to Your Portfolio</h2>
+      <h2 className="add-assets-main-title">Add Assets to Your Portfolio</h2>
       
       {/* Chain Fusion Deposits */}
       <div className="deposit-category">
-        <h3>Chain Fusion Deposits</h3>
-        <p>Deposit native assets from their L1 chains</p>
+        <h3 className="add-assets-section-title">Chain Fusion Deposits</h3>
+        <p className="add-assets-section-subtitle">Deposit native assets from their L1 chains</p>
         
         <div className="asset-grid">
           {/* BACKEND NOTE: Bitcoin wallet interface + Bitcoin RPC canister */}
@@ -665,8 +664,8 @@ const Dashboard: React.FC = () => {
 
       {/* ICRC/ICP Assets */}
       <div className="deposit-category">
-        <h3>Add ICRC and ICP Assets</h3>
-        <p>Deposit assets already on the Internet Computer Protocol</p>
+        <h3 className="add-assets-section-title">Add ICRC and ICP Assets</h3>
+        <p className="add-assets-section-subtitle">Deposit assets already on the Internet Computer Protocol</p>
         
         <div className="asset-grid">
           <div className="asset-card" onClick={() => startDeposit('ckBTC')}>
@@ -737,7 +736,7 @@ const Dashboard: React.FC = () => {
         <div className="swap-grid">
           {/* From Asset (Left) */}
           <div className="asset-selector from">
-            <label className="asset-label">From (Your Assets)</label>
+            <label className="asset-label swap-white-label">From (Your Assets)</label>
             {/* Backend: Pulls user assets from their sovereign canister (MyHut) */}
             <CustomDropdown
               className="asset-dropdown"
@@ -758,10 +757,10 @@ const Dashboard: React.FC = () => {
             />
             
             <div>
-              <label className="asset-label">Amount</label>
+              <label className="asset-label swap-white-label">Amount</label>
               <input 
                 type="number" 
-                className="amount-input" 
+                className="amount-input swap-brown-input" 
                 placeholder="0.00" 
                 step="0.000001" 
                 min="0"
@@ -809,7 +808,7 @@ const Dashboard: React.FC = () => {
           
           {/* To Asset (Right) */}
           <div className="asset-selector to">
-            <label className="asset-label">To (Multi-Chain Destinations)</label>
+            <label className="asset-label swap-white-label">To (Multichain Destination)</label>
             {/* Backend: BTC triggers Bitcoin RPC, ETH/USDC/USDT triggers EVM RPC, SOL/USDC-SOL triggers Solana RPC */}
             <CustomDropdown
               className="asset-dropdown"
@@ -833,8 +832,8 @@ const Dashboard: React.FC = () => {
             />
             
             <div>
-              <label className="asset-label">You'll Receive</label>
-              <div className="amount-input equivalent-amount">
+              <label className="asset-label swap-white-label">You'll Receive</label>
+              <div className="amount-input equivalent-amount swap-brown-input">
                 {swapAnalysis?.outputAmount ? formatAmount(swapAnalysis.outputAmount) : '0'}
               </div>
               <div className="balance-row">
@@ -862,7 +861,7 @@ const Dashboard: React.FC = () => {
           borderColor: fromAsset === toAsset ? 'var(--secondary-500)' : 'var(--tertiary-500)'
         }}>
           <div className="route-header" style={{ justifyContent: 'center' }}>
-            <span>What's Happening: Your Transaction Explained</span>
+            <span className="swap-transaction-title">What's Happening: Your Transaction Explained</span>
           </div>
           
           {fromAsset === toAsset ? (
@@ -907,7 +906,7 @@ const Dashboard: React.FC = () => {
       {showDEXSelection && swapAnalysis && fromAsset !== toAsset && (
         <div className="dex-selection-panel">
           <div className="dex-header" style={{ justifyContent: 'center' }}>
-            <span>
+            <span className="swap-dex-title">
               {swapAnalysis.route.operationType === 'DEX + Minter'
                 ? 'First choose your DEX' 
                 : 'Choose your DEX'}
@@ -961,9 +960,9 @@ const Dashboard: React.FC = () => {
       {/* STEP 3: Smart Solutions with Progressive Yes/No Interactions */}
       {showSmartSolutions && smartSolutions.length > 0 && (
         <div className="smart-solutions-panel">
-          <div className="solutions-header">
-            <Lightbulb size={20} style={{color: '#f59e0b'}} />
-            <span>Smart Solutions for Fee Payment</span>
+          <div className="solutions-header" style={{justifyContent: 'center', alignItems: 'center'}}>
+            <Lightbulb size={20} style={{color: 'white'}} />
+            <span className="swap-smart-solutions-title">Smart Solutions for Fee Payment</span>
             {selectedSolution !== null && (
               <button 
                 onClick={resetSolutionsView}

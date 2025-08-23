@@ -5,7 +5,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.8);
+  background: var(--gray-900);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -21,6 +21,7 @@
   max-height: 80vh;
   overflow-y: auto;
   position: relative;
+  color: var(--text-on-light);
 }
 
 .modal-header {
@@ -28,12 +29,12 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
-  border-bottom: 1px solid #DDD;
+  border-bottom: 1px solid var(--gray-300);
   padding-bottom: 1rem;
 }
 
 .modal-header h2 {
-  color: #8B4513;
+  color: var(--text-on-light);
   margin: 0;
 }
 
@@ -42,12 +43,12 @@
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
-  color: #999;
+  color: var(--gray-500);
   padding: 0;
 }
 
 .close-btn:hover {
-  color: #666;
+  color: var(--gray-600);
 }
 
 /* Step 1: Amount Input */
@@ -62,7 +63,7 @@
 }
 
 .selected-asset-name {
-  color: #8B4513;
+  color: var(--text-on-light);
   margin: 0;
 }
 
@@ -70,30 +71,32 @@
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 600;
-  color: #8B4513;
+  color: var(--text-on-light);
 }
 
 .deposit-amount-input {
   width: 100%;
   padding: 0.75rem;
-  border: 2px solid #32CD32;
+  border: 2px solid var(--primary-500);
   border-radius: 10px;
   font-size: 1.1rem;
   font-weight: 600;
   text-align: right;
   margin-bottom: 2rem;
+  color: var(--text-on-light);
+  background: white;
 }
 
 .deposit-amount-input:focus {
   outline: none;
-  border-color: #228B22;
-  box-shadow: 0 0 0 3px rgba(50, 205, 50, 0.1);
+  border-color: var(--primary-600);
+  box-shadow: 0 0 0 3px var(--primary-100);
 }
 
 .connect-wallet-btn {
   width: 100%;
   padding: 1rem 2rem;
-  background: linear-gradient(135deg, #32CD32, #228B22);
+  background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
   color: white;
   border: none;
   border-radius: 15px;
@@ -105,12 +108,12 @@
 
 .connect-wallet-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(50, 205, 50, 0.4);
+  box-shadow: 0 6px 25px var(--primary-300);
 }
 
 /* Step 2: Wallet Selection */
 .wallet-selection-title {
-  color: #8B4513;
+  color: var(--text-on-light);
   margin-bottom: 1rem;
   text-align: center;
 }
@@ -123,13 +126,13 @@
 
 .wallet-option {
   background: white;
-  border: 2px solid #DDD;
+  border: 2px solid var(--gray-300);
   border-radius: 15px;
   padding: 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
   font-weight: 600;
-  color: #8B4513;
+  color: var(--text-on-light);
   text-align: center;
   display: flex;
   align-items: center;
@@ -138,9 +141,9 @@
 }
 
 .wallet-option:hover {
-  border-color: #32CD32;
+  border-color: var(--primary-500);
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(50, 205, 50, 0.3);
+  box-shadow: 0 4px 15px var(--primary-200);
 }
 
 .wallet-icon {
@@ -164,12 +167,12 @@
 }
 
 .processing-container h3 {
-  color: #8B4513;
+  color: var(--text-on-light);
   margin-bottom: 1rem;
 }
 
 .processing-message {
-  color: #666;
+  color: var(--gray-600);
   font-size: 1rem;
   margin-bottom: 2rem;
 }
@@ -178,21 +181,21 @@
 .bitcoin-confirmation,
 .ethereum-confirmation,
 .solana-confirmation {
-  background: #f8f9fa;
-  border: 2px solid #FFD700;
+  background: var(--gray-50);
+  border: 2px solid var(--tertiary-500);
   border-radius: 15px;
   padding: 1.5rem;
   margin: 1rem 0;
 }
 
 .ethereum-confirmation {
-  border-color: #627eea;
-  background: #f0f7ff;
+  border-color: var(--info);
+  background: var(--info-bg);
 }
 
 .solana-confirmation {
-  border-color: #9945FF;
-  background: #f8f5ff;
+  border-color: var(--primary-500);
+  background: var(--primary-50);
 }
 
 .confirmation-icon {
@@ -207,12 +210,12 @@
 }
 
 .confirmation-bar {
-  background: #E0E0E0;
+  background: var(--gray-300);
   height: 20px;
   border-radius: 10px;
   overflow: hidden;
   margin: 1rem 0;
-  border: 2px solid #DDD;
+  border: 2px solid var(--gray-300);
 }
 
 .confirmation-fill {
@@ -224,46 +227,46 @@
 }
 
 .confirmation-fill.bitcoin {
-  background: linear-gradient(90deg, #FFA500, #32CD32);
+  background: linear-gradient(90deg, var(--secondary-500), var(--primary-500));
 }
 
 .confirmation-fill.ethereum {
-  background: linear-gradient(90deg, #627eea, #32CD32);
+  background: linear-gradient(90deg, var(--info), var(--primary-500));
 }
 
 .confirmation-fill.solana {
-  background: linear-gradient(90deg, #9945FF, #32CD32);
+  background: linear-gradient(90deg, var(--primary-500), var(--primary-500));
 }
 
 .confirmation-status {
   font-weight: 600;
-  color: #8B4513;
+  color: var(--text-on-light);
   margin: 0.5rem 0;
 }
 
 .confirmation-count {
   font-size: 1.2rem;
-  font-weight: 700;
-  color: #FFA500;
-  font-family: monospace;
+  font-weight: var(--font-bold);
+  color: var(--secondary-500);
+  font-family: var(--font-mono);
 }
 
 .ethereum-confirmation .confirmation-count {
-  color: #627eea;
+  color: var(--info);
 }
 
 .solana-confirmation .confirmation-count {
-  color: #9945FF;
+  color: var(--primary-500);
 }
 
 .confirmation-count.complete {
-  color: #32CD32;
+  color: var(--primary-500);
 }
 
 .confirmation-info {
   font-style: italic;
   font-size: 0.9rem;
-  color: #666;
+  color: var(--gray-600);
   margin-top: 1rem;
 }
 
@@ -279,18 +282,18 @@
 }
 
 .success-container h3 {
-  color: #32CD32;
+  color: var(--primary-500);
   margin-bottom: 1rem;
 }
 
 .success-message {
-  color: #666;
+  color: var(--gray-600);
   margin-bottom: 2rem;
 }
 
 .continue-btn {
   padding: 1rem 2rem;
-  background: linear-gradient(135deg, #32CD32, #228B22);
+  background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
   color: white;
   border: none;
   border-radius: 15px;
@@ -302,7 +305,7 @@
 
 .continue-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(50, 205, 50, 0.4);
+  box-shadow: 0 6px 25px var(--primary-300);
 }
 
 /* Animations */
@@ -325,21 +328,21 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .modal-content {
-    padding: 1rem;
-    margin: 1rem;
+    padding: var(--space-4);
+    margin: var(--space-4);
     max-height: 90vh;
   }
   
   .selected-asset-icon {
-    font-size: 2rem;
+    font-size: var(--text-3xl);
   }
   
   .confirmation-icon {
-    font-size: 1.5rem;
+    font-size: var(--text-2xl);
   }
   
   .processing-icon,
   .success-icon {
-    font-size: 2rem;
+    font-size: var(--text-3xl);
   }
 }
