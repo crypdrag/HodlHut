@@ -1254,9 +1254,9 @@ const Dashboard: React.FC = () => {
       <div className="garden-container">
         {/* Garden Header */}
         <div className="garden-header">
-          <h1 className="garden-title">🌱 Hut Gardens 🌱</h1>
+          <h1 className="garden-title" style={{ color: '#440f04' }}>🌱 My Garden 🌱</h1>
           <p className="garden-subtitle">Hodl Longevity & Asset Diversity Claimable Rewards</p>
-          <div className="garden-level-display">
+          <div className="garden-level-display" style={{ color: 'white' }}>
             🌿 Sprout Gardener
           </div>
         </div>
@@ -1309,7 +1309,7 @@ const Dashboard: React.FC = () => {
         {/* Garden Fields */}
         <div className="garden-fields">
           <div className="fields-header">
-            <h2 className="fields-title">🪴 Your Biodiversity</h2>
+            <h2 className="fields-title" style={{ color: '#440f04' }}>🪴 Your Biodiversity</h2>
             <p className="fields-subtitle">Plant assets to start earning yield • Greater diversity = Higher rewards</p>
           </div>
 
