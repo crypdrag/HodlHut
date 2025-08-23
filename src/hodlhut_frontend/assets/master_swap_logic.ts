@@ -318,12 +318,16 @@ export function calculateFeeRequirements(
   portfolio: Portfolio,
   selectedDEX: string = 'ICPSwap'
 ): FeeRequirement[] {
+  console.log('🔥 CALCULATE FEE REQUIREMENTS:', { fromAsset, toAsset, amount });
+  
   const fees: FeeRequirement[] = [];
   const route = calculateSwapRoute(fromAsset, toAsset);
   const isMinterOp = route.operationType === 'Minter Operation';
   
-  // DEX Trading Fees (for DEX swaps like ckUSDT → ckSOL)
-  if (!isMinterOp && route.steps.length > 1) {
+  console.log('🔥 FEE CALC ROUTE:', { route, isMinterOp });
+  
+  // DEX Trading Fees (for DEX swaps like ckUSDT → ckSOL or DEX + Minter operations)
+  if (!isMinterOp || route.operationType === 'DEX + Minter') {
     const dexFeeRate = selectedDEX === 'KongSwap' ? 0.0025 : 0.003;
     const dexFeeAmount = amount * dexFeeRate;
     const dexFeeUSD = dexFeeAmount * ASSET_PRICES[fromAsset];
@@ -338,9 +342,13 @@ export function calculateFeeRequirements(
     });
   }
   
-  // L1 Gas Fees
-  if (route.isCrossChain && isL1Withdrawal(toAsset)) {
+  // L1 Gas Fees - CRITICAL: Check for ALL L1 withdrawal destinations, not just cross-chain
+  console.log('🔥 L1 WITHDRAWAL CHECK:', { toAsset, isL1: isL1Withdrawal(toAsset) });
+  
+  if (isL1Withdrawal(toAsset)) {
+    console.log('🔥 CALLING calculateL1GasFee for:', toAsset);
     const gasFee = calculateL1GasFee(toAsset, portfolio);
+    console.log('🔥 L1 GAS FEE RESULT:', gasFee);
     if (gasFee) {
       fees.push(gasFee);
     }
@@ -360,6 +368,14 @@ function calculateL1GasFee(toAsset: string, portfolio: Portfolio): FeeRequiremen
   if (['USDC-ETH', 'USDT-ETH'].includes(toAsset)) {
     const ethGasAmount = 0.003;
     const ethGasUSD = ethGasAmount * ASSET_PRICES['ckETH'];
+    
+    console.log('🔍 ETH Gas Fee Debug:', {
+      toAsset,
+      ethGasAmount,
+      ckETHPrice: ASSET_PRICES['ckETH'],
+      ethGasUSD,
+      portfolioETH: portfolio['ckETH'] || 0
+    });
     
     return {
       token: 'ckETH',
@@ -780,7 +796,9 @@ export function analyzeCompleteSwap(
 
   // Generate route and fee requirements
   const route = calculateSwapRoute(fromAsset, toAsset);
+  console.log('🚀 CALLING calculateFeeRequirements from analyzeCompleteSwap');
   const feeRequirements = calculateFeeRequirements(fromAsset, toAsset, amount, portfolio, selectedDEX);
+  console.log('🚀 FEE REQUIREMENTS RESULT:', feeRequirements);
 
   // Calculate total fees and check for smart solutions
   const totalFeesUSD = feeRequirements.reduce((sum, fee) => sum + fee.usdValue, 0);

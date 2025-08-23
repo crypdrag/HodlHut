@@ -383,14 +383,19 @@ const Dashboard: React.FC = () => {
 
 
   const updateAdvancedSwapDetails = () => {
+    console.log('🔄 UPDATE ADVANCED SWAP DETAILS CALLED:', { fromAsset, toAsset, swapAmount });
+    
     if (!fromAsset || !toAsset || !swapAmount || parseFloat(swapAmount) <= 0) {
+      console.log('⚠️ Early return - invalid parameters');
       return;
     }
 
     const amount = parseFloat(swapAmount);
     
     // STEP 1: Get basic swap analysis
+    console.log('🚀 CALLING analyzeCompleteSwap FROM DASHBOARD:', { fromAsset, toAsset, amount });
     const analysis = analyzeCompleteSwap(fromAsset, toAsset, amount, portfolio, selectedDEX || 'ICPSwap');
+    console.log('🚀 DASHBOARD RECEIVED ANALYSIS:', analysis);
     
     if (!analysis.success) {
       console.warn('Swap analysis failed:', analysis.errors);

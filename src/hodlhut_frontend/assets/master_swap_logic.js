@@ -199,9 +199,11 @@ export function calculateBaseSwapRate(fromAsset, toAsset, amount) {
  * Calculates all fee requirements for a swap with Chain Fusion support
  */
 export function calculateFeeRequirements(fromAsset, toAsset, amount, portfolio, selectedDEX = 'ICPSwap') {
+    console.log('🔥 CALCULATE FEE REQUIREMENTS:', { fromAsset, toAsset, amount });
     const fees = [];
     const route = calculateSwapRoute(fromAsset, toAsset);
     const isMinterOp = route.operationType === 'Minter Operation';
+    console.log('🔥 ROUTE INFO:', { route, isMinterOp });
     // DEX Trading Fees (ONLY for heterogeneous token swaps)
     if (!isMinterOp && route.steps.length > 1) {
         const dexFeeRate = selectedDEX === 'KongSwap' ? 0.0025 : 0.003;
@@ -218,9 +220,12 @@ export function calculateFeeRequirements(fromAsset, toAsset, amount, portfolio, 
     }
     // NO CHAIN FUSION BRIDGE FEES - Chain Fusion is free!
     // All fees come from L1 networks (ETH gas, BTC fees, SOL fees)
-    // L1 Gas Fees
-    if (route.isCrossChain && isL1Withdrawal(toAsset)) {
+    // L1 Gas Fees - FIXED: ETH gas required for ALL L1 withdrawals, not just cross-chain
+    console.log('🔥 L1 WITHDRAWAL CHECK:', { toAsset, isL1: isL1Withdrawal(toAsset), isCrossChain: route.isCrossChain });
+    if (isL1Withdrawal(toAsset)) {
+        console.log('🔥 CALLING calculateL1GasFee for:', toAsset);
         const gasFee = calculateL1GasFee(toAsset, portfolio);
+        console.log('🔥 L1 GAS FEE RESULT:', gasFee);
         if (gasFee) {
             fees.push(gasFee);
         }
@@ -228,10 +233,19 @@ export function calculateFeeRequirements(fromAsset, toAsset, amount, portfolio, 
     return fees;
 }
 function calculateL1GasFee(toAsset, portfolio) {
-    // Ethereum gas fees
-    if (['ETH', 'USDC', 'USDT'].includes(toAsset)) {
+    console.log('🔍 ETH Gas Fee Debug:', { toAsset });
+    
+    // Ethereum gas fees - FIXED: Include USDC-ETH, USDT-ETH 
+    if (['ETH', 'USDC-ETH', 'USDT-ETH'].includes(toAsset)) {
         const ethGasAmount = 0.003;
         const ethGasUSD = ethGasAmount * ASSET_PRICES['ckETH'];
+        console.log('🔍 ETH Gas Fee Calculation:', {
+            toAsset,
+            ethGasAmount,
+            ckETHPrice: ASSET_PRICES['ckETH'],
+            ethGasUSD,
+            portfolioETH: portfolio['ckETH'] || 0
+        });
         return {
             token: 'ckETH',
             amount: ethGasAmount,
@@ -447,6 +461,7 @@ export function getBracketConfiguration(route) {
  */
 export function analyzeCompleteSwap(fromAsset, toAsset, amount, portfolio, selectedDEX = 'ICPSwap') {
     console.log('🔬 MASTER ANALYSIS: Analyzing swap:', { fromAsset, toAsset, amount });
+    console.log('🔬 CACHE BUST: File updated at', new Date().toISOString());
     console.log('🔬 ASSET_PRICES check:', { 
         fromAssetPrice: ASSET_PRICES[fromAsset], 
         toAssetPrice: ASSET_PRICES[toAsset],
@@ -495,7 +510,9 @@ export function analyzeCompleteSwap(fromAsset, toAsset, amount, portfolio, selec
     }
     // Generate route and fee requirements
     const route = calculateSwapRoute(fromAsset, toAsset);
+    console.log('🚀 ABOUT TO CALL calculateFeeRequirements with:', { fromAsset, toAsset, amount, portfolio, selectedDEX });
     const feeRequirements = calculateFeeRequirements(fromAsset, toAsset, amount, portfolio, selectedDEX);
+    console.log('🚀 calculateFeeRequirements RETURNED:', feeRequirements);
     // Calculate total fees and check for smart solutions
     const totalFeesUSD = feeRequirements.reduce((sum, fee) => sum + fee.usdValue, 0);
     const needsSmartSolutions = feeRequirements.some(fee => !fee.isUserSufficient);
