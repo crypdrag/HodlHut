@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AssetIcon from './AssetIcon';
+import InternetIdentityLogin from './InternetIdentityLogin';
 import '../styles/HomePage.css';
 import HeroAnimationVideo from '../../assets/images/Hero_Animation.mp4';
 import { 
@@ -27,6 +28,7 @@ const HomePage: React.FC = () => {
   const { isAuthenticated, login, logout, principal, isLoading } = useAuth();
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const [showAnimation, setShowAnimation] = useState(true);
+  const [showIILogin, setShowIILogin] = useState(false);
 
   useEffect(() => {
     // Hide animation after 4 seconds
@@ -38,48 +40,40 @@ const HomePage: React.FC = () => {
   }, []);
 
   const handleGetHut = async () => {
-    // TODO: RESTORE INTERNET IDENTITY LOGIN - Currently bypassed for testing
-    // Original auth flow: Check isAuthenticated, then login() via Internet Identity canister
-    // Canister call will go to: rdmx6-jaaaa-aaaaa-aaadq-cai (from dfx.json)
-    
-    // TEMPORARY: Direct navigation for testing Smart Solutions interface
-    navigate('/dashboard');
-    
-    /* ORIGINAL AUTHENTICATION CODE - RESTORE LATER:
     if (isAuthenticated) {
       // User is already authenticated, navigate to dashboard
       navigate('/dashboard');
     } else {
-      // Trigger Internet Identity login
-      const success = await login();
-      if (success) {
-        // After successful login, navigate to dashboard
-        navigate('/dashboard');
-      }
+      // Show Internet Identity login modal
+      setShowIILogin(true);
     }
-    */
   };
 
   const handleMyHuts = async () => {
-    // TODO: RESTORE INTERNET IDENTITY LOGIN - Currently bypassed for testing
-    // Original auth flow: Check isAuthenticated, then login() via Internet Identity canister  
-    // Canister call will go to: rdmx6-jaaaa-aaaaa-aaadq-cai (from dfx.json)
-    
-    // TEMPORARY: Direct navigation for testing Smart Solutions interface
-    navigate('/dashboard');
-    
-    /* ORIGINAL AUTHENTICATION CODE - RESTORE LATER:
     if (isAuthenticated) {
       // User is authenticated, show their huts (for now, navigate to dashboard)
       navigate('/dashboard');
     } else {
-      // Trigger Internet Identity login
+      // Show Internet Identity login modal
+      setShowIILogin(true);
+    }
+  };
+
+  const handleIILogin = async () => {
+    try {
       const success = await login();
       if (success) {
+        setShowIILogin(false);
         navigate('/dashboard');
       }
+    } catch (error) {
+      console.error('Internet Identity login failed:', error);
+      // Handle error - could show toast or error message
     }
-    */
+  };
+
+  const handleCancelLogin = () => {
+    setShowIILogin(false);
   };
 
   return (
@@ -419,6 +413,15 @@ const HomePage: React.FC = () => {
           </div>
         </div>
       </footer>
+
+      {/* Internet Identity Login Modal */}
+      {showIILogin && (
+        <InternetIdentityLogin
+          onLogin={handleIILogin}
+          onCancel={handleCancelLogin}
+          isLoading={isLoading}
+        />
+      )}
     </div>
   );
 };
