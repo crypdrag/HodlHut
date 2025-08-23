@@ -6,26 +6,26 @@
 
 ---
 
-## 🌟 Key Innovations
+##  Key Innovations
 
-### 🧠 **7-Agent Intelligence System**
+###  **7-Agent Intelligence System**
 Production-ready backend following **DFINITY LLM architectural patterns** with clear separation between:
 - **Intelligence Layer (Agents)**: Real-time analysis, routing decisions, optimization
 - **Execution Layer (Canisters)**: Blockchain operations, Chain Fusion, asset custody
 
-### 🔗 **Intelligent ICP Hub Routing**  
+###  **Intelligent ICP Hub Routing**  
 Automatic route optimization that positions ICP as a multichain liquidity hub:
 ```
 Direct Route:  ckBTC → ckUSDC (3.2% slippage, low liquidity)
 Optimal Route: ckBTC → ICP → ckUSDC (0.8% total slippage via deeper pools)
 ```
 
-### 🏰 **Sovereign Architecture**
+###  **Sovereign Architecture**
 Each user receives their own **MyHut canister** - true decentralized asset custody without centralized intermediaries.
 
 ---
 
-## 🚀 Live Features
+##  Live Features
 
 - ✅ **Dynamic Fee Optimization**: Real-time Bitcoin, Ethereum, Solana network fee estimation
 - ✅ **Advanced DEX Routing**: Intelligent slippage reduction via ICP hub routing  
@@ -35,7 +35,7 @@ Each user receives their own **MyHut canister** - true decentralized asset custo
 
 ---
 
-## 🏗️ Architecture Overview
+## 🏗 Architecture Overview
 
 ### Backend Intelligence System
 
@@ -83,7 +83,7 @@ Frontend Request → MasterAgent → [Specialist Agents] → TransactionMonitor
 
 ---
 
-## 🎯 Competitive Advantages
+##  Competitive Advantages
 
 ### For Users
 - **Lower Slippage**: Intelligent routing via deeper ICP liquidity pools
@@ -99,7 +99,7 @@ Frontend Request → MasterAgent → [Specialist Agents] → TransactionMonitor
 
 ---
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### Prerequisites
 - Node.js 18+
@@ -167,7 +167,7 @@ node src/agents/test_all_agents.js
 
 ---
 
-## 🤝 Contributing
+##  Contributing
 
 HodlHut welcomes contributions from the ICP community! Whether you're interested in:
 
@@ -180,15 +180,15 @@ Please see [DEVELOPMENT_NOTES.md](./DEVELOPMENT_NOTES.md) for detailed architect
 
 ---
 
-## 📜 License
+##  License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🏆 Recognition
+##  Recognition
 
-**Built for ICP Hackathons** - Demonstrating the future of multichain DeFi on Internet Computer.
+**Built for WCHL Nationals ICP Hackathon** - Demonstrating the future of multichain DeFi on Internet Computer.
 
 *HodlHut represents what's possible when you combine ICP's unique multichain capabilities with sophisticated intelligence systems and true decentralized architecture.*
 
