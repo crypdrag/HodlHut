@@ -86,9 +86,19 @@ const HomePage: React.FC = () => {
             <AssetIcon asset="logo" size={50} className="logo-image" />
             <span className="logo-text">HodlHut</span>
             {isAuthenticated && principal && (
-              <span className="user-principal">
-                👤 {principal.toString().slice(0, 8)}...
-              </span>
+              <div className="user-principal-container">
+                <span className="user-principal">
+                  👤 {principal.toString().slice(0, 8)}...
+                </span>
+                <div className="user-principal-dropdown">
+                  <button 
+                    className="logout-btn"
+                    onClick={logout}
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
             )}
           </div>
           <div className="nav-buttons">

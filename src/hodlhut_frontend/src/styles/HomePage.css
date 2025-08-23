@@ -80,14 +80,66 @@
   color: #440f04 !important;
 }
 
-.user-principal {
+/* User Principal Container with Hover Dropdown */
+.user-principal-container {
+  position: relative;
   margin-left: var(--space-4);
+}
+
+.user-principal {
   font-size: var(--text-sm);
-  color: var(--text-on-primary);
+  color: #440f04;
   background: var(--primary-100);
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-full);
   border: 1px solid var(--primary-200);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.user-principal:hover {
+  background: var(--primary-200);
+}
+
+/* Dropdown that appears on hover */
+.user-principal-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: white;
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: all 0.2s ease;
+  z-index: 1000;
+}
+
+.user-principal-container:hover .user-principal-dropdown {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.logout-btn {
+  background: none;
+  border: none;
+  padding: 8px 16px;
+  width: 100%;
+  text-align: left;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.logout-btn:hover {
+  background: var(--gray-50);
+  color: #440f04;
 }
 
 .nav-buttons {
