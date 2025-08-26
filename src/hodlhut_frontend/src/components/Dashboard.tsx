@@ -1526,8 +1526,8 @@ const Dashboard: React.FC = () => {
 
     return (
       <div className="section-content">
-        <h2 style={{ color: '#440f04' }}>📋 Transaction History</h2>
-        <p style={{ color: '#440f04' }}>View all your trading and deposit activity</p>
+        <h2 style={{ color: 'white' }}>Transaction History</h2>
+        <p style={{ color: 'white' }}>View all your trading and deposit activity</p>
         <div className="transaction-history-container">
           {mockTransactions.map((tx) => (
             <div key={tx.id} className="transaction-item" style={{ backgroundColor: '#fff8eb', color: '#440f04' }}>
