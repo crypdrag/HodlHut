@@ -44,8 +44,12 @@ const HomePage: React.FC = () => {
       // User is already authenticated, navigate to Add Assets
       navigate('/dashboard', { state: { activeSection: 'addAssets' } });
     } else {
-      // Show Internet Identity login modal
-      setShowIILogin(true);
+      // DEMO MODE: Skip login modal, simulate direct login
+      console.log('Demo mode: Bypassing Internet Identity modal');
+      const success = await login();
+      if (success) {
+        navigate('/dashboard', { state: { activeSection: 'addAssets' } });
+      }
     }
   };
 
@@ -54,8 +58,12 @@ const HomePage: React.FC = () => {
       // User is authenticated, navigate to Add Assets  
       navigate('/dashboard', { state: { activeSection: 'addAssets' } });
     } else {
-      // Show Internet Identity login modal
-      setShowIILogin(true);
+      // DEMO MODE: Skip login modal, simulate direct login
+      console.log('Demo mode: Bypassing Internet Identity modal');
+      const success = await login();
+      if (success) {
+        navigate('/dashboard', { state: { activeSection: 'addAssets' } });
+      }
     }
   };
 
