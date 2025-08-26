@@ -206,7 +206,7 @@ export function calculateFeeRequirements(fromAsset, toAsset, amount, portfolio, 
     console.log('🔥 ROUTE INFO:', { route, isMinterOp });
     // DEX Trading Fees (ONLY for heterogeneous token swaps)
     if (!isMinterOp && route.steps.length > 1) {
-        const dexFeeRate = selectedDEX === 'KongSwap' ? 0.0025 : 0.003;
+        const dexFeeRate = selectedDEX === 'KongSwap' ? 0.003 : 0.003;
         const dexFeeAmount = amount * dexFeeRate;
         const dexFeeUSD = dexFeeAmount * ASSET_PRICES[fromAsset];
         fees.push({
@@ -388,11 +388,11 @@ export const DEX_OPTIONS = {
     'KongSwap': {
         id: 'KongSwap',
         name: 'KongSwap',
-        tradingFee: 0.0025,
+        tradingFee: 0.003,
         advantages: ['Lower trading fees', 'Faster transaction processing', 'Better for smaller trades'],
         stats: {
             'Swap Speed': '5-12 seconds',
-            'Trading Fee': '0.25%',
+            'Trading Fee': '0.3%',
             'Liquidity': 'Medium',
             'Slippage': 'Medium'
         },
