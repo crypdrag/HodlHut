@@ -1024,6 +1024,7 @@
 .asset-icon-center {
   display: flex;
   justify-content: center;
+  align-items: center;
   margin-bottom: var(--space-2);
 }
 
