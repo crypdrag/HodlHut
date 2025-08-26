@@ -268,7 +268,7 @@ function createRouteHeader(route: SwapRoute, config: RouteDisplayConfig): HTMLEl
     header.className = 'route-header';
     
     let headerHTML = `
-        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; color: var(--text-primary); font-weight: 600;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; color: black; font-weight: 600;">
             <span>🗺️</span>
             <span>${route.operationType}</span>
     `;

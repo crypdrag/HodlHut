@@ -19,6 +19,21 @@
   --primary-950: #440f04;
 
   /* ===============================================
+     TERTIARY PALETTE - SAME AS PRIMARY (ORANGE)
+     =============================================== */
+  --tertiary-50: #fff8eb;
+  --tertiary-100: #fde9c8;
+  --tertiary-200: #fbd28c;
+  --tertiary-300: #f9b450;
+  --tertiary-400: #f7931a;
+  --tertiary-500: #f1760f;   /* Same as Primary - Orange Border */
+  --tertiary-600: #d65309;   /* Same as Primary Hover */
+  --tertiary-700: #b1360c;   /* Same as Primary Active */
+  --tertiary-800: #902b10;
+  --tertiary-900: #762311;
+  --tertiary-950: #440f04;
+
+  /* ===============================================
      TAILWIND-INSPIRED NEUTRALS
      =============================================== */
   --gray-50: #f9fafb;
