@@ -318,6 +318,10 @@ const Dashboard: React.FC = () => {
   const [selectedWallet, setSelectedWallet] = useState<string>('');
   const [transactionSteps, setTransactionSteps] = useState<Array<{message: string, completed: boolean, current: boolean}>>([]);
   
+  // My Garden Claim Yield State
+  const [claimedAssets, setClaimedAssets] = useState<Set<string>>(new Set());
+  const [sparklingAssets, setSparklingAssets] = useState<Set<string>>(new Set());
+  
   // Ethereum Wallet Options for Transaction
   const ETH_WALLET_OPTIONS = [
     { id: 'metamask', name: 'MetaMask', icon: <Wallet className="w-4 h-4 text-orange-500" /> },
@@ -349,6 +353,22 @@ const Dashboard: React.FC = () => {
         }
       }, stepTimings.slice(0, index + 1).reduce((acc, curr) => acc + curr, 0));
     });
+  };
+
+  // Handle Claim Yield with sparkling animation
+  const handleClaimYield = (asset: string) => {
+    // Start sparkling animation
+    setSparklingAssets(prev => new Set([...prev, asset]));
+    
+    // After animation duration, mark as claimed and stop sparkling
+    setTimeout(() => {
+      setClaimedAssets(prev => new Set([...prev, asset]));
+      setSparklingAssets(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(asset);
+        return newSet;
+      });
+    }, 2000); // 2 second sparkling animation
   };
   
   // Enhanced DEX Options with Real Stats - FIXED STATS
@@ -1357,8 +1377,13 @@ const Dashboard: React.FC = () => {
             )}
           </div>
           {isPlanted ? (
-            <button className="harvest-btn" onClick={() => alert(`🌾 Harvested from ${asset}!`)} style={{ color: '#440f04', textAlign: 'center' }}>
-              Claim Yield
+            <button 
+              className={`harvest-btn ${claimedAssets.has(asset) ? 'claimed' : ''} ${sparklingAssets.has(asset) ? 'sparkling' : ''}`}
+              onClick={() => !claimedAssets.has(asset) && handleClaimYield(asset)}
+              disabled={claimedAssets.has(asset)}
+              style={{ textAlign: 'center' }}
+            >
+              {claimedAssets.has(asset) ? 'Claimed' : 'Claim Yield'}
             </button>
           ) : (
             <button className="plant-btn" onClick={() => alert(`🌱 Plant ${asset} feature coming soon!`)}>
