@@ -1,203 +1,201 @@
 # HodlHut 🏡
 
-## Sovereign Multichain DeFi Platform on Internet Computer
+**Sovereign Multichain DeFi Router on the Internet Computer (ICP)**
 
-**HodlHut** is a production-ready DeFi platform that leverages the Internet Computer's unique capabilities to create a truly sovereign, multichain trading experience. Built with a sophisticated 7-agent intelligence system, HodlHut positions ICP as the natural hub for optimal crosschain liquidity routing.
+HodlHut is a prototype BTCFi platform that uses a **Multi‑agent intelligence layer** on ICP to optimize fees and route liquidity across Bitcoin, Ethereum, and Solana — anchored by **dynamic routing with an ICP liquidity bridge** (choosing between direct and ICP liquidity bridge paths at runtime). The HodlHut interface abstracts complexity for multi-hopping trades while transparently advising the user exactly what is happening behind the scenes with simple language and charts. Yield Farming and games are built into the roadmap. 
 
----
-
-##  Key Innovations
-
-###  **7-Agent Intelligence System**
-Production-ready backend following **DFINITY LLM architectural patterns** with clear separation between:
-- **Intelligence Layer (Agents)**: Real-time analysis, routing decisions, optimization
-- **Execution Layer (Canisters)**: Blockchain operations, Chain Fusion, asset custody
-
-###  **Intelligent ICP Hub Routing**  
-Automatic route optimization that positions ICP as a multichain liquidity hub:
-```
-Direct Route:  ckBTC → ckUSDC (3.2% slippage, low liquidity)
-Optimal Route: ckBTC → ICP → ckUSDC (0.8% total slippage via deeper pools)
-```
-
-###  **Sovereign Architecture**
-Each user receives their own **MyHut canister** - true decentralized asset custody without centralized intermediaries.
+> **Hackathon TL;DR**
+>
+> * **Demo:** local prototype + read‑only mainnet checks (Boundary‑NET)
+> * **What's novel:** ICP as a fast L2 coordination layer for BTC/ETH/SOL via agents + canisters
+> * **Tests:** 36 unit + 6 integration scenarios (see *Testing (Canonical)*)
 
 ---
 
-##  Live Features
+## Demo
 
-- ✅ **Dynamic Fee Optimization**: Real-time Bitcoin, Ethereum, Solana network fee estimation
-- ✅ **Advanced DEX Routing**: Intelligent slippage reduction via ICP hub routing  
-- ✅ **Multichain Support**: Bitcoin, Ethereum, Solana integration via Chain Fusion
-- ✅ **Sovereign User Canisters**: Decentralized asset custody (MyHut architecture)
-- ✅ **Production-Ready Testing**: 36 individual + 6 integration tests
+### Local (prototype UI + agents)
 
----
-
-## 🏗 Architecture Overview
-
-### Backend Intelligence System
-
-```
-Frontend Request → MasterAgent → [Specialist Agents] → TransactionMonitor
-                      ↓              ↓                     ↓
-                 Authentication   Network Analysis    Status Tracking
-                      ↓              ↓                     ↓
-                 Canister Calls   Optimization Logic   Background Loops
-                      ↓              ↓                     ↓
-                 Chain Fusion    Real-time Decisions   User Updates
-```
-
-### 7-Agent Breakdown
-
-| Agent | Purpose | Key Features |
-|-------|---------|--------------|
-| **MasterAgent** | Orchestration & routing | Internet Identity integration, session management |
-| **BitcoinRPCAgent** | Bitcoin network intelligence | Mempool analysis, P2WPKH addresses, KYT compliance |
-| **EVMRPCAgent** | Ethereum optimization | EIP-1559 gas estimation, ERC-20 complexity handling |
-| **SVMRPCAgent** | Solana network analysis | SPL token framework, high-performance characteristics |
-| **DEXRoutingAgent** | Liquidity optimization | ICP hub routing, slippage analysis, multi-DEX comparison |
-| **HutFactoryAgent** | Canister lifecycle | Sovereign hut creation, 30-minute activation windows |
-| **TransactionMonitorAgent** | Operation tracking | Multichain monitoring, background processing loops |
-
----
-
-## 🛠️ Technology Stack
-
-### Frontend
-- **React + TypeScript**: Modern UI with full type safety
-- **Webpack**: Optimized build pipeline  
-- **CSS Grid/Flexbox**: Responsive, mobile-first design
-
-### Backend Intelligence
-- **Node.js Agents**: 5,100+ lines of production-ready intelligence code
-- **Real-time APIs**: Dynamic fee estimation across all supported networks
-- **Comprehensive Testing**: Complete test coverage for all agent functionality
-
-### Internet Computer Integration
-- **Chain Fusion**: Native multichain asset support (ckBTC, ckETH, ckSOL, ckUSDC, ckUSDT)
-- **Internet Identity**: Decentralized authentication 
-- **Threshold Cryptography**: Secure crosschain operations
-- **ICRC-1 Standards**: Full compliance with ICP token standards
-
----
-
-##  Competitive Advantages
-
-### For Users
-- **Lower Slippage**: Intelligent routing via deeper ICP liquidity pools
-- **Dynamic Fees**: No more overpaying - real-time network optimization
-- **True Sovereignty**: Your assets, your canister, your control
-- **Unified Experience**: Trade across Bitcoin, Ethereum, Solana seamlessly
-
-### For ICP Ecosystem  
-- **ICP as Hub**: Demonstrates ICP's natural role in multichain DeFi
-- **Chain Fusion Showcase**: Real-world implementation of ICP's key innovation
-- **Developer Template**: Production-ready patterns for ICP dApp architecture
-- **Ecosystem Growth**: Drives volume and liquidity to ICP-based DEXs
-
----
-
-##  Quick Start
-
-### Prerequisites
-- Node.js 18+
-- DFX 0.15+
-- Internet Computer SDK
-
-### Installation
 ```bash
+# prerequisites (recommended)
+# - Node.js 22 LTS (Node 18+ works)
+# - npm 10+
+# - DFX ≥ 0.24.x (only needed for canister calls/examples)
+# - Rust toolchain (only if you build Rust canisters)
+
+# clone & install
 git clone https://github.com/crypdrag/HodlHut.git
 cd HodlHut
 npm install
-```
 
-### Development Server
-```bash
+# run the webpack dev server (prototype)
 npm start
-# Frontend: http://localhost:8082
+# UI: http://localhost:8082
 ```
 
-### Run Agent Tests
-```bash
-node src/agents/test_all_agents.js
-# Comprehensive test suite covering all 7 agents
-```
+### Boundary‑NET (read‑only)
 
----
-
-## 📊 Test Coverage
-
-**Comprehensive Validation Framework:**
-- **36 Individual Tests**: All agent functionality covered
-- **6 Integration Tests**: Agent coordination validation
-- **End-to-End Flows**: Complete operation testing  
-- **Error Handling**: Graceful failure and recovery scenarios
-- **Performance Validation**: Sub-second response requirements
+Runs agent checks against public providers / IC canisters without state changes.
 
 ```bash
-# Run complete test suite
-node src/agents/test_all_agents.js
+# (optional) env for providers (redacted values)
+export EVM_PROVIDERS="<urls or json>"
+export SVM_PROVIDERS="<urls or json>"
+export BTC_PROVIDERS="<urls or json>"
 
-# Output: ✅ 42 tests passed, comprehensive agent validation
+# run agent test aggregator (prototype)
+node src/agents/test_all_agents.js
+```
+
+> See **/docs/hodlhut-developer-notes.md** for full *Testing (Canonical)* with commands and assertions.
+
+---
+
+## How It Works (at a glance)
+
+```
+User → Frontend (React) → MasterAgent
+                     ├─ BitcoinRPCAgent  ─▶ Bitcoin Canister (read) ─▶ ckBTC Minter/Ledger (read)
+                     ├─ EVMRPCAgent      ─▶ EVM RPC canister/providers (quorum)
+                     ├─ SVMRPCAgent      ─▶ SOL RPC canister/providers (quorum)
+                     ├─ DEXRoutingAgent  ─▶ ICPSwap/KongSwap (direct vs ICP liquidity bridge; optional extra hubs)
+                     ├─ HutFactoryAgent  ─▶ Governance + MyHut canister lifecycle
+                     └─ TransactionMonitorAgent ─▶ Correlates deposit→mint→swap→settle
+```
+
+* **Agents (Node/TS):** fetch network state, build quotes, orchestrate flows.
+* **Canisters (Rust/Motoko):** (planned/partial) custody/DEX adapters/governance.
+* **ICP Role:** low‑latency coordination + ckBTC/ckUSDC ledger reads; sovereign user canisters (MyHut) for guarded ops.
+
+---
+
+## Key Features (current prototype)
+
+* **Dynamic Fee Intelligence:** BTC/EVM/SOL fee and health snapshots.
+* **Dynamic Routing with ICP Liquidity Bridge:** cross‑DEX quote/route selection (ICPSwap & KongSwap), choosing between **direct** and **ICP liquidity bridge** paths.
+* **Sovereign Accounts (design):** per‑user **MyHut** canister + **HutFactory** governance window (30‑min gate).
+* **Observability:** JSONL operation logs, phase transitions, reorg handling.
+
+> Status: **prototype**. Integration paths and guards are validated in tests; production canisters are WIP.
+
+---
+
+## Quick Start for Judges
+
+* **See it run:** `npm start` → UI at `http://localhost:8082` (mock data + live reads where available)
+* **See it think:** `node src/agents/test_all_agents.js` (prints fee/quote/quorum decisions)
+* **Deeper:** open **/docs/hodlhut-developer-notes.md** → *Testing (Canonical)* (F.1–F.6 scenarios)
+
+---
+
+## Testing (Canonical) — highlights
+
+* **F.1 Deposit→Mint→Swap→Settle:** multi‑canister & DEX flow (**route selection: direct vs ICP liquidity bridge**)
+* **F.2 Agent Coordination:** MasterAgent orchestrates multi‑agent fan‑out/fan‑in + health gates
+* **F.3 Chain‑Key Readiness:** threshold signer checks (ECDSA/Ed25519), quorum under load
+* **F.4 Route Optimization:** **direct vs ICP liquidity bridge** (slippage guards; optional extra hubs)
+* **F.5 Failure Injection:** provider 429/5xx, BTC reorg (depth 1–2), stale quotes, closed governance window
+* **F.6 Governance Window:** 30‑minute activation gate for sensitive ops
+
+> Full details (playbooks, assertions, artifacts) live in **/docs/hodlhut-developer-notes.md**.
+
+---
+
+## Tech Stack
+
+* **Frontend:** React + TypeScript, Webpack dev server (prototype)
+* **Agents:** Node.js (TypeScript/JavaScript)
+* **ICP:** ckBTC/ckUSDC ledgers (read), governance & DEX adapters (planned canisters)
+* **Styling:** Tailwind‑style utility approach (CSS modules in repo), Lucide icons
+* **Auth (planned):** Internet Identity (II)
+
+> See **/docs/tech-stack.md** and **/docs/infra-tech-stack.md** for deeper details and CI/CD.
+
+---
+
+## Repository Structure
+
+```text
+HodlHut/
+├─ src/
+│  ├─ agents/                      # Node/TS agents (Master, BTC/EVM/SVM RPC, DEX, HutFactory, TxMonitor)
+│  │  └─ test_all_agents.js        # prototype aggregator
+│  └─ scripts/
+│     └─ integration/              # F.* runners (skeletons)
+│        ├─ deposit-mint-swap.ts   # F.1
+│        └─ chainkey-readiness.ts  # F.3
+├─ docs/
+│  ├─ hodlhut-developer-notes.md   # **canonical** deep documentation (Testing, env, etc.)
+│  ├─ tech-stack.md                # product tech stack
+│  ├─ infra-tech-stack.md          # infra-only stack (ops)
+│  ├─ specifications.md            # FR/NFR/SLOs + invariants
+│  └─ specs/
+│     ├─ hutfactory.md, myhut.md, dex-routing.md
+│     ├─ rpc-agents.md, tx-monitor.md
+│     └─ api-stubs/*.did          # Candid stubs (optional; generate later)
+├─ dfx.json                         # IC project config (if/when canisters are added)
+├─ package.json / webpack.config.js # prototype build
+└─ README.md                        # this file
 ```
 
 ---
 
-## 🔮 Roadmap
+## CI/CD (prototype)
 
-### Phase 1: Intelligence Foundation ✅ 
-- [x] Complete 7-agent intelligence system
-- [x] Dynamic fee optimization across all networks
-- [x] ICP hub routing implementation
-- [x] Comprehensive test coverage
+* **GitHub Actions** stubs ready: lint/test, build artifacts, staging (dry‑run).
+* Boundary‑NET read‑only agent tests can run nightly for trend lines.
+* Mainnet deploy stays **gated** until governance/keys are configured.
 
-### Phase 2: Production Integration 🔄
-- [ ] RPC canister integration (Bitcoin, Ethereum, Solana)
-- [ ] MyHut canister deployment and lifecycle management
-- [ ] Live DEX API integration (ICPSwap, KongSwap)
-- [ ] Internet Identity production integration
-
-### Phase 3: Advanced Features 🔜
-- [ ] Multihop routing optimization
-- [ ] Yield farming integration
-- [ ] Crosschain arbitrage opportunities
-- [ ] Mobile-responsive progressive web app
+See **/docs/infra-tech-stack.md** for workflow names and secrets.
 
 ---
 
-##  Contributing
+## Roadmap (abridged)
 
-HodlHut welcomes contributions from the ICP community! Whether you're interested in:
-
-- **Agent Development**: Extend the intelligence system with new networks
-- **Frontend Enhancement**: Improve user experience and accessibility
-- **Canister Integration**: Help bridge agents to production canisters
-- **Testing & QA**: Expand test coverage and edge case handling
-
-Please see [DEVELOPMENT_NOTES.md](./DEVELOPMENT_NOTES.md) for detailed architecture documentation.
+* **Phase 1 — Intelligence (done):** 7 agents, fee/quote logic, tests
+* **Phase 2 — Canisters (WIP):** RPC adapters, DEX router, HutFactory/MyHut, governance gates
+* **Phase 3 — Productize:** real DEX trades, II auth, metrics canister, CI promotions
 
 ---
 
-##  License
+## Developer Deep‑Dive (appendix)
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+### 7‑Agent System
+
+| Agent                       | Purpose                                             | Selected Assertions                                       |
+| --------------------------- | --------------------------------------------------- | --------------------------------------------------------- |
+| **MasterAgent**             | Orchestration & health                              | Fan‑out/fan‑in across ≥3 agents; rollback on stale quotes |
+| **BitcoinRPCAgent**         | Fee/mempool/headers                                 | POW & height continuity; reorg tolerance                  |
+| **EVMRPCAgent**             | Quorum reads                                        | n‑of‑m agreement; reject divergent payloads               |
+| **SVMRPCAgent**             | Solana health/slots                                 | fast‑slot consensus within N slots                        |
+| **DEXRoutingAgent**         | Route optimization (direct vs ICP liquidity bridge) | chosen path = lowest expected cost; slippage guard        |
+| **HutFactoryAgent**         | MyHut lifecycle & roles                             | Activation Window required for role changes               |
+| **TransactionMonitorAgent** | Correlate flows                                     | Pending→Confirmed→Completed; rollback on reorg            |
+
+### Invariants & Guards (samples)
+
+* **INV‑001:** Sum(ckBTC minted via app paths) == Sum(BTC deposits observed) ± fees.
+* **INV‑002:** Activation Window must be **Open** for privileged mutations.
+* **INV‑003:** Orchestration is idempotent; retries don't duplicate effects.
+
+### Example Calls
+
+```bash
+# DEX routing via MyHut (quote)
+dfx canister call my_hut get_kongswap_quote '(record {from_token="ICP"; to_token="ckBTC"; amount=1000000})'
+
+# Solana providers (health)
+dfx canister call sol_rpc sol_getHealth '(variant{Mainnet}, null)'
+```
+
+> Many more examples in *Testing (Canonical)* and component specs under `/docs/specs/`.
 
 ---
 
-##  Recognition
+## Contributing
 
-**Built for WCHL Nationals ICP Hackathon** - Demonstrating the future of multichain DeFi on Internet Computer.
+PRs welcome! See issues or propose an agent/canister you'd like to extend. Please skim **/docs/hodlhut-developer-notes.md** before large changes.
 
-*HodlHut represents what's possible when you combine ICP's unique multichain capabilities with sophisticated intelligence systems and true decentralized architecture.*
+## License
 
----
-
-<div align="center">
-  
-**[Live Demo](https://github.com/crypdrag/HodlHut)** • **[Architecture Docs](./DEVELOPMENT_NOTES.md)** • **[Agent Tests](./src/agents/)**
-
-*Built with ❤️ on Internet Computer*
-
-</div>
+MIT — see `LICENSE`.
