@@ -998,7 +998,7 @@ const Dashboard: React.FC = () => {
       {/* STEP 1: What's Happening (Route Explanation) - ALWAYS SHOWN FIRST */}
       {showRouteDetails && swapAnalysis && (
         <div className="route-display" style={{
-          background: '#00c934',
+          background: '#017e29',
           borderColor: fromAsset === toAsset ? 'var(--secondary-500)' : 'var(--tertiary-500)'
         }}>
           <div className="route-header" style={{ justifyContent: 'center' }}>
@@ -1567,7 +1567,7 @@ const Dashboard: React.FC = () => {
       <div className="portfolio-overview-horizontal">
         <div className="portfolio-header">
           <h3>Portfolio Overview</h3>
-          <div className="portfolio-value" style={{ background: '#00c934' }}>
+          <div className="portfolio-value" style={{ background: '#017e29' }}>
             <div className="total-value">${calculatePortfolioValue().toLocaleString()}</div>
             <div className="value-change">+2.4% today</div>
           </div>
