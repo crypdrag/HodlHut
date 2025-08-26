@@ -1567,7 +1567,7 @@ const Dashboard: React.FC = () => {
       <div className="portfolio-overview-horizontal">
         <div className="portfolio-header">
           <h3>Portfolio Overview</h3>
-          <div className="portfolio-value">
+          <div className="portfolio-value" style={{ background: '#003911' }}>
             <div className="total-value">${calculatePortfolioValue().toLocaleString()}</div>
             <div className="value-change">+2.4% today</div>
           </div>
