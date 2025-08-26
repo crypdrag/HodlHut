@@ -10,6 +10,21 @@
 
 import { Portfolio } from './master_asset_data';
 
+// Clean number formatting - removes unnecessary decimal places
+function formatCleanNumber(num: number): string {
+  if (num === 0) return '0';
+  if (num < 0.001) {
+    return num.toFixed(6).replace(/\.?0+$/, '');
+  }
+  if (num < 1) {
+    return num.toFixed(6).replace(/\.?0+$/, '');
+  }
+  if (num % 1 === 0) {
+    return num.toString();
+  }
+  return num.toFixed(6).replace(/\.?0+$/, '');
+}
+
 export interface UniversalFeeRule {
   shouldShowSmartSolutions: boolean;
   primarySolution?: {
@@ -47,7 +62,7 @@ export function getUniversalFeeRules(
       primarySolution: {
         type: 'deduct_from_final',
         title: `✅ ${networkName} gas fees can be deducted from your final ${toAsset} balance. Deduct gas fees from ${toAsset}?`,
-        description: `The ${gasAmount} ${fromAsset} network fee will be automatically deducted from your withdrawal. You'll receive ${(amount - gasAmount).toFixed(6)} ${toAsset} (instead of ${amount.toFixed(6)} ${toAsset}).`,
+        description: `The ${gasAmount} ${fromAsset} network fee will be automatically deducted from your withdrawal. You'll receive ${formatCleanNumber(amount - gasAmount)} ${toAsset} (instead of ${formatCleanNumber(amount)} ${toAsset}).`,
         feeAmount: gasAmount,
         feeToken: fromAsset
       },
@@ -69,7 +84,7 @@ export function getUniversalFeeRules(
       primarySolution: {
         type: 'deduct_from_final',
         title: `✅ ${networkName} gas fees can be deducted from your final ${toAsset} balance. Deduct gas fees from ${toAsset}?`,
-        description: `After your ${fromAsset} → ${bridgeToken} → ${toAsset} swap, the ${gasAmount} ${bridgeToken} network fee will be deducted from your final ${toAsset} amount.`,
+        description: `After your ${fromAsset} → ${bridgeToken} → ${toAsset} swap, the ${formatCleanNumber(gasAmount)} ${bridgeToken} network fee will be deducted from your final ${toAsset} amount.`,
         feeAmount: gasAmount,
         feeToken: bridgeToken
       },
@@ -118,14 +133,14 @@ export function getUniversalFeeRules(
       shouldShowSmartSolutions: true, // Always show Smart Solutions for these withdrawals
       primarySolution: userHasGasToken ? {
         type: 'use_existing',
-        title: `Use ${gasToken} ${(gasAmount * gasPrice).toFixed(0)}$ for ${networkName} gas fees?`,
-        description: `You have ${(portfolio[gasToken] || 0).toFixed(6)} ${gasToken}. Use ${gasAmount} ${gasToken} for ${getNetworkName(toAsset)} gas fees to withdraw ${toAsset}.`,
+        title: `Use ${gasToken} $${Math.round(gasAmount * gasPrice)} for ${networkName} gas fees?`,
+        description: `You have ${formatCleanNumber(portfolio[gasToken] || 0)} ${gasToken}. Use ${formatCleanNumber(gasAmount)} ${gasToken} for ${getNetworkName(toAsset)} gas fees to withdraw ${toAsset}.`,
         feeAmount: gasAmount,
         feeToken: gasToken
       } : {
         type: 'manual_swap',
         title: `⚠️ Get ${gasToken} for ${getNetworkName(toAsset)} Gas Fees`,
-        description: `You need ${gasAmount} ${gasToken} for ${getNetworkName(toAsset)} gas to withdraw ${toAsset}. Swap some assets for ${gasToken} first.`,
+        description: `You need ${formatCleanNumber(gasAmount)} ${gasToken} for ${getNetworkName(toAsset)} gas to withdraw ${toAsset}. Swap some assets for ${gasToken} first.`,
         feeAmount: gasAmount,
         feeToken: gasToken
       },

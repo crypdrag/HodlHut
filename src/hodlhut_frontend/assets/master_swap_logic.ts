@@ -328,7 +328,7 @@ export function calculateFeeRequirements(
   
   // DEX Trading Fees (for DEX swaps like ckUSDT → ckSOL or DEX + Minter operations)
   if (!isMinterOp || route.operationType === 'DEX + Minter') {
-    const dexFeeRate = selectedDEX === 'KongSwap' ? 0.0025 : 0.003;
+    const dexFeeRate = selectedDEX === 'KongSwap' ? 0.003 : 0.003;
     const dexFeeAmount = amount * dexFeeRate;
     const dexFeeUSD = dexFeeAmount * ASSET_PRICES[fromAsset];
     
@@ -477,14 +477,14 @@ export function generateSmartSolutions(
         id: `deduct_from_withdrawal_${fee.token}`,
         type: 'deduct_from_swap',
         title: `✅ ${networkName} gas fees can be deducted from your final ${swapAnalysis.toAsset} balance. Deduct gas fees from ${swapAnalysis.toAsset}?`,
-        description: `The ${fee.amount.toFixed(6)} ${fee.token} network fee will be automatically deducted from your withdrawal. You'll receive ${(swapAnalysis.outputAmount - fee.amount).toFixed(6)} ${swapAnalysis.toAsset} (instead of ${swapAnalysis.outputAmount.toFixed(6)} ${swapAnalysis.toAsset}).`,
+        description: `The ${formatCleanNumber(fee.amount)} ${fee.token} network fee will be automatically deducted from your withdrawal. You'll receive ${formatCleanNumber(swapAnalysis.outputAmount - fee.amount)} ${swapAnalysis.toAsset} (instead of ${formatCleanNumber(swapAnalysis.outputAmount)} ${swapAnalysis.toAsset}).`,
         badge: 'RECOMMENDED',
         userReceives: {
           amount: swapAnalysis.outputAmount - fee.amount,
           asset: swapAnalysis.toAsset
         },
         cost: {
-          amount: fee.amount.toFixed(6),
+          amount: formatCleanNumber(fee.amount),
           asset: fee.token,
           description: `${networkName} gas fee (deducted automatically)`
         }
@@ -497,14 +497,14 @@ export function generateSmartSolutions(
         id: `use_existing_${fee.token}`,
         type: 'auto_swap',
         title: `💰 Use Your Existing ${fee.token}`,
-        description: `You have ${(portfolio[fee.token] || 0).toFixed(6)} ${fee.token} in your portfolio. Use ${fee.amount.toFixed(6)} ${fee.token} for ${fee.description}.`,
+        description: `You have ${formatCleanNumber(portfolio[fee.token] || 0)} ${fee.token} in your portfolio. Use ${formatCleanNumber(fee.amount)} ${fee.token} for ${fee.description}.`,
         badge: 'ALTERNATIVE',
         userReceives: {
           amount: swapAnalysis.outputAmount,
           asset: swapAnalysis.toAsset
         },
         cost: {
-          amount: fee.amount.toFixed(6),
+          amount: formatCleanNumber(fee.amount),
           asset: fee.token,
           description: 'From your existing balance'
         }
@@ -527,7 +527,7 @@ export function generateSmartSolutions(
         id: `manual_${fee.token}`,
         type: 'manual_topup',
         title: `⚠️ Get ${fee.token} for Fees (Manual DEX Swap)`,
-        description: `You need ${fee.amount.toFixed(6)} ${fee.token} for ${fee.description}. Swap for ${fee.token} on ${selectedDEX} first, then return to complete this withdrawal.`,
+        description: `You need ${formatCleanNumber(fee.amount)} ${fee.token} for ${fee.description}. Swap for ${fee.token} on ${selectedDEX} first, then return to complete this withdrawal.`,
         badge: 'REQUIRED STEP',
         userReceives: {
           amount: swapAnalysis.outputAmount,
@@ -571,14 +571,14 @@ function getLogicalFeeAlternatives(
         id: `use_more_${swapAnalysis.fromAsset}`,
         type: 'auto_swap',
         title: `🔄 Use Additional ${swapAnalysis.fromAsset} for Fees`,
-        description: `Use ${feeInFromAsset.toFixed(6)} more ${swapAnalysis.fromAsset} (≈$${fee.usdValue.toFixed(2)}) to cover the ${fee.token} fees. Total used: ${totalNeededFromAsset.toFixed(6)} ${swapAnalysis.fromAsset}.`,
+        description: `Use ${formatCleanNumber(feeInFromAsset)} more ${swapAnalysis.fromAsset} (≈$${fee.usdValue.toFixed(2)}) to cover the ${fee.token} fees. Total used: ${formatCleanNumber(totalNeededFromAsset)} ${swapAnalysis.fromAsset}.`,
         badge: 'RECOMMENDED',
         userReceives: {
           amount: swapAnalysis.outputAmount,
           asset: swapAnalysis.toAsset
         },
         cost: {
-          amount: feeInFromAsset.toFixed(6),
+          amount: formatCleanNumber(feeInFromAsset),
           asset: swapAnalysis.fromAsset,
           description: 'Additional from your balance'
         }
@@ -602,16 +602,16 @@ function getLogicalFeeAlternatives(
         id: `swap_${asset}_for_fees`,
         type: 'swap_other_asset',
         title: `💡 Use Your ${asset} for ${fee.token} Fees`,
-        description: `Swap ${feeInOtherAsset.toFixed(6)} ${asset} (≈$${fee.usdValue.toFixed(2)}) to get ${fee.token} for fees. Your main ${swapAnalysis.fromAsset} → ${swapAnalysis.toAsset} swap remains unchanged.`,
+        description: `Swap ${formatCleanNumber(feeInOtherAsset)} ${asset} (≈$${fee.usdValue.toFixed(2)}) to get ${fee.token} for fees. Your main ${swapAnalysis.fromAsset} → ${swapAnalysis.toAsset} swap remains unchanged.`,
         badge: 'ALTERNATIVE',
         userReceives: {
           amount: swapAnalysis.outputAmount,
           asset: swapAnalysis.toAsset
         },
         cost: {
-          amount: feeInOtherAsset.toFixed(6),
+          amount: formatCleanNumber(feeInOtherAsset),
           asset: asset,
-          description: `From your ${asset} balance (${portfolioBalance.toFixed(6)} available)`
+          description: `From your ${asset} balance (${formatCleanNumber(portfolioBalance)} available)`
         }
       });
       break; // Only suggest one alternative asset
@@ -642,11 +642,11 @@ export const DEX_OPTIONS: Record<string, DEXOption> = {
   'KongSwap': {
     id: 'KongSwap',
     name: 'KongSwap',
-    tradingFee: 0.0025,
+    tradingFee: 0.003,
     advantages: ['Lower trading fees', 'Faster transaction processing', 'Better for smaller trades'], // Updated stats
     stats: {
       'Swap Speed': '5-12 seconds',
-      'Trading Fee': '0.25%',
+      'Trading Fee': '0.3%',
       'Liquidity': 'Medium',
       'Slippage': 'Medium'
     },
@@ -835,6 +835,23 @@ export function analyzeCompleteSwap(
 // ===============================================
 
 /**
+ * Clean number formatting - removes unnecessary decimal places
+ */
+function formatCleanNumber(num: number): string {
+  if (num === 0) return '0';
+  if (num < 0.001) {
+    return num.toFixed(6).replace(/\.?0+$/, '');
+  }
+  if (num < 1) {
+    return num.toFixed(6).replace(/\.?0+$/, '');
+  }
+  if (num % 1 === 0) {
+    return num.toString();
+  }
+  return num.toFixed(6).replace(/\.?0+$/, '');
+}
+
+/**
  * Formats numbers for display
  */
 export function formatNumber(num: number, decimals: number = 6): string {
@@ -843,7 +860,7 @@ export function formatNumber(num: number, decimals: number = 6): string {
   } else if (num >= 1000) {
     return `${(num / 1000).toFixed(1)}K`;
   } else {
-    return num.toFixed(decimals);
+    return formatCleanNumber(num);
   }
 }
 

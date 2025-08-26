@@ -178,14 +178,11 @@ const CustomDropdown: React.FC<{
   );
 };
 
-// Types for Enhanced Smart Solutions
-interface EnhancedSmartSolution {
-  title: string;
-  description: string;
-  badge: string;
-  receive: string;
-  cost: string;
-}
+// Import the correct SmartSolution type from master_swap_logic
+import { SmartSolution } from '../../assets/master_swap_logic';
+
+// Types for Enhanced Smart Solutions (use the real SmartSolution interface)
+type EnhancedSmartSolution = SmartSolution;
 
 // Portfolio scenarios for better demo experience
 const PORTFOLIO_SCENARIOS = {
@@ -250,6 +247,10 @@ const Dashboard: React.FC = () => {
   const [smartSolutions, setSmartSolutions] = useState<EnhancedSmartSolution[]>([]);
   const [selectedSolution, setSelectedSolution] = useState<number | null>(null);
   const [showAllSolutions, setShowAllSolutions] = useState(true);
+  
+  // Smart Solutions Approval Modal State
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [pendingApproval, setPendingApproval] = useState<EnhancedSmartSolution | null>(null);
 
 
   // Update portfolio when scenario changes
@@ -313,7 +314,7 @@ const Dashboard: React.FC = () => {
       badge: 'speed',
       stats: {
         'Swap Speed': '5-12 seconds',
-        'Trading Fee': '0.25%',
+        'Trading Fee': '0.3%',
         'Liquidity': 'Medium',
         'Slippage': 'Medium'
       },
@@ -433,12 +434,29 @@ const Dashboard: React.FC = () => {
     
     if (feeRules.shouldShowSmartSolutions && feeRules.primarySolution) {
       const solution = feeRules.primarySolution;
+      
+      // Map universal fee rule types to SmartSolution types
+      const typeMapping: Record<string, SmartSolution['type']> = {
+        'deduct_from_final': 'deduct_from_swap',
+        'use_existing': 'auto_swap',
+        'manual_swap': 'manual_topup'
+      };
+      
       const enhancedSolutions = [{
+        id: 'universal_fee_solution',
+        type: typeMapping[solution.type] || 'auto_swap',
         title: solution.title,
         description: solution.description,
-        badge: 'RECOMMENDED',
-        receive: `${formatAmount(analysis.outputAmount)} ${analysis.toAsset}`,
-        cost: `${formatAmount(solution.feeAmount)} ${solution.feeToken}`
+        badge: 'RECOMMENDED' as 'RECOMMENDED',
+        userReceives: {
+          amount: analysis.outputAmount,
+          asset: analysis.toAsset
+        },
+        cost: {
+          amount: solution.feeAmount.toString(),
+          asset: solution.feeToken,
+          description: 'Gas fee'
+        }
       }];
       setSmartSolutions(enhancedSolutions);
       setShowSmartSolutions(true);
@@ -451,14 +469,12 @@ const Dashboard: React.FC = () => {
 
   // Smart Solutions interaction handlers
   const handleApproveSolution = (solutionIndex: number) => {
-    setSelectedSolution(solutionIndex);
-    setShowAllSolutions(false);
-    
     const solution = smartSolutions[solutionIndex];
     console.log(`User approved solution: ${solution.title}`);
     
-    // Here you would normally execute the solution logic
-    alert(`Solution Approved!\n\n${solution.title}\n\n${solution.description}\n\nCost: ${solution.cost}\nYou'll receive: ${solution.receive}`);
+    // Show approval modal instead of alert
+    setPendingApproval(solution);
+    setShowApprovalModal(true);
   };
 
   const handleRejectSolution = (solutionIndex: number) => {
@@ -476,6 +492,58 @@ const Dashboard: React.FC = () => {
   const resetSolutionsView = () => {
     setSelectedSolution(null);
     setShowAllSolutions(true);
+  };
+
+  // Number formatting helper
+  const formatNumber = (num: number): string => {
+    if (num === 0) return '0';
+    
+    // For very small numbers, show up to 6 decimal places but remove trailing zeros
+    if (num < 0.001) {
+      return num.toFixed(6).replace(/\.?0+$/, '');
+    }
+    
+    // For small numbers, show up to 4 decimal places but remove trailing zeros  
+    if (num < 1) {
+      return num.toFixed(4).replace(/\.?0+$/, '');
+    }
+    
+    // For larger numbers, show up to 2 decimal places but remove trailing zeros
+    if (num < 1000) {
+      return num.toFixed(2).replace(/\.?0+$/, '');
+    }
+    
+    // For very large numbers, use locale string with commas
+    return num.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  };
+
+  // Format text with numbers properly (removes unnecessary zeros)
+  const formatTextWithNumbers = (text: string): string => {
+    // Match numbers with excessive decimal places and format them
+    return text.replace(/(\d+\.\d{2,})/g, (match) => {
+      const num = parseFloat(match);
+      return formatNumber(num);
+    });
+  };
+
+  // Smart Solutions Approval Modal Handlers
+  const handleConfirmApproval = () => {
+    if (pendingApproval) {
+      setSelectedSolution(smartSolutions.indexOf(pendingApproval));
+      setShowAllSolutions(false);
+      console.log(`Solution executed: ${pendingApproval.title}`);
+      
+      // Here you would normally execute the actual solution logic
+      // For now, we'll just close the modal and mark as approved
+    }
+    
+    setShowApprovalModal(false);
+    setPendingApproval(null);
+  };
+
+  const handleCancelApproval = () => {
+    setShowApprovalModal(false);
+    setPendingApproval(null);
   };
 
 
@@ -1015,10 +1083,10 @@ const Dashboard: React.FC = () => {
                   
                   <div className="solution-details">
                     <div className="solution-receive">
-                      You'll receive: <strong>{solution.receive}</strong>
+                      You'll receive: <strong>{formatNumber(solution.userReceives.amount)} {solution.userReceives.asset}</strong>
                     </div>
                     <div className="solution-cost">
-                      Cost: <strong>{solution.cost}</strong>
+                      Cost: <strong>{solution.cost.amount} {solution.cost.asset}</strong>
                     </div>
                   </div>
 
@@ -1029,16 +1097,16 @@ const Dashboard: React.FC = () => {
                         className={`solution-btn approve ${solution.badge === 'RECOMMENDED' ? 'primary' : 'secondary'}`}
                         onClick={() => handleApproveSolution(actualIndex)}
                       >
-                        {solution.badge === 'RECOMMENDED' ? <><CheckCircle className="inline w-4 h-4 mr-1" /> Yes, Use This</> : 
-                         solution.badge === 'REQUIRED STEP' ? <><AlertTriangle className="inline w-4 h-4 mr-1" /> Complete This Step</> : 
-                         <><Lightbulb className="inline w-4 h-4 mr-1" /> Choose This Option</>}
+                        {solution.badge === 'RECOMMENDED' ? 'Yes, Use This' : 
+                         solution.badge === 'REQUIRED STEP' ? 'Complete This Step' : 
+                         'Choose This Option'}
                       </button>
                       
                       <button 
                         className="solution-btn reject"
                         onClick={() => handleRejectSolution(actualIndex)}
                       >
-                        {isFirstSolution ? '❌ See Other Options' : '❌ Skip This'}
+                        {isFirstSolution ? 'See Other Options' : 'Skip This'}
                       </button>
                     </div>
                   )}
@@ -1538,6 +1606,67 @@ const Dashboard: React.FC = () => {
         selectedAsset={selectedDepositAsset}
         onDepositComplete={handleDepositComplete}
       />
+
+      {/* Smart Solutions Approval Modal */}
+      {showApprovalModal && pendingApproval && (
+        <div className="modal-overlay" onClick={handleCancelApproval}>
+          <div className="smart-solution-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="smart-solution-header">
+              <div className="smart-solution-icon">
+                <Lightbulb size={24} color="#f1760f" />
+              </div>
+              <h3 className="smart-solution-title">Approve Smart Solution</h3>
+              <button 
+                className="modal-close-btn" 
+                onClick={handleCancelApproval}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="smart-solution-content">
+              <div className="solution-details">
+                <h4>{formatTextWithNumbers(pendingApproval.title)}</h4>
+                <p className="solution-description">{formatTextWithNumbers(pendingApproval.description)}</p>
+                
+                <div className="solution-breakdown">
+                  <div className="cost-item">
+                    <span className="label">Cost:</span>
+                    <span className="value cost">
+                      {formatNumber(parseFloat(pendingApproval.cost.amount))} {pendingApproval.cost.asset}
+                      {pendingApproval.cost.description && (
+                        <div className="cost-description">{pendingApproval.cost.description}</div>
+                      )}
+                    </span>
+                  </div>
+                  <div className="receive-item">
+                    <span className="label">You'll receive:</span>
+                    <span className="value receive">
+                      {formatNumber(pendingApproval.userReceives.amount)} {pendingApproval.userReceives.asset}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="solution-actions">
+                <button 
+                  className="btn btn-decline" 
+                  onClick={handleCancelApproval}
+                >
+                  Decline
+                </button>
+                <button 
+                  className="btn btn-approve" 
+                  onClick={handleConfirmApproval}
+                >
+                  Approve
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
