@@ -1836,9 +1836,9 @@ const Dashboard: React.FC = () => {
                               setAuthStep('executing');
                               // Initialize transaction steps
                               setTransactionSteps([
-                                { message: `SWAP ${transactionData?.fromAsset}→${transactionData?.toAsset} ${selectedDEX || 'ICPSwap'}`, completed: false, current: true },
+                                { message: `MyHut Fees (0.1%) extracted`, completed: false, current: true },
+                                { message: `SWAP ${transactionData?.fromAsset}→${transactionData?.toAsset} ${selectedDEX || 'ICPSwap'}`, completed: false, current: false },
                                 { message: `${selectedDEX || 'ICPSwap'} 0.3% Fee extracted`, completed: false, current: false },
-                                { message: 'HodlHut maintenance fee extracted 0.1%', completed: false, current: false },
                                 { message: `Sending ${transactionData?.toAsset}+ckETH (gas) to ICP EVM RPC`, completed: false, current: false },
                                 { message: `Ethereum transaction confirmation`, completed: false, current: false }
                               ]);

@@ -326,18 +326,38 @@ export function calculateFeeRequirements(
   
   console.log('🔥 FEE CALC ROUTE:', { route, isMinterOp });
   
+  // MyHut Fee (0.1%) - Always added first to appear at top of fee stack
+  const myHutFeeRate = 0.001; // 0.1%
+  const myHutFeeAmount = amount * myHutFeeRate;
+  const myHutFeeUSD = myHutFeeAmount * ASSET_PRICES[fromAsset];
+  
+  fees.push({
+    token: fromAsset,
+    amount: myHutFeeAmount,
+    description: 'MyHut Fees (0.1%)',
+    usdValue: myHutFeeUSD,
+    isUserSufficient: (portfolio[fromAsset] || 0) >= (amount + myHutFeeAmount),
+    purpose: 'network'
+  });
+  
+  console.log('💰 ADDED MYHUT FEE:', { myHutFeeAmount, myHutFeeUSD });
+  console.log('💰 CURRENT FEES ARRAY:', fees);
+  
   // DEX Trading Fees (for DEX swaps like ckUSDT → ckSOL or DEX + Minter operations)
   if (!isMinterOp || route.operationType === 'DEX + Minter') {
     const dexFeeRate = selectedDEX === 'KongSwap' ? 0.003 : 0.003;
     const dexFeeAmount = amount * dexFeeRate;
     const dexFeeUSD = dexFeeAmount * ASSET_PRICES[fromAsset];
     
+    // Check if user has sufficient funds for both MyHut fee and DEX fee
+    const totalFeesSoFar = myHutFeeAmount + dexFeeAmount;
+    
     fees.push({
       token: fromAsset,
       amount: dexFeeAmount,
-      description: `${selectedDEX} Trading Fee (${(dexFeeRate * 100).toFixed(2)}%)`,
+      description: `${selectedDEX} Trading Fee (${(dexFeeRate * 100).toFixed(1)}%)`,
       usdValue: dexFeeUSD,
-      isUserSufficient: (portfolio[fromAsset] || 0) >= (amount + dexFeeAmount),
+      isUserSufficient: (portfolio[fromAsset] || 0) >= (amount + totalFeesSoFar),
       purpose: 'dex'
     });
   }
@@ -354,6 +374,7 @@ export function calculateFeeRequirements(
     }
   }
   
+  console.log('🎯 FINAL FEES ARRAY BEING RETURNED:', fees);
   return fees;
 }
 
@@ -801,7 +822,9 @@ export function analyzeCompleteSwap(
   console.log('🚀 FEE REQUIREMENTS RESULT:', feeRequirements);
 
   // Calculate total fees and check for smart solutions
+  console.log('🚀 FEE REQUIREMENTS IN ANALYSIS:', feeRequirements);
   const totalFeesUSD = feeRequirements.reduce((sum, fee) => sum + fee.usdValue, 0);
+  console.log('🚀 TOTAL FEES USD:', totalFeesUSD);
   const needsSmartSolutions = feeRequirements.some(fee => !fee.isUserSufficient);
 
   const swapAnalysis: CompleteSwapAnalysis = {

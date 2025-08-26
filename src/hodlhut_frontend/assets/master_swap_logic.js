@@ -204,6 +204,23 @@ export function calculateFeeRequirements(fromAsset, toAsset, amount, portfolio, 
     const route = calculateSwapRoute(fromAsset, toAsset);
     const isMinterOp = route.operationType === 'Minter Operation';
     console.log('🔥 ROUTE INFO:', { route, isMinterOp });
+    
+    // MyHut Fee (0.1%) - Always added first to appear at top of fee stack
+    const myHutFeeRate = 0.001; // 0.1%
+    const myHutFeeAmount = amount * myHutFeeRate;
+    const myHutFeeUSD = myHutFeeAmount * ASSET_PRICES[fromAsset];
+    
+    fees.push({
+        token: fromAsset,
+        amount: myHutFeeAmount,
+        description: 'MyHut Fees (0.1%)',
+        usdValue: myHutFeeUSD,
+        isUserSufficient: (portfolio[fromAsset] || 0) >= (amount + myHutFeeAmount),
+        purpose: 'network'
+    });
+    
+    console.log('💰 ADDED MYHUT FEE:', { myHutFeeAmount, myHutFeeUSD });
+    console.log('💰 CURRENT FEES ARRAY:', fees);
     // DEX Trading Fees (ONLY for heterogeneous token swaps)
     if (!isMinterOp && route.steps.length > 1) {
         const dexFeeRate = selectedDEX === 'KongSwap' ? 0.003 : 0.003;
@@ -230,6 +247,8 @@ export function calculateFeeRequirements(fromAsset, toAsset, amount, portfolio, 
             fees.push(gasFee);
         }
     }
+    
+    console.log('🎯 FINAL FEES ARRAY BEING RETURNED:', fees);
     return fees;
 }
 function calculateL1GasFee(toAsset, portfolio) {
