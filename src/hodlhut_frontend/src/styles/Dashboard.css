@@ -198,7 +198,7 @@
   padding: var(--space-8) 0;
   background: #fde9c8 !important;
   border-radius: var(--radius-2xl);
-  border: 2px solid var(--tertiary-500);
+  border: 2px solid var(--tertiary-500) !important;
 }
 
 .hero-section h1 {
@@ -212,6 +212,36 @@
   font-size: var(--text-xl);
   color: #762311 !important;
   margin-bottom: 0;
+}
+
+/* Fix text colors for swap interface */
+.swap-transaction-title {
+  color: black;
+}
+
+.route-display .route-header .swap-transaction-title {
+  color: black;
+}
+
+.exchange-rate-display {
+  color: black;
+}
+
+.text-primary-bold {
+  color: black;
+}
+
+/* Slippage buttons - green for active, red for inactive */
+.slippage-btn {
+  background: #ef4444 !important; /* Red for inactive */
+  color: white !important;
+  border: 1px solid #dc2626 !important;
+}
+
+.slippage-btn.active {
+  background: #10b981 !important; /* Green for active */
+  color: white !important;
+  border: 1px solid #059669 !important;
 }
 
 /* Card Title - Sovereign Multichain Custom Routing */
@@ -3010,7 +3040,7 @@
   align-items: center;
   gap: var(--space-2);
   margin-bottom: var(--space-4);
-  color: var(--text-primary);
+  color: black;
   font-weight: var(--font-semibold);
 }
 
