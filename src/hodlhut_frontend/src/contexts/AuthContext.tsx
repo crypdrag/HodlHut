@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-// DEMO MODE: Disabled for demo
-// import { authService } from '../services/auth';
+import { authService } from '../services/auth';
 
 import { Principal } from '@dfinity/principal';
 
@@ -27,40 +26,35 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  // DEMO MODE: Start as authenticated by default
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
-  const [principal, setPrincipal] = useState<Principal | null>(
-    Principal.fromText('rdmx6-jaaaa-aaaaa-aaadq-cai')
-  );
+  // DEMO MODE: Start as NOT authenticated for demo login flow
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [principal, setPrincipal] = useState<Principal | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // DEMO MODE: Skip auth initialization
-    console.log('Demo mode: Skipping auth initialization - already authenticated');
-    // initAuth();
+    // Initialize real Internet Identity authentication
+    console.log('Initializing Internet Identity authentication...');
+    initAuth();
   }, []);
 
   const initAuth = async () => {
+    setIsLoading(true);
     try {
-      // DEMO MODE: Skip Internet Identity for demo purposes
-      console.log('Demo mode: Bypassing Internet Identity authentication');
+      console.log('Initializing LOCAL Internet Identity auth service...');
       
-      // Create a mock principal for demo
-      const mockPrincipal = Principal.fromText('rdmx6-jaaaa-aaaaa-aaadq-cai');
-      setIsAuthenticated(true);
-      setPrincipal(mockPrincipal);
+      await authService.init();
+      const authenticated = await authService.isAuthenticated();
       
-      // Original auth code commented out for demo
-      // await authService.init();
-      // const authenticated = await authService.isAuthenticated();
-      // 
-      // if (authenticated) {
-      //   const userPrincipal = await authService.getPrincipal();
-      //   setIsAuthenticated(true);
-      //   setPrincipal(userPrincipal);
-      // }
+      if (authenticated) {
+        const userPrincipal = await authService.getPrincipal();
+        setIsAuthenticated(true);
+        setPrincipal(userPrincipal);
+        console.log('User already authenticated locally:', userPrincipal?.toString());
+      } else {
+        console.log('User not authenticated - ready for local II login');
+      }
     } catch (error) {
-      console.error('Auth initialization failed:', error);
+      console.error('Local auth initialization failed:', error);
     } finally {
       setIsLoading(false);
     }
@@ -69,26 +63,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (): Promise<boolean> => {
     setIsLoading(true);
     try {
-      // DEMO MODE: Simulate successful login
-      console.log('Demo mode: Simulating successful login');
+      console.log('Starting LOCAL Internet Identity login...');
       
-      const mockPrincipal = Principal.fromText('rdmx6-jaaaa-aaaaa-aaadq-cai');
-      setIsAuthenticated(true);
-      setPrincipal(mockPrincipal);
-      return true;
+      const success = await authService.login();
       
-      // Original auth code commented out for demo
-      // const success = await authService.login();
-      // 
-      // if (success) {
-      //   const userPrincipal = await authService.getPrincipal();
-      //   setIsAuthenticated(true);
-      //   setPrincipal(userPrincipal);
-      //   return true;
-      // }
-      // return false;
+      if (success) {
+        const userPrincipal = await authService.getPrincipal();
+        setIsAuthenticated(true);
+        setPrincipal(userPrincipal);
+        console.log('Local II login successful:', userPrincipal?.toString());
+        return true;
+      }
+      
+      console.log('Local II login failed');
+      return false;
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error('Local II login error:', error);
       return false;
     } finally {
       setIsLoading(false);
@@ -98,15 +88,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async () => {
     setIsLoading(true);
     try {
-      // DEMO MODE: Simulate logout
-      console.log('Demo mode: Simulating logout');
+      console.log('Logging out from LOCAL Internet Identity...');
+      await authService.logout();
       setIsAuthenticated(false);
       setPrincipal(null);
-      
-      // Original auth code commented out for demo
-      // await authService.logout();
+      console.log('Local II logout successful');
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error('Local II logout failed:', error);
     } finally {
       setIsLoading(false);
     }
