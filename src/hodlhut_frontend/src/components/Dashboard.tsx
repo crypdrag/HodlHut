@@ -998,7 +998,7 @@ const Dashboard: React.FC = () => {
       {/* STEP 1: What's Happening (Route Explanation) - ALWAYS SHOWN FIRST */}
       {showRouteDetails && swapAnalysis && (
         <div className="route-display" style={{
-          background: '#009c2d',
+          background: '#003911',
           borderColor: fromAsset === toAsset ? 'var(--secondary-500)' : 'var(--tertiary-500)'
         }}>
           <div className="route-header" style={{ justifyContent: 'center' }}>
