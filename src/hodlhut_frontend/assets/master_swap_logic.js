@@ -19,7 +19,7 @@ export function calculateSwapRoute(fromAsset, toAsset) {
         return {
             steps: [fromAsset, toAsset],
             complexity: 'simple',
-            estimatedTime: '30 seconds - 2 minutes',
+            estimatedTime: '30s - 2 min',
             isCrossChain: isL1Withdrawal(toAsset),
             chainsInvolved: isL1Withdrawal(toAsset)
                 ? ['Internet Computer', getDestinationChain(toAsset)]
@@ -40,7 +40,7 @@ export function calculateSwapRoute(fromAsset, toAsset) {
             bridgeAsset = toAsset === 'ETH' ? 'ckETH' : 'ckUSDC';
             chainsInvolved.push('Ethereum');
         }
-        else if (['SOL', 'USDC-SOL'].includes(toAsset)) {
+        else if (['SOL', 'USDC(SOL)'].includes(toAsset)) {
             bridgeAsset = toAsset === 'SOL' ? 'ckSOL' : 'ckUSDC';
             chainsInvolved.push('Solana');
         }
@@ -51,7 +51,7 @@ export function calculateSwapRoute(fromAsset, toAsset) {
         return {
             steps: steps,
             complexity: 'cross-chain',
-            estimatedTime: '2-5 minutes',
+            estimatedTime: '2-5 min',
             isCrossChain: true,
             chainsInvolved: chainsInvolved,
             operationType: 'DEX + Minter'
@@ -61,7 +61,7 @@ export function calculateSwapRoute(fromAsset, toAsset) {
     return {
         steps: [fromAsset, toAsset],
         complexity: 'simple',
-        estimatedTime: '5-15 seconds',
+        estimatedTime: '5-15s',
         isCrossChain: false,
         chainsInvolved: ['Internet Computer'],
         operationType: 'DEX Swap'
@@ -77,9 +77,9 @@ export function needsDEXSelection(fromAsset, toAsset) {
         ['ckUSDC', 'USDC'], ['USDC', 'ckUSDC'],
         ['ckUSDT', 'USDT'], ['USDT', 'ckUSDT'],
         ['ckSOL', 'SOL'], ['SOL', 'ckSOL'],
-        ['ckUSDC', 'USDC-SOL'], ['USDC-SOL', 'ckUSDC'],
-        ['ckUSDC', 'USDC-ETH'], ['USDC-ETH', 'ckUSDC'],
-        ['ckUSDT', 'USDT-ETH'], ['USDT-ETH', 'ckUSDT']
+        ['ckUSDC', 'USDC(SOL)'], ['USDC(SOL)', 'ckUSDC'],
+        ['ckUSDC', 'USDC(ETH)'], ['USDC(ETH)', 'ckUSDC'],
+        ['ckUSDT', 'USDT(ETH)'], ['USDT(ETH)', 'ckUSDT']
     ];
     const isDirect = minterPairs.some(pair => (pair[0] === fromAsset && pair[1] === toAsset) ||
         (pair[1] === fromAsset && pair[0] === toAsset));
@@ -93,7 +93,7 @@ export function needsDEXSelection(fromAsset, toAsset) {
  */
 export function calculateExchangeRate(fromAsset, toAsset) {
     // SPECIAL CASE: Stablecoin to stablecoin conversions are always 1:1
-    const stablecoins = ['ckUSDC', 'ckUSDT', 'USDC-ETH', 'USDT-ETH', 'USDC-SOL', 'USDC', 'USDT'];
+    const stablecoins = ['ckUSDC', 'ckUSDT', 'USDC(ETH)', 'USDT(ETH)', 'USDC(SOL)', 'USDC', 'USDT'];
     
     console.log('🔄 EXCHANGE RATE CALC:', { fromAsset, toAsset, fromIsStable: stablecoins.includes(fromAsset), toIsStable: stablecoins.includes(toAsset) });
     
@@ -176,7 +176,7 @@ export function calculateBaseSwapRate(fromAsset, toAsset, amount) {
     const baseRate = calculateExchangeRate(fromAsset, toAsset);
     
     // SPECIAL CASE: No price impact for stablecoin Chain Fusion operations
-    const stablecoins = ['ckUSDC', 'ckUSDT', 'USDC-ETH', 'USDT-ETH', 'USDC-SOL', 'USDC', 'USDT'];
+    const stablecoins = ['ckUSDC', 'ckUSDT', 'USDC(ETH)', 'USDT(ETH)', 'USDC(SOL)', 'USDC', 'USDT'];
     const isStablecoinOperation = stablecoins.includes(fromAsset) && stablecoins.includes(toAsset);
     
     const priceImpact = isStablecoinOperation ? 0 : calculatePriceImpact(fromAsset, toAsset, amount);
@@ -254,8 +254,8 @@ export function calculateFeeRequirements(fromAsset, toAsset, amount, portfolio, 
 function calculateL1GasFee(toAsset, portfolio) {
     console.log('🔍 ETH Gas Fee Debug:', { toAsset });
     
-    // Ethereum gas fees - FIXED: Include USDC-ETH, USDT-ETH 
-    if (['ETH', 'USDC-ETH', 'USDT-ETH'].includes(toAsset)) {
+    // Ethereum gas fees - FIXED: Include USDC(ETH), USDT(ETH) 
+    if (['ETH', 'USDC(ETH)', 'USDT(ETH)'].includes(toAsset)) {
         const ethGasAmount = 0.003;
         const ethGasUSD = ethGasAmount * ASSET_PRICES['ckETH'];
         console.log('🔍 ETH Gas Fee Calculation:', {
@@ -275,7 +275,7 @@ function calculateL1GasFee(toAsset, portfolio) {
         };
     }
     // Solana fees
-    if (['SOL', 'USDC-SOL'].includes(toAsset)) {
+    if (['SOL', 'USDC(SOL)'].includes(toAsset)) {
         const solFeeAmount = 0.001;
         const solFeeUSD = solFeeAmount * ASSET_PRICES['ckSOL'];
         return {
@@ -397,7 +397,7 @@ export const DEX_OPTIONS = {
         tradingFee: 0.003,
         advantages: ['Higher liquidity pools', 'Better price discovery', 'More established trading pairs'],
         stats: {
-            'Swap Speed': '8-15 seconds',
+            'Swap Speed': '8-15s',
             'Trading Fee': '0.3%',
             'Liquidity': 'High',
             'Slippage': 'Low-Medium'
@@ -410,7 +410,7 @@ export const DEX_OPTIONS = {
         tradingFee: 0.003,
         advantages: ['Lower trading fees', 'Faster transaction processing', 'Better for smaller trades'],
         stats: {
-            'Swap Speed': '5-12 seconds',
+            'Swap Speed': '5-12s',
             'Trading Fee': '0.3%',
             'Liquidity': 'Medium',
             'Slippage': 'Medium'
@@ -591,13 +591,13 @@ export function validatePortfolioSufficiency(fromAsset, amount, portfolio) {
  */
 export function estimateSwapTime(route, selectedDEX = 'ICPSwap') {
     if (route.operationType === 'Minter Operation') {
-        return route.isCrossChain ? '1-3 minutes' : '15-45 seconds';
+        return route.isCrossChain ? '1-3 min' : '15-45s';
     }
     else if (route.operationType === 'DEX Swap') {
-        return selectedDEX === 'KongSwap' ? '5-12 seconds' : '8-15 seconds';
+        return selectedDEX === 'KongSwap' ? '5-12s' : '8-15s';
     }
     else {
-        return '2-8 minutes';
+        return '2-8 min';
     }
 }
 // ===============================================

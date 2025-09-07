@@ -3,7 +3,7 @@
 // ===============================================
 // 🛡️ SAFE BACKUP: Contains ALL assets from original + new work
 // Compatible with: Original Dapp, Old .ts files, NEW modules
-// ✅ Includes: ckSOL, SOL, USDC-SOL (NEW additions)
+// ✅ Includes: ckSOL, SOL, USDC(SOL) (NEW additions)
 
 export interface Asset {
   symbol: string;
@@ -152,8 +152,8 @@ export const MASTER_ASSETS: { [key: string]: Asset } = {
     canDeposit: true,
     canWithdraw: false
   },
-  'USDC-SOL': { 
-    symbol: 'USDC-SOL', 
+  'USDC(SOL)': { 
+    symbol: 'USDC(SOL)', 
     name: 'USDC (Solana)', 
     icon: './assets/images/ckUSDC.svg', 
     price: 1.00, 
@@ -164,8 +164,8 @@ export const MASTER_ASSETS: { [key: string]: Asset } = {
     canDeposit: true,
     canWithdraw: true
   },
-  'USDC-ETH': { 
-    symbol: 'USDC-ETH', 
+  'USDC(ETH)': { 
+    symbol: 'USDC(ETH)', 
     name: 'USDC (Ethereum)', 
     icon: './assets/images/ckUSDC.svg', 
     price: 1.00, 
@@ -176,8 +176,8 @@ export const MASTER_ASSETS: { [key: string]: Asset } = {
     canDeposit: true,
     canWithdraw: true
   },
-  'USDT-ETH': { 
-    symbol: 'USDT-ETH', 
+  'USDT(ETH)': { 
+    symbol: 'USDT(ETH)', 
     name: 'USDT (Ethereum)', 
     icon: './assets/images/ckUSDT.svg', 
     price: 1.00, 
@@ -241,7 +241,7 @@ export const L1_WITHDRAWAL_ASSETS = Object.keys(MASTER_ASSETS).filter(
 );
 
 // Chain Fusion deposit sources (L1 assets that can be deposited via Chain Fusion)
-export const CHAIN_FUSION_SOURCES = ['BTC', 'ETH', 'USDC', 'USDT', 'SOL', 'USDC-SOL', 'USDC-ETH', 'USDT-ETH'];
+export const CHAIN_FUSION_SOURCES = ['BTC', 'ETH', 'USDC', 'USDT', 'SOL', 'USDC(SOL)', 'USDC(ETH)', 'USDT(ETH)'];
 
 // ICRC/ICP native assets (can be deposited directly on ICP)
 export const ICRC_ICP_ASSETS = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ckSOL', 'ICP'];
@@ -318,9 +318,9 @@ export function getCkTokenForL1(l1Asset: string): string | null {
     'USDC': 'ckUSDC',
     'USDT': 'ckUSDT',
     'SOL': 'ckSOL',
-    'USDC-SOL': 'ckUSDC', // Solana USDC converts to ckUSDC
-    'USDC-ETH': 'ckUSDC', // Ethereum USDC converts to ckUSDC
-    'USDT-ETH': 'ckUSDT'  // Ethereum USDT converts to ckUSDT
+    'USDC(SOL)': 'ckUSDC', // Solana USDC converts to ckUSDC
+    'USDC(ETH)': 'ckUSDC', // Ethereum USDC converts to ckUSDC
+    'USDT(ETH)': 'ckUSDT'  // Ethereum USDT converts to ckUSDT
   };
   return ckTokenMap[l1Asset] || null;
 }

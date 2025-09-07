@@ -55,6 +55,11 @@ const WALLET_OPTIONS: Record<string, WalletOption[]> = {
     { id: 'solflare', name: 'Solflare Wallet', icon: <Sun className="w-4 h-4 text-yellow-500" /> },
     { id: 'backpack', name: 'Backpack Wallet', icon: <Square className="w-4 h-4 text-gray-600" /> }
   ],
+  'USDC(SOL)': [
+    { id: 'phantom', name: 'Phantom Wallet', icon: <Wallet className="w-4 h-4 text-purple-500" /> },
+    { id: 'solflare', name: 'Solflare Wallet', icon: <Sun className="w-4 h-4 text-yellow-500" /> },
+    { id: 'backpack', name: 'Backpack Wallet', icon: <Square className="w-4 h-4 text-gray-600" /> }
+  ],
   'ckBTC': [
     { id: 'plug', name: 'Plug Wallet', icon: <Plug className="w-4 h-4 text-green-500" /> },
     { id: 'stoic', name: 'Stoic Wallet', icon: <Globe className="w-4 h-4 text-blue-500" /> },
@@ -223,14 +228,24 @@ const DepositModal: React.FC<DepositModalProps> = ({
         'ckUSDT is in your Hut!'
       ];
       handleEthereumDeposit(messages, finalAsset, amount);
-    } else if (['SOL'].includes(selectedAsset)) {
-      finalAsset = 'ckSOL';
-      messages = [
-        'Sending SOL to ICP...',
-        'SOL Received!',
-        'Converting to ckSOL...',
-        'ckSOL is in your Hut!'
-      ];
+    } else if (['SOL', 'USDC(SOL)'].includes(selectedAsset)) {
+      if (selectedAsset === 'SOL') {
+        finalAsset = 'ckSOL';
+        messages = [
+          'Sending SOL to ICP...',
+          'SOL Received!',
+          'Converting to ckSOL...',
+          'ckSOL is in your Hut!'
+        ];
+      } else { // USDC(SOL)
+        finalAsset = 'ckUSDC';
+        messages = [
+          'Sending USDC (SOL) to ICP...',
+          'USDC (SOL) Received!',
+          'Converting to ckUSDC...',
+          'ckUSDC is in your Hut!'
+        ];
+      }
       handleSolanaDeposit(messages, finalAsset, amount);
     } else {
       // ck-tokens and ICP - direct deposits
@@ -424,7 +439,7 @@ const DepositModal: React.FC<DepositModalProps> = ({
         {(['ETH', 'USDC', 'USDT'].includes(selectedAsset) && processingMessage === '') && (
           <EthereumConfirmationAnimation />
         )}
-        {(['SOL'].includes(selectedAsset) && processingMessage === '') && (
+        {(['SOL', 'USDC(SOL)'].includes(selectedAsset) && processingMessage === '') && (
           <SolanaConfirmationAnimation />
         )}
       </div>
@@ -499,7 +514,7 @@ const EthereumConfirmationAnimation: React.FC = () => (
       <div className="confirmation-count">0/65 blocks</div>
     </div>
     <div className="confirmation-info">
-      <Lock className="inline w-4 h-4 mr-1" /> ICP requires 65 confirmations for Ethereum finality (~13 minutes)
+      <Lock className="inline w-4 h-4 mr-1" /> ICP requires 65 confirmations for Ethereum finality (~13 min)
     </div>
   </div>
 );

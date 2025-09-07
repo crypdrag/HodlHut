@@ -324,7 +324,7 @@
 @media (pointer: coarse) { .pad-button { padding: var(--space-3) var(--space-5); } }
 .pad-chip    { padding: 0 var(--space-3); }
 .pad-list    { padding: var(--space-3); }
-.pad-section { padding: var(--space-6) var(--space-4); }
+.pad-section { padding: var(--space-4) 0; }
 
 /* Margin presets */
 .mt-section  { margin-top: var(--section); }
@@ -403,21 +403,6 @@
 }
 
 /* Button system (updated with your border pattern) */
-.btn-base {
-  cursor: pointer;
-  border-width: 2px;
-  border-style: solid;
-  border-radius: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  font-weight: var(--weight-semibold);
-  font-size: 0.875rem;
-  line-height: 1.2;
-  font-family: var(--font-sans);
-  transition: all 200ms ease;
-}
-.btn-base:focus {
-  outline: none;
-}
 
 /* Primary/Bitcoin button (orange/yellow theme) */
 .btn-bitcoin {
@@ -507,6 +492,28 @@
   color: var(--color-error-200);
 }
 
+/* Sienna button */
+.btn-sienna {
+  cursor: pointer;
+  border-width: 2px;
+  border-style: solid;
+  border-radius: var(--space-2);
+  padding: 12px 16px;
+  font-weight: var(--weight-semibold);
+  font-size: 0.875rem;
+  line-height: 1.2;
+  font-family: var(--font-sans);
+  transition: all 200ms ease;
+  border-color: #A0522D;
+  color: #D2B48C;
+  min-height: 40px;
+}
+.btn-sienna:focus { outline: none; }
+.btn-sienna:hover {
+  background-color: #A0522D;
+  color: #F5DEB3;
+}
+
 /* Secondary/ghost button */
 .btn-secondary {
   cursor: pointer;
@@ -531,7 +538,7 @@
 
 /* Button sizes */
 .btn-sm { padding: var(--space-1) var(--space-2); font-size: 0.75rem; }
-.btn-lg { padding: var(--space-3) var(--space-5); font-size: 1rem; }
+.btn-lg { padding: var(--space-5) var(--space-8); font-size: 1rem; }
 
 /* Form elements (matching your design patterns) */
 .input-base {
@@ -596,6 +603,7 @@
 .btn-primary:disabled,
 .btn-success:disabled,
 .btn-error:disabled,
+.btn-sienna:disabled,
 .btn-secondary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -604,6 +612,7 @@
 .btn-primary:disabled:hover,
 .btn-success:disabled:hover,
 .btn-error:disabled:hover,
+.btn-sienna:disabled:hover,
 .btn-secondary:disabled:hover {
   background-color: transparent;
   color: inherit;
@@ -618,13 +627,23 @@
 }
 
 /* Focus states (for accessibility) */
-.btn-base:focus-visible {
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+.btn-bitcoin:focus-visible,
+.btn-success:focus-visible,
+.btn-error:focus-visible,
+.btn-sienna:focus-visible {
   outline: 2px solid var(--color-primary-400);
   outline-offset: 2px;
 }
 
 /* Active states */
-.btn-base:active {
+.btn-primary:active,
+.btn-secondary:active,
+.btn-bitcoin:active,
+.btn-success:active,
+.btn-error:active,
+.btn-sienna:active {
   transform: translateY(1px);
 }
 
@@ -702,7 +721,7 @@
 
 /* Dropdown styling */
 .dropdown-container {
-  @apply absolute top-full left-0 right-0 mt-2 bg-surface-2 border border-white/10 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto;
+  @apply absolute top-full left-0 mt-2 bg-surface-2 border border-white/10 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto w-full;
 }
 
 .dropdown-search {
