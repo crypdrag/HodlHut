@@ -4,15 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HodlHut - Sovereign DeFi Paradise</title>
+    <script>
+        // Prevent FOUC by setting theme before page load
+        (function() {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else if (theme === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+            } else {
+                // System preference or default to dark
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (!prefersDark) {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                }
+            }
+        })();
+    </script>
     <style>
         * {
-            margin: 0;
-            padding: 0;
             box-sizing: border-box;
         }
 
         #root {
             min-height: 100vh;
+        }
+
+        /* Initial loading styles to prevent FOUC */
+        html {
+            background-color: #141414;
+            color: #f0f0f0;
+        }
+
+        html[data-theme="light"] {
+            background-color: #fcfcfc;
+            color: #2b2b2b;
         }
     </style>
 </head>

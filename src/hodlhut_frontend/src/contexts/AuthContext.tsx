@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { authService } from '../services/auth';
+// import { authService } from '../services/auth'; // Disabled for development preview
 
 import { Principal } from '@dfinity/principal';
 
@@ -26,59 +26,34 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  // DEMO MODE: Start as NOT authenticated for demo login flow
+  // DEMO MODE: Simplified authentication for development preview
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [principal, setPrincipal] = useState<Principal | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    // Initialize real Internet Identity authentication
-    console.log('Initializing Internet Identity authentication...');
-    initAuth();
-  }, []);
+  // Mock principal for demo purposes
+  const mockPrincipal = Principal.fromText('rdmx6-jaaaa-aaaaa-aaadq-cai');
 
-  const initAuth = async () => {
-    setIsLoading(true);
-    try {
-      console.log('Initializing LOCAL Internet Identity auth service...');
-      
-      await authService.init();
-      const authenticated = await authService.isAuthenticated();
-      
-      if (authenticated) {
-        const userPrincipal = await authService.getPrincipal();
-        setIsAuthenticated(true);
-        setPrincipal(userPrincipal);
-        console.log('User already authenticated locally:', userPrincipal?.toString());
-      } else {
-        console.log('User not authenticated - ready for local II login');
-      }
-    } catch (error) {
-      console.error('Local auth initialization failed:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  useEffect(() => {
+    // Skip Internet Identity initialization for development preview
+    console.log('Running in development preview mode - Internet Identity disabled');
+  }, []);
 
   const login = async (): Promise<boolean> => {
     setIsLoading(true);
     try {
-      console.log('Starting LOCAL Internet Identity login...');
+      console.log('Demo login - simulating Internet Identity authentication...');
       
-      const success = await authService.login();
+      // Simulate login delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      if (success) {
-        const userPrincipal = await authService.getPrincipal();
-        setIsAuthenticated(true);
-        setPrincipal(userPrincipal);
-        console.log('Local II login successful:', userPrincipal?.toString());
-        return true;
-      }
-      
-      console.log('Local II login failed');
-      return false;
+      // Mock successful authentication
+      setIsAuthenticated(true);
+      setPrincipal(mockPrincipal);
+      console.log('Demo login successful:', mockPrincipal.toString());
+      return true;
     } catch (error) {
-      console.error('Local II login error:', error);
+      console.error('Demo login error:', error);
       return false;
     } finally {
       setIsLoading(false);
@@ -88,13 +63,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async () => {
     setIsLoading(true);
     try {
-      console.log('Logging out from LOCAL Internet Identity...');
-      await authService.logout();
+      console.log('Demo logout...');
+      await new Promise(resolve => setTimeout(resolve, 500));
       setIsAuthenticated(false);
       setPrincipal(null);
-      console.log('Local II logout successful');
+      console.log('Demo logout successful');
     } catch (error) {
-      console.error('Local II logout failed:', error);
+      console.error('Demo logout failed:', error);
     } finally {
       setIsLoading(false);
     }

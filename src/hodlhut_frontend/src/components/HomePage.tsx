@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AssetIcon from './AssetIcon';
 import InternetIdentityLogin from './InternetIdentityLogin';
-import '../styles/HomePage.css';
+// Tailwind CSS classes now handle all styling
 import HeroAnimationVideo from '../../assets/images/Hero_Animation.mp4';
 import { 
   Radio,      // Personal Sovereignty - Broadcasting personal control
@@ -11,17 +11,19 @@ import {
   Brain,      // Intelligent Abstraction - AI/Smart features  
   TrendingUp, // Hut Garden Tiki Rewards - Profits/growth
   Shield,     // Full Stack Security - Protection
-  PieChart    // Diverse Portfolio - Portfolio management
+  PieChart,   // Diverse Portfolio - Portfolio management
+  ArrowUpDown,// Swap Assets - Two arrows in opposite directions
+  Sprout      // Garden/Plant icon for staking rewards
 } from 'lucide-react';
 // import HeroBgImage from '../../assets/images/Hero_bg.png';
 
 // Lucide icon components with proper TypeScript support
-const PersonalSovereigntyIcon: React.FC = () => <Radio size={48} color="#f1760f" />;
-const UniversalRouterIcon: React.FC = () => <Network size={48} color="#f1760f" />;
-const IntelligentAbstractionIcon: React.FC = () => <Brain size={48} color="#f1760f" />;
-const TikiRewardsIcon: React.FC = () => <TrendingUp size={48} color="#f1760f" />;
-const FullStackSecurityIcon: React.FC = () => <Shield size={48} color="#f1760f" />;
-const DiversePortfolioIcon: React.FC = () => <PieChart size={48} color="#f1760f" />;
+const PersonalSovereigntyIcon: React.FC = () => <Radio size={48} className="text-primary-500" />;
+const UniversalRouterIcon: React.FC = () => <Network size={48} className="text-primary-500" />;
+const IntelligentAbstractionIcon: React.FC = () => <Brain size={48} className="text-primary-500" />;
+const TikiRewardsIcon: React.FC = () => <TrendingUp size={48} className="text-primary-500" />;
+const FullStackSecurityIcon: React.FC = () => <Shield size={48} className="text-primary-500" />;
+const DiversePortfolioIcon: React.FC = () => <PieChart size={48} className="text-primary-500" />;
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -86,21 +88,21 @@ const HomePage: React.FC = () => {
   };
 
   return (
-    <div className="homepage">
+    <div className="bg-bg text-text-primary min-h-screen overflow-x-hidden">
       {/* Header */}
-      <header className="header">
-        <nav className="nav">
-          <div className="logo">
-            <AssetIcon asset="logo" size={50} className="logo-image" />
-            <span className="logo-text">HodlHut</span>
+      <header className="nav-header">
+        <nav className="container-app flex justify-between items-center py-4">
+          <div className="flex items-center gap-3">
+            <AssetIcon asset="logo" size={50} className="w-12 h-12 object-contain" />
+            <span className="text-2xl font-bold text-text-primary" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>HodlHut</span>
             {isAuthenticated && principal && (
-              <div className="user-principal-container">
-                <span className="user-principal">
+              <div className="relative ml-6 group">
+                <span className="text-sm bg-surface-2 text-text-secondary px-3 py-1 rounded-full border border-white/10 cursor-pointer hover:bg-surface-3 transition-all duration-200">
                   👤 {principal.toString().slice(0, 8)}...
                 </span>
-                <div className="user-principal-dropdown">
+                <div className="absolute top-full right-0 mt-1 bg-surface-1 border border-white/10 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transform translate-y-2 group-hover:translate-y-0 transition-all duration-200 z-50">
                   <button 
-                    className="logout-btn"
+                    className="block w-full text-left px-4 py-2 text-sm text-text-secondary hover:bg-surface-2 hover:text-text-primary rounded-lg transition-all duration-200"
                     onClick={logout}
                   >
                     Logout
@@ -109,25 +111,25 @@ const HomePage: React.FC = () => {
               </div>
             )}
           </div>
-          <div className="nav-buttons">
+          <div className="flex gap-4">
             {isAuthenticated ? (
               <>
                 <button 
-                  className="nav-btn primary"
+                  className="px-4 py-2 rounded-2xl text-sm font-semibold bg-primary-600 hover:bg-primary-500 text-on-primary focus:ring-2 focus:ring-primary-400 focus:outline-none transition-all duration-200 text-base"
                   onClick={handleGetHut}
                 >
                   {/* Backend: Triggers Internet Identity authentication with custom security options */}
                   Get Hut
                 </button>
                 <button 
-                  className="nav-btn secondary"
+                  className="px-4 py-2 rounded-2xl text-sm font-semibold bg-surface-2 hover:bg-surface-3 text-text-secondary ring-1 ring-white/10 focus:outline-none transition-all duration-200"
                   onClick={handleMyHuts}
                 >
                   {/* Backend: Triggers Internet Identity authentication with custom security options */}
                   My Huts
                 </button>
                 <button 
-                  className="nav-btn tertiary"
+                  className="px-4 py-2 rounded-2xl text-sm font-semibold bg-surface-2 hover:bg-surface-3 text-text-secondary ring-1 ring-white/10 focus:outline-none transition-all duration-200"
                   onClick={logout}
                 >
                   Logout
@@ -136,7 +138,7 @@ const HomePage: React.FC = () => {
             ) : (
               <>
                 <button 
-                  className="nav-btn primary"
+                  className={`px-4 py-2 rounded-2xl text-sm font-semibold bg-primary-600 hover:bg-primary-500 text-on-primary focus:ring-2 focus:ring-primary-400 focus:outline-none transition-all duration-200 text-base ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                   onClick={handleGetHut}
                   disabled={isLoading}
                 >
@@ -144,7 +146,7 @@ const HomePage: React.FC = () => {
                   {isLoading ? 'Connecting...' : 'Get Hut'}
                 </button>
                 <button 
-                  className="nav-btn secondary"
+                  className={`px-4 py-2 rounded-2xl text-sm font-semibold bg-surface-2 hover:bg-surface-3 text-text-secondary ring-1 ring-white/10 focus:outline-none transition-all duration-200 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                   onClick={handleMyHuts}
                   disabled={isLoading}
                 >
@@ -154,8 +156,8 @@ const HomePage: React.FC = () => {
               </>
             )}
             <button 
-              className="nav-btn tertiary"
-              onClick={() => window.open('https://internetcomputer.org/docs/', '_blank')}
+              className="px-4 py-2 rounded-2xl text-sm font-semibold bg-surface-2 hover:bg-surface-3 text-text-secondary ring-1 ring-white/10 focus:outline-none transition-all duration-200"
+              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
             >
               Learn
             </button>
@@ -164,11 +166,11 @@ const HomePage: React.FC = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="hero">
+      <section className="relative min-h-[70vh] flex items-end justify-center overflow-hidden mt-20 bg-surface-1 pb-16">
         {/* Hero Animation */}
-        <div className={`hero-animation-container ${!showAnimation ? 'fade-out' : ''}`}>
+        <div className={`absolute inset-0 flex items-center justify-center z-10 transition-opacity duration-2000 ${!showAnimation ? 'opacity-0 pointer-events-none' : ''}`}>
           <video
-            className={`hero-animation-landscape ${isVideoLoaded ? 'loaded' : ''}`}
+            className={`absolute w-full h-full object-cover object-center transition-opacity duration-500 ${isVideoLoaded ? 'opacity-100' : 'opacity-0'}`}
             autoPlay
             muted
             loop
@@ -180,9 +182,9 @@ const HomePage: React.FC = () => {
         </div>
 
         {/* Hero Background - Video with last frame fallback */}
-        <div className="hero-background">
+        <div className="absolute inset-0 z-0">
           <video 
-            className="hero-bg-video" 
+            className="w-full h-full object-cover object-center" 
             autoPlay 
             muted 
             loop
@@ -193,86 +195,84 @@ const HomePage: React.FC = () => {
         </div>
 
         {/* Hero Card */}
-        <div className="hero-content">
-          <div className="hero-card">
-            <div className="hero-card-content">
-              <h1 className="hero-card-title title-font">HodlHut</h1>
-              <p className="hero-card-subtitle subtitle-font">
-                Your Sovereign Multichain Paradise
-              </p>
-              <button 
-                className="hero-card-button"
-                onClick={() => window.open('https://internetcomputer.org/docs/', '_blank')}
-              >
-                Start Your Journey
-              </button>
-            </div>
+        <div className="relative z-20 flex justify-center items-center max-w-4xl px-8">
+          <div className="rounded-2xl border border-white/10 bg-surface-2 p-6 max-w-lg text-center">
+            <h1 className="text-5xl font-bold text-text-primary mb-6" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>HodlHut</h1>
+            <p className="text-xl text-text-secondary mb-8 leading-snug">
+              Your Sovereign Multichain Paradise
+            </p>
+            <button 
+              className="px-4 py-2 rounded-2xl text-sm font-semibold bg-primary-600 hover:bg-primary-500 text-on-primary focus:ring-2 focus:ring-primary-400 focus:outline-none transition-all duration-200 text-lg px-12 py-4"
+              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              Start Your Journey
+            </button>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="features">
-        <div className="container">
-          <h2 className="section-title title-font">Your Personal Universal Router</h2>
+      <section className="pt-16 pb-20 bg-surface-2">
+        <div className="container-app">
+          <h2 className="text-4xl font-bold text-center text-text-primary mb-12" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Your Personal Universal Router</h2>
           
-          <div className="features-grid">
-            <div className="feature-card">
-              <div className="feature-icon">
+          <div className="grid-features">
+            <div className="rounded-2xl border border-white/10 bg-surface-1 p-6 text-center">
+              <div className="mb-6 flex justify-center">
                 <PersonalSovereigntyIcon />
               </div>
-              <h3 className="feature-title subtitle-font">Personal Sovereignty</h3>
-              <p className="feature-description body-font">
+              <h3 className="text-2xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Personal Sovereignty</h3>
+              <p className="text-text-secondary leading-relaxed">
                 My Hut canisters are personal smart contracts assigned to you. No shared state, no bottlenecks, infinite scalability. Create as many Huts as you need.
               </p>
             </div>
 
-            <div className="feature-card">
-              <div className="feature-icon">
+            <div className="rounded-2xl border border-white/10 bg-surface-1 p-6 text-center">
+              <div className="mb-6 flex justify-center">
                 <UniversalRouterIcon />
               </div>
-              <h3 className="feature-title subtitle-font">Universal Router</h3>
-              <p className="feature-description body-font">
+              <h3 className="text-2xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Universal Router</h3>
+              <p className="text-text-secondary leading-relaxed">
                 Bitcoin ↔ Ethereum ↔ Solana ↔ ICP bridgeless routing. Move between any asset on any chain trustlessly with Chain Fusion.
               </p>
             </div>
 
-            <div className="feature-card">
-              <div className="feature-icon">
+            <div className="rounded-2xl border border-white/10 bg-surface-1 p-6 text-center">
+              <div className="mb-6 flex justify-center">
                 <IntelligentAbstractionIcon />
               </div>
-              <h3 className="feature-title subtitle-font">Intelligent Abstraction</h3>
-              <p className="feature-description body-font">
+              <h3 className="text-2xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Intelligent Abstraction</h3>
+              <p className="text-text-secondary leading-relaxed">
                 Complex multichain operations are easy to understand and transparent. HodlHut's smart fee engine handles gas, routing, and fee optimization automatically giving you options.
               </p>
             </div>
 
-            <div className="feature-card">
-              <div className="feature-icon">
+            <div className="rounded-2xl border border-white/10 bg-surface-1 p-6 text-center">
+              <div className="mb-6 flex justify-center">
                 <TikiRewardsIcon />
               </div>
-              <h3 className="feature-title subtitle-font">My Garden Rewards</h3>
-              <p className="feature-description body-font">
+              <h3 className="text-2xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>My Garden Rewards</h3>
+              <p className="text-text-secondary leading-relaxed">
                 My Garden is where yield farming rewards for hodling and portfolio diversity happen. Weekly Reef Raffles and Tsunami Sweeps keep things hopping.
               </p>
             </div>
 
-            <div className="feature-card">
-              <div className="feature-icon">
+            <div className="rounded-2xl border border-white/10 bg-surface-1 p-6 text-center">
+              <div className="mb-6 flex justify-center">
                 <FullStackSecurityIcon />
               </div>
-              <h3 className="feature-title subtitle-font">Full Stack Security</h3>
-              <p className="feature-description body-font">
+              <h3 className="text-2xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Full Stack Security</h3>
+              <p className="text-text-secondary leading-relaxed">
                 Huts are a meant to be a chill place to hang out without worrying about the security of your assets. HodlHut may have extra log in steps, but funds are safu.
               </p>
             </div>
 
-            <div className="feature-card">
-              <div className="feature-icon">
+            <div className="rounded-2xl border border-white/10 bg-surface-1 p-6 text-center">
+              <div className="mb-6 flex justify-center">
                 <DiversePortfolioIcon />
               </div>
-              <h3 className="feature-title subtitle-font">Diverse Portfolio</h3>
-              <p className="feature-description body-font">
+              <h3 className="text-2xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Diverse Portfolio</h3>
+              <p className="text-text-secondary leading-relaxed">
                 Manage ICP, ckBTC, ckETH, ckUSDC, ckUSDT, and ckSOL all in one place. You can hodl & farm diverse assets for Bounty, or cash out all the way to Bitcoin, Ethereum, or Solana blockchains.
               </p>
             </div>
@@ -281,152 +281,236 @@ const HomePage: React.FC = () => {
       </section>
 
       {/* Supported Assets Section */}
-      <section className="supported-assets">
-        <div className="container">
-          <h2 className="section-title title-font">Supported Assets</h2>
+      <section className="pt-16 pb-20 bg-bg">
+        <div className="container-app">
+          <h2 className="text-4xl font-bold text-center text-text-primary mb-12" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Supported Assets</h2>
           
           {/* Chain Fusion Deposits */}
-          <div className="deposit-category">
-            <h3 className="category-title subtitle-font">Add Assets via Chain Fusion</h3>
-            <p className="category-description">Deposit native assets from their L1 chains</p>
+          <div className="mb-16">
+            <h3 className="text-3xl font-bold text-center text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Add Assets via Chain Fusion</h3>
+            <p className="text-lg text-center text-text-secondary mb-8">Deposit native assets from their L1 chains</p>
             
-            <div className="asset-grid">
-              <div className="asset-card">
-                <div className="asset-icon-container">
-                  <AssetIcon asset="BTC" size={48} />
+            <div className="grid-assets">
+              <div className="asset-card-compact">
+                <div className="mb-3 flex justify-center items-center h-5">
+                  <AssetIcon asset="BTC" size={20} />
                 </div>
-                <div className="asset-name">Bitcoin</div>
-                <div className="asset-balance">Native BTC → ckBTC</div>
+                <div className="text-base font-semibold text-text-primary mb-1">Bitcoin</div>
+                <div className="text-xs text-text-muted">Native BTC → ckBTC</div>
               </div>
               
-              <div className="asset-card">
-                <div className="asset-icon-container">
-                  <AssetIcon asset="ETH" size={48} />
+              <div className="asset-card-compact">
+                <div className="mb-3 flex justify-center items-center h-5">
+                  <AssetIcon asset="ETH" size={20} />
                 </div>
-                <div className="asset-name">Ethereum</div>
-                <div className="asset-balance">Native ETH → ckETH</div>
+                <div className="text-base font-semibold text-text-primary mb-1">Ethereum</div>
+                <div className="text-xs text-text-muted">Native ETH → ckETH</div>
               </div>
 
-              <div className="asset-card">
-                <div className="asset-icon-container">
-                  <AssetIcon asset="USDC" size={48} />
+              <div className="asset-card-compact">
+                <div className="mb-3 flex justify-center items-center h-5">
+                  <AssetIcon asset="USDC" size={20} />
                 </div>
-                <div className="asset-name">USDC</div>
-                <div className="asset-balance">Native USDC → ckUSDC</div>
+                <div className="text-base font-semibold text-text-primary mb-1">USDC</div>
+                <div className="text-xs text-text-muted">Native USDC → ckUSDC</div>
               </div>
 
-              <div className="asset-card">
-                <div className="asset-icon-container">
-                  <AssetIcon asset="USDT" size={48} />
+              <div className="asset-card-compact">
+                <div className="mb-3 flex justify-center items-center h-5">
+                  <AssetIcon asset="USDT" size={20} />
                 </div>
-                <div className="asset-name">USDT</div>
-                <div className="asset-balance">Native USDT → ckUSDT</div>
+                <div className="text-base font-semibold text-text-primary mb-1">USDT</div>
+                <div className="text-xs text-text-muted">Native USDT → ckUSDT</div>
               </div>
               
-              <div className="asset-card">
-                <div className="asset-icon-container">
-                  <AssetIcon asset="SOL" size={48} />
+              <div className="asset-card-compact">
+                <div className="mb-3 flex justify-center items-center h-5">
+                  <AssetIcon asset="SOL" size={20} />
                 </div>
-                <div className="asset-name">Solana</div>
-                <div className="asset-balance">Native SOL → ckSOL</div>
+                <div className="text-base font-semibold text-text-primary mb-1">Solana</div>
+                <div className="text-xs text-text-muted">Native SOL → ckSOL</div>
+              </div>
+              
+              <div className="asset-card-compact">
+                <div className="mb-3 flex justify-center items-center h-5">
+                  <AssetIcon asset="USDC_SOL" size={20} />
+                </div>
+                <div className="text-base font-semibold text-text-primary mb-1">USDC (SOL)</div>
+                <div className="text-xs text-text-muted">Native USDC → ckUSDC</div>
               </div>
             </div>
           </div>
 
           {/* ICRC/ICP Assets */}
-          <div className="deposit-category">
-            <h3 className="category-title subtitle-font">Add ICRC and ICP Assets</h3>
-            <p className="category-description">Deposit assets already on the Internet Computer Protocol</p>
+          <div className="mb-16">
+            <h3 className="text-3xl font-bold text-center text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Add ICRC and ICP Assets</h3>
+            <p className="text-lg text-center text-text-secondary mb-8">Deposit assets already on the Internet Computer Protocol</p>
             
-            <div className="asset-grid">
-              <div className="asset-card">
-                <div className="asset-icon-container">
-                  <AssetIcon asset="ckBTC" size={48} />
+            <div className="grid-assets">
+              <div className="asset-card-compact">
+                {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
+                <div className="mb-3 flex justify-center items-center h-5">
+                  <AssetIcon asset="ckBTC" size={20} />
                 </div>
-                <div className="asset-name">ckBTC</div>
-                <div className="asset-balance">Chain Key Bitcoin</div>
+                <div className="text-base font-semibold text-text-primary mb-1">ckBTC</div>
+                <div className="text-xs text-text-muted">Chain Key Bitcoin</div>
               </div>
               
-              <div className="asset-card">
-                <div className="asset-icon-container">
-                  <AssetIcon asset="ckETH" size={48} />
+              <div className="asset-card-compact">
+                {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
+                <div className="mb-3 flex justify-center items-center h-5">
+                  <AssetIcon asset="ckETH" size={20} />
                 </div>
-                <div className="asset-name">ckETH</div>
-                <div className="asset-balance">Chain Key Ethereum</div>
+                <div className="text-base font-semibold text-text-primary mb-1">ckETH</div>
+                <div className="text-xs text-text-muted">Chain Key Ethereum</div>
               </div>
 
-              <div className="asset-card">
-                <div className="asset-icon-container">
-                  <AssetIcon asset="ckUSDC" size={48} />
+              <div className="asset-card-compact">
+                {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
+                <div className="mb-3 flex justify-center items-center h-5">
+                  <AssetIcon asset="ckUSDC" size={20} />
                 </div>
-                <div className="asset-name">ckUSDC</div>
-                <div className="asset-balance">Chain Key USDC</div>
+                <div className="text-base font-semibold text-text-primary mb-1">ckUSDC</div>
+                <div className="text-xs text-text-muted">Chain Key USDC</div>
               </div>
 
-              <div className="asset-card">
-                <div className="asset-icon-container">
-                  <AssetIcon asset="ckUSDT" size={48} />
+              <div className="asset-card-compact">
+                {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
+                <div className="mb-3 flex justify-center items-center h-5">
+                  <AssetIcon asset="ckUSDT" size={20} />
                 </div>
-                <div className="asset-name">ckUSDT</div>
-                <div className="asset-balance">Chain Key USDT</div>
+                <div className="text-base font-semibold text-text-primary mb-1">ckUSDT</div>
+                <div className="text-xs text-text-muted">Chain Key USDT</div>
               </div>
 
-              <div className="asset-card">
-                <div className="asset-icon-container">
-                  <AssetIcon asset="ckSOL" size={48} />
+              <div className="asset-card-compact">
+                {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
+                <div className="mb-3 flex justify-center items-center h-5">
+                  <AssetIcon asset="ckSOL" size={20} />
                 </div>
-                <div className="asset-name">ckSOL</div>
-                <div className="asset-balance">Chain Key Solana</div>
+                <div className="text-base font-semibold text-text-primary mb-1">ckSOL</div>
+                <div className="text-xs text-text-muted">Chain Key Solana</div>
               </div>
               
-              <div className="asset-card">
-                <div className="asset-icon-container">
-                  <AssetIcon asset="ICP" size={48} />
+              <div className="asset-card-compact">
+                {/* Backend: ICP wallet interface (Plug, etc.) + native ICP integration */}
+                <div className="mb-3 flex justify-center items-center h-5">
+                  <AssetIcon asset="ICP" size={20} />
                 </div>
-                <div className="asset-name">ICP</div>
-                <div className="asset-balance">Internet Computer</div>
+                <div className="text-base font-semibold text-text-primary mb-1">ICP</div>
+                <div className="text-xs text-text-muted">Internet Computer</div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="cta">
-        <div className="container">
-          <div className="cta-content">
-            <h2 className="cta-title title-font">Ready to Set up Your Hut?</h2>
-            <p className="cta-subtitle subtitle-font">
-              Sign into Get Hut with your Internet Identity
-            </p>
+      {/* How it Works Section */}
+      <section className="pt-20 pb-4 bg-bg">
+        <div className="container-app">
+          <h2 id="how-it-works" className="text-4xl font-bold text-center text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>How it Works</h2>
+          <p className="text-lg text-center text-text-secondary mb-16">Follow these simple steps to activate your personal Hut</p>
+          
+          <div className="flex flex-wrap">
+            <div className="flex relative pt-10 pb-20 sm:items-center md:w-2/3 mx-auto">
+              <div className="h-full w-6 absolute inset-0 flex items-center justify-center">
+                <div className="h-full w-1 bg-surface-3 pointer-events-none"></div>
+              </div>
+              <div className="flex-shrink-0 w-6 h-6 rounded-full mt-10 sm:mt-0 inline-flex items-center justify-center bg-primary-400 text-white relative z-10 font-medium text-sm">1</div>
+              <div className="flex-grow md:pl-8 pl-6 flex sm:items-center items-start flex-col sm:flex-row">
+                <div className="flex-shrink-0 w-24 h-24 bg-black/80 text-primary-400 rounded-full inline-flex items-center justify-center">
+                  <Shield size={48} />
+                </div>
+                <div className="flex-grow sm:pl-6 mt-6 sm:mt-0">
+                  <h3 className="font-medium text-text-primary mb-1 text-xl">Log In with your Internet Identity</h3>
+                  <p className="leading-relaxed text-text-secondary">Internet Identity is a blockchain authentication system for the Internet Computer that allows users to access Dapps on the Internet Computer securely and anonymously.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex relative pb-20 sm:items-center md:w-2/3 mx-auto">
+              <div className="h-full w-6 absolute inset-0 flex items-center justify-center">
+                <div className="h-full w-1 bg-surface-3 pointer-events-none"></div>
+              </div>
+              <div className="flex-shrink-0 w-6 h-6 rounded-full mt-10 sm:mt-0 inline-flex items-center justify-center relative z-10 font-medium text-sm text-white" style={{backgroundColor: 'rgb(202, 138, 4)'}}>2</div>
+              <div className="flex-grow md:pl-8 pl-6 flex sm:items-center items-start flex-col sm:flex-row">
+                <div className="flex-shrink-0 w-24 h-24 bg-black/80 rounded-full inline-flex items-center justify-center" style={{color: 'rgb(202, 138, 4)'}}>
+                  <TrendingUp size={48} />
+                </div>
+                <div className="flex-grow sm:pl-6 mt-6 sm:mt-0">
+                  <h3 className="font-medium text-text-primary mb-1 text-xl">Add Assets to Activate My Hut</h3>
+                  <p className="leading-relaxed text-text-secondary">Deposit any HodlHut supported assets to activate your personal, sovereign, crosschain router.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex relative pb-20 sm:items-center md:w-2/3 mx-auto">
+              <div className="h-full w-6 absolute inset-0 flex items-center justify-center">
+                <div className="h-full w-1 bg-surface-3 pointer-events-none"></div>
+              </div>
+              <div className="flex-shrink-0 w-6 h-6 rounded-full mt-10 sm:mt-0 inline-flex items-center justify-center relative z-10 font-medium text-sm text-white" style={{backgroundColor: '#A0522D'}}>3</div>
+              <div className="flex-grow md:pl-8 pl-6 flex sm:items-center items-start flex-col sm:flex-row">
+                <div className="flex-shrink-0 w-24 h-24 bg-black/80 rounded-full inline-flex items-center justify-center" style={{color: '#A0522D'}}>
+                  <ArrowUpDown size={48} style={{transform: 'rotate(90deg)'}} />
+                </div>
+                <div className="flex-grow sm:pl-6 mt-6 sm:mt-0">
+                  <h3 className="font-medium text-text-primary mb-1 text-xl">Swap Assets</h3>
+                  <p className="leading-relaxed text-text-secondary">Once within My Hut, you can securely swap assets within and outside of the ICP ecosystem to all supported heterogenous chains while being guided with data to choose the best routes for speed and cost.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex relative pb-10 sm:items-center md:w-2/3 mx-auto">
+              <div className="h-full w-6 absolute inset-0 flex items-center justify-center">
+                <div className="h-full w-1 bg-surface-3 pointer-events-none"></div>
+              </div>
+              <div className="flex-shrink-0 w-6 h-6 rounded-full mt-10 sm:mt-0 inline-flex items-center justify-center bg-success-600 text-on-success relative z-10 font-medium text-sm">4</div>
+              <div className="flex-grow md:pl-8 pl-6 flex sm:items-center items-start flex-col sm:flex-row">
+                <div className="flex-shrink-0 w-24 h-24 bg-black/80 text-success-400 rounded-full inline-flex items-center justify-center">
+                  <Sprout size={48} />
+                </div>
+                <div className="flex-grow sm:pl-6 mt-6 sm:mt-0">
+                  <h3 className="font-medium text-text-primary mb-1 text-xl">Stake, Earn & Play in My Garden</h3>
+                  <p className="leading-relaxed text-text-secondary">Stake diverse assets for multiplied yield. Join the daily Reef Raffle for a chance to win and be automatically included in the weekly Tsunami Sweep!.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Button Section */}
+      <section className="pt-12 pb-20 bg-bg">
+        <div className="container-app">
+          <div className="md:w-2/3 mx-auto flex justify-center">
             <button 
-              className="cta-button"
+              className="border-2 border-yellow-600 rounded-lg px-12 py-4 text-yellow-400 cursor-pointer hover:bg-yellow-600 hover:text-yellow-200 text-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleGetHut}
               disabled={isLoading}
             >
-              {/* Backend: Main CTA - Triggers Internet Identity authentication with custom security options */}
-              {isLoading ? 'Connecting...' : 'Get Hut'}
+              {/* Backend: Connects to Internet Identity login and starts 30-minute countdown for My Hut activation (user has 30 minutes to deposit assets to activate) */}
+              {isLoading ? 'Connecting...' : 'Get My Hut'}
             </button>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="footer">
-        <div className="container">
-          <div className="footer-content">
-            <div className="footer-logo">
+      <footer className="py-16 bg-surface-1 text-text-primary">
+        <div className="container-app">
+          <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
+            <div className="flex items-center gap-2">
               <AssetIcon asset="logo" size={32} />
-              <span className="footer-title subtitle-font">HodlHut</span>
+              <span className="text-xl font-bold text-text-primary" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>HodlHut</span>
             </div>
-            <div className="footer-links">
-              <a href="#" className="footer-link body-font">Privacy Policy</a>
-              <a href="#" className="footer-link body-font">Terms of Service</a>
-              <a href="#" className="footer-link body-font">Documentation</a>
+            <div className="flex gap-8 flex-wrap">
+              <a href="#" className="text-text-muted hover:text-primary-400 transition-colors duration-300">Privacy Policy</a>
+              <a href="#" className="text-text-muted hover:text-primary-400 transition-colors duration-300">Terms of Service</a>
+              <a href="#" className="text-text-muted hover:text-primary-400 transition-colors duration-300">Documentation</a>
             </div>
           </div>
-          <div className="footer-bottom">
-            <p className="footer-text body-font">
+          <div className="border-t border-white/10 pt-6 text-center">
+            <p className="text-sm text-text-muted">
               © 2024 HodlHut. Built on the Internet Computer. Powered by Chain Fusion.
             </p>
           </div>

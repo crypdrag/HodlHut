@@ -14,7 +14,7 @@ import {
   Plug,
   User
 } from 'lucide-react';
-import '../styles/DepositModal.css';
+// Tailwind CSS classes now handle all styling
 
 export interface DepositModalProps {
   isOpen: boolean;
@@ -364,18 +364,18 @@ const DepositModal: React.FC<DepositModalProps> = ({
   };
 
   const renderAmountInput = () => (
-    <div id="deposit-step-1">
-      <div className="deposit-asset-header">
-        <div className="selected-asset-icon">
+    <div>
+      <div className="text-center mb-8">
+        <div className="mb-4 flex justify-center">
           <AssetIcon asset={selectedAsset} size={64} />
         </div>
-        <h3 className="selected-asset-name">{selectedAsset}</h3>
+        <h3 className="text-xl font-bold text-text-primary m-0" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>{selectedAsset}</h3>
       </div>
 
-      <label className="amount-label">Amount to deposit:</label>
+      <label className="block text-sm font-semibold text-text-primary mb-2">Amount to deposit:</label>
       <input 
         type="number" 
-        className="deposit-amount-input" 
+        className="rounded-xl bg-surface-2 px-3 py-2 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-primary-400 text-text-primary placeholder:text-text-muted w-full mb-8"
         placeholder="0.001" 
         step="0.000001" 
         min="0"
@@ -384,7 +384,7 @@ const DepositModal: React.FC<DepositModalProps> = ({
       />
 
       <button 
-        className="connect-wallet-btn" 
+        className="px-4 py-2 rounded-2xl text-sm font-semibold bg-primary-600 hover:bg-primary-500 text-on-primary focus:ring-2 focus:ring-primary-400 focus:outline-none transition-all duration-200 w-full py-4 text-base font-semibold"
         onClick={handleConnectWallet}
       >
         Connect Wallet & Deposit
@@ -393,17 +393,17 @@ const DepositModal: React.FC<DepositModalProps> = ({
   );
 
   const renderWalletSelection = () => (
-    <div id="deposit-step-2">
-      <h3 className="wallet-selection-title">Connect Wallet</h3>
-      <div className="wallet-grid">
+    <div>
+      <h3 className="text-xl font-bold text-text-primary mb-6 text-center" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Connect Wallet</h3>
+      <div className="grid grid-cols-1 gap-3">
         {WALLET_OPTIONS[selectedAsset]?.map((wallet) => (
           <div 
             key={wallet.id}
-            className="wallet-option"
+            className="rounded-2xl border border-white/10 bg-surface-1 p-6 hover:bg-surface-2 transition-all duration-300 cursor-pointer gap-3"
             onClick={() => handleWalletSelect(wallet.id)}
           >
-            <span className="wallet-icon">{wallet.icon}</span>
-            <span className="wallet-name">{wallet.name}</span>
+            <span>{wallet.icon}</span>
+            <span className="text-sm font-semibold text-text-primary">{wallet.name}</span>
           </div>
         ))}
       </div>
@@ -411,11 +411,11 @@ const DepositModal: React.FC<DepositModalProps> = ({
   );
 
   const renderProcessing = () => (
-    <div id="deposit-step-3">
-      <div className="processing-container">
-        <div className="processing-icon">⏳</div>
-        <h3>Processing Deposit...</h3>
-        <p className="processing-message">{processingMessage}</p>
+    <div>
+      <div className="text-center py-8">
+        <div className="text-5xl mb-4">⏳</div>
+        <h3 className="text-xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Processing Deposit...</h3>
+        <p className="text-text-secondary text-sm leading-relaxed">{processingMessage}</p>
         
         {/* Block confirmation visualizations would go here */}
         {(['BTC'].includes(selectedAsset) && processingMessage === '') && (
@@ -432,14 +432,17 @@ const DepositModal: React.FC<DepositModalProps> = ({
   );
 
   const renderSuccess = () => (
-    <div id="deposit-step-4">
-      <div className="success-container">
-        <div className="success-icon"><PartyPopper className="w-8 h-8" /></div>
-        <h3>Deposit Successful!</h3>
-        <p className="success-message">
+    <div>
+      <div className="text-center py-8">
+        <div className="mb-4 flex justify-center"><PartyPopper className="w-8 h-8 text-primary-500" /></div>
+        <h3 className="text-xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Deposit Successful!</h3>
+        <p className="text-text-secondary text-sm mb-8 leading-relaxed">
           Your asset has been added to your hut!
         </p>
-        <button className="continue-btn" onClick={handleClose}>
+        <button 
+          className="px-4 py-2 rounded-2xl text-sm font-semibold bg-primary-600 hover:bg-primary-500 text-on-primary focus:ring-2 focus:ring-primary-400 focus:outline-none transition-all duration-200 w-full py-4 text-base font-semibold"
+          onClick={handleClose}
+        >
           Continue
         </button>
       </div>
@@ -447,11 +450,14 @@ const DepositModal: React.FC<DepositModalProps> = ({
   );
 
   return (
-    <div className="deposit-modal">
-      <div className="modal-content">
-        <div className="modal-header">
-          <h2>Deposit {selectedAsset}</h2>
-          <button className="close-btn" onClick={handleClose}>✕</button>
+    <div className="fixed inset-0 bg-overlay-1 flex items-center justify-center z-50 p-4">
+      <div className="bg-surface-1 rounded-3xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto border border-white/10">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-2xl font-bold text-text-primary m-0" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Deposit {selectedAsset}</h2>
+          <button 
+            className="bg-transparent border-none text-xl text-text-secondary cursor-pointer p-2 rounded-lg transition-all duration-200 hover:bg-surface-2"
+            onClick={handleClose}
+          >✕</button>
         </div>
 
         {currentStep === DepositStep.AmountInput && renderAmountInput()}

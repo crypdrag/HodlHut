@@ -9,6 +9,7 @@ import USDCIcon from '../../assets/images/USDC.svg';
 import ckUSDCIcon from '../../assets/images/ckUSDC.svg';
 import USDTIcon from '../../assets/images/USDT.svg';
 import ckUSDTIcon from '../../assets/images/ckUSDT.svg';
+import USDC_SOLIcon from '../../assets/images/USDC_SOL.svg';
 import ICPIcon from '../../assets/images/ICP.svg';
 import HodlHutLogo from '../../assets/images/hodlhut_logo.svg';
 
@@ -31,6 +32,7 @@ const assetIconMap: Record<string, string> = {
   'USDT': USDTIcon,
   'ckUSDT': ckUSDTIcon,
   'USDC-SOL': ckUSDCIcon,
+  'USDC_SOL': USDC_SOLIcon,
   'ICP': ICPIcon,
   'logo': HodlHutLogo
 };
