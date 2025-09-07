@@ -36,7 +36,7 @@ import {
   Link,          // Connections/links
   Lock           // Security/authentication
 } from 'lucide-react';
-import '../styles/Dashboard.css';
+// Tailwind CSS classes now handle all styling
 
 // Import SVG assets properly for webpack
 import ckBTCIcon from '../../assets/images/ckBTC.svg';
@@ -81,7 +81,7 @@ const AssetIcon: React.FC<{ asset: string; size?: number }> = ({ asset, size = 1
       alt={asset} 
       width={size} 
       height={size} 
-      style={{ marginRight: '8px', verticalAlign: 'middle' }}
+      className="flex-shrink-0"
     />
   );
 };
@@ -125,18 +125,8 @@ const CustomDropdown: React.FC<{
   return (
     <div ref={dropdownRef} className={`custom-dropdown ${className || ''}`} style={{ position: 'relative' }}>
       <div 
-        className="dropdown-trigger"
+        className="dropdown-trigger flex items-center px-3 py-2 border-2 border-primary-500 rounded-lg bg-surface-1 cursor-pointer min-h-[40px]"
         onClick={() => setIsOpen(!isOpen)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          padding: '8px 12px',
-          border: '2px solid var(--tertiary-500)',
-          borderRadius: '8px',
-          background: 'white',
-          cursor: 'pointer',
-          minHeight: '40px'
-        }}
       >
         {selectedOption ? (
           <>
@@ -144,9 +134,9 @@ const CustomDropdown: React.FC<{
             <span>{selectedOption.label}</span>
           </>
         ) : (
-          <span style={{ color: '#d65309' }}>{placeholder}</span>
+          <span className="text-primary-600">{placeholder}</span>
         )}
-        <span style={{ marginLeft: 'auto', fontSize: '12px' }}>▼</span>
+        <span className="ml-auto text-xs">▼</span>
       </div>
       
       {isOpen && (
@@ -281,19 +271,7 @@ const Dashboard: React.FC = () => {
       }}>
         {route.steps.map((step, index) => (
           <React.Fragment key={index}>
-            <div style={{
-              background: 'white',
-              border: '2px solid var(--tertiary-500)',
-              borderRadius: '10px',
-              padding: '0.75rem 1rem',
-              fontWeight: 600,
-              textAlign: 'center',
-              minWidth: '120px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              justifyContent: 'center'
-            }}>
+            <div className="bg-surface-1 border-2 border-primary-500 rounded-2xl px-4 py-3 font-semibold text-center min-w-[120px] flex items-center gap-2 justify-center">
               <span className="swap-asset-box-text">
                 <AssetIcon asset={step} size={16} /> {step}
               </span>
@@ -614,24 +592,39 @@ const Dashboard: React.FC = () => {
   // Rendering functions
   const renderSlippageSettings = () => {
     return (
-      <div className="slippage-settings">
-        <div className="slippage-header">
-          <span className="text-primary-bold"><Settings size={16} style={{marginRight: '8px', verticalAlign: 'middle'}} />Slippage Tolerance</span>
-          <div className="slippage-buttons">
+      <div className="w-full max-w-lg mt-6 mx-auto rounded-xl bg-surface-2 p-6">
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-2 font-semibold text-text-primary">
+            <Settings size={16} />
+            Slippage Tolerance
+          </span>
+          <div className="flex gap-2">
             <button 
-              className={`slippage-btn ${slippageTolerance === 0.5 ? 'active' : ''}`}
+              className={`px-3 py-1 rounded text-sm font-medium transition-colors duration-200 ${
+                slippageTolerance === 0.5 
+                  ? 'bg-primary-600 text-on-primary' 
+                  : 'bg-surface-3 text-text-secondary hover:bg-surface-1'
+              }`}
               onClick={() => setSlippageTolerance(0.5)}
             >
               0.5%
             </button>
             <button 
-              className={`slippage-btn ${slippageTolerance === 1.0 ? 'active' : ''}`}
+              className={`px-3 py-1 rounded text-sm font-medium transition-colors duration-200 ${
+                slippageTolerance === 1.0 
+                  ? 'bg-primary-600 text-on-primary' 
+                  : 'bg-surface-3 text-text-secondary hover:bg-surface-1'
+              }`}
               onClick={() => setSlippageTolerance(1.0)}
             >
               1.0%
             </button>
             <button 
-              className={`slippage-btn ${slippageTolerance === 3.0 ? 'active' : ''}`}
+              className={`px-3 py-1 rounded text-sm font-medium transition-colors duration-200 ${
+                slippageTolerance === 3.0 
+                  ? 'bg-primary-600 text-on-primary' 
+                  : 'bg-surface-3 text-text-secondary hover:bg-surface-1'
+              }`}
               onClick={() => setSlippageTolerance(3.0)}
             >
               3.0%
@@ -653,12 +646,15 @@ const Dashboard: React.FC = () => {
     }
     
     return (
-      <div className="gas-optimization">
-        <div className="gas-header">
-          <span className="text-primary-bold"><Fuel size={16} style={{marginRight: '8px', verticalAlign: 'middle'}} />Gas Optimization</span>
-          <span className="gas-price">Current: {currentGasPrice} gwei</span>
+      <div className="w-full max-w-lg mt-6 mx-auto rounded-xl bg-surface-2 p-6">
+        <div className="flex items-center justify-between mb-2">
+          <span className="flex items-center gap-2 font-semibold text-text-primary">
+            <Fuel size={16} />
+            Gas Optimization
+          </span>
+          <span className="text-sm font-medium text-text-secondary">Current: {currentGasPrice} gwei</span>
         </div>
-        <div className="gas-recommendation">
+        <div className="text-sm text-text-secondary">
           {recommendation}
         </div>
       </div>
@@ -691,44 +687,60 @@ const Dashboard: React.FC = () => {
   };
 
   const renderStatusBar = () => (
-    <div className="status-bar">
-      <div className="status-items">
-        <div><PieChart className="inline w-4 h-4 mr-1" /> Portfolio: ${calculatePortfolioValue().toLocaleString()}</div>
-        <div>⏰ Add Assets to activate your Sovereign Hut: {formatTime(timeRemaining)}</div>
-        <div><span className="status-indicator"></span> Connected Live Onchain (Demo Mode)</div>
+    <div className="bg-surface-2/90 p-3 rounded-xl mb-6 border border-white/10">
+      <div className="flex justify-between items-center flex-wrap gap-4 text-sm text-text-secondary">
+        <div className="flex items-center"><PieChart className="inline w-4 h-4 mr-1" /> Portfolio: ${calculatePortfolioValue().toLocaleString()}</div>
+        <div className="flex items-center">⏰ Add Assets to activate your Sovereign Hut: {formatTime(timeRemaining)}</div>
+        <div className="flex items-center"><span className="w-2 h-2 rounded-full bg-success-500 mr-2"></span> Connected Live Onchain (Demo Mode)</div>
       </div>
     </div>
   );
 
   const renderNavigation = () => (
-    <div className="navigation">
-      <div className="nav-buttons">
+    <div className="mb-16">
+      <div className="flex gap-3 justify-center flex-wrap">
         <button
-          className={`nav-btn ${activeSection === 'addAssets' ? 'active' : ''}`}
+          className={`px-8 py-4 rounded-2xl font-semibold text-base cursor-pointer transition-all duration-300 flex items-center gap-2 ${
+            activeSection === 'addAssets' 
+              ? 'bg-primary-600 hover:bg-primary-500 text-on-primary focus:ring-2 focus:ring-primary-400 focus:outline-none transform -translate-y-1 shadow-lg' 
+              : 'bg-surface-2 hover:bg-surface-3 text-text-primary ring-1 ring-white/10 focus:outline-none'
+          }`}
           onClick={() => setActiveSection('addAssets')}
         >
-          <Plus className="inline w-4 h-4 mr-1" /> Add Assets
+          <Plus className="w-5 h-5" /> Add Assets
         </button>
         <button
-          className={`nav-btn ${activeSection === 'swapAssets' ? 'active' : ''}`}
+          className={`px-8 py-4 rounded-2xl font-semibold text-base cursor-pointer transition-all duration-300 flex items-center gap-2 ${
+            activeSection === 'swapAssets' 
+              ? 'bg-primary-600 hover:bg-primary-500 text-on-primary focus:ring-2 focus:ring-primary-400 focus:outline-none transform -translate-y-1 shadow-lg' 
+              : 'bg-surface-2 hover:bg-surface-3 text-text-primary ring-1 ring-white/10 focus:outline-none'
+          }`}
           onClick={() => setActiveSection('swapAssets')}
         >
-          <ArrowLeftRight size={20} style={{marginRight: '8px', verticalAlign: 'middle'}} />Swap Assets
+          <ArrowLeftRight size={20} />Swap Assets
         </button>
         <button
-          className={`nav-btn ${activeSection === 'myGarden' ? 'active' : ''}`}
+          className={`px-8 py-4 rounded-2xl font-semibold text-base cursor-pointer transition-all duration-300 flex items-center gap-2 ${
+            activeSection === 'myGarden' 
+              ? 'bg-primary-600 hover:bg-primary-500 text-on-primary focus:ring-2 focus:ring-primary-400 focus:outline-none transform -translate-y-1 shadow-lg' 
+              : 'bg-surface-2 hover:bg-surface-3 text-text-primary ring-1 ring-white/10 focus:outline-none'
+          }`}
           onClick={() => setActiveSection('myGarden')}
         >
           🌱 My Garden
         </button>
         <button
-          className={`nav-btn ${activeSection === 'transactionHistory' ? 'active' : ''}`}
+          className={`px-8 py-4 rounded-2xl font-semibold text-base cursor-pointer transition-all duration-300 flex items-center gap-2 ${
+            activeSection === 'transactionHistory' 
+              ? 'bg-primary-600 hover:bg-primary-500 text-on-primary focus:ring-2 focus:ring-primary-400 focus:outline-none transform -translate-y-1 shadow-lg' 
+              : 'bg-surface-2 hover:bg-surface-3 text-text-primary ring-1 ring-white/10 focus:outline-none'
+          }`}
           onClick={() => setActiveSection('transactionHistory')}
         >
           📋 History
         </button>
         <button
-          className="nav-btn"
+          className="px-8 py-4 rounded-2xl text-base font-semibold bg-surface-2 hover:bg-surface-3 text-text-primary ring-1 ring-white/10 focus:outline-none transition-all duration-300 cursor-pointer flex items-center gap-2"
           onClick={handleBackToHome}
         >
           🏠 Home
@@ -738,129 +750,135 @@ const Dashboard: React.FC = () => {
   );
 
   const renderAddAssetsSection = () => (
-    <div className="section-content">
-      <h2 className="add-assets-main-title">Add Assets to Your Portfolio</h2>
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="text-center mb-16">
+        <h2 className="text-4xl font-bold text-text-primary mb-6" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Add Assets to Your Portfolio</h2>
+      </div>
       
       {/* Chain Fusion Deposits */}
-      <div className="deposit-category">
-        <h3 className="add-assets-section-title">Chain Fusion Deposits</h3>
-        <p className="add-assets-section-subtitle">Deposit native assets from their L1 chains</p>
+      <div className="mb-20">
+        <div className="text-center mb-12">
+          <h3 className="text-3xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Chain Fusion Deposits</h3>
+          <p className="text-xl text-text-secondary">Deposit native assets from their L1 chains</p>
+        </div>
         
-        <div className="asset-grid">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {/* BACKEND NOTE: Bitcoin wallet interface + Bitcoin RPC canister */}
-          <div className="asset-card" onClick={() => startDeposit('BTC')}>
-            <div className="asset-icon-container">
-              <AssetIcon asset="BTC" size={48} />
+          <div className="group rounded-3xl border border-white/10 bg-surface-1 p-8 hover:bg-surface-2 hover:border-white/20 transition-all duration-300 cursor-pointer text-center" onClick={() => startDeposit('BTC')}>
+            <div className="mb-6 flex justify-center">
+              <AssetIcon asset="BTC" size={56} />
             </div>
-            <div className="asset-name">Bitcoin</div>
-            <div className="asset-balance">Native BTC → ckBTC</div>
+            <div className="text-xl font-bold text-text-primary mb-3">Bitcoin</div>
+            <div className="text-base text-text-muted">Native BTC → ckBTC</div>
           </div>
           
           {/* BACKEND NOTE: Ethereum wallet interface + Ethereum RPC canister */}
-          <div className="asset-card" onClick={() => startDeposit('ETH')}>
-            <div className="asset-icon-container">
-              <AssetIcon asset="ETH" size={48} />
+          <div className="group rounded-3xl border border-white/10 bg-surface-1 p-8 hover:bg-surface-2 hover:border-white/20 transition-all duration-300 cursor-pointer text-center" onClick={() => startDeposit('ETH')}>
+            <div className="mb-6 flex justify-center">
+              <AssetIcon asset="ETH" size={56} />
             </div>
-            <div className="asset-name">Ethereum</div>
-            <div className="asset-balance">Native ETH → ckETH</div>
+            <div className="text-xl font-bold text-text-primary mb-3">Ethereum</div>
+            <div className="text-base text-text-muted">Native ETH → ckETH</div>
           </div>
           
           {/* BACKEND NOTE: Solana wallet interface + Solana RPC canister */}
-          <div className="asset-card" onClick={() => startDeposit('SOL')}>
-            <div className="asset-icon-container">
-              <AssetIcon asset="SOL" size={48} />
+          <div className="group rounded-3xl border border-white/10 bg-surface-1 p-8 hover:bg-surface-2 hover:border-white/20 transition-all duration-300 cursor-pointer text-center" onClick={() => startDeposit('SOL')}>
+            <div className="mb-6 flex justify-center">
+              <AssetIcon asset="SOL" size={56} />
             </div>
-            <div className="asset-name">Solana</div>
-            <div className="asset-balance">Native SOL → ckSOL</div>
+            <div className="text-xl font-bold text-text-primary mb-3">Solana</div>
+            <div className="text-base text-text-muted">Native SOL → ckSOL</div>
           </div>
           
           {/* BACKEND NOTE: Ethereum wallet interface + Ethereum RPC canister (ERC-20 USDC) */}
-          <div className="asset-card" onClick={() => startDeposit('USDC')}>
-            <div className="asset-icon-container">
-              <AssetIcon asset="USDC" size={48} />
+          <div className="group rounded-3xl border border-white/10 bg-surface-1 p-8 hover:bg-surface-2 hover:border-white/20 transition-all duration-300 cursor-pointer text-center" onClick={() => startDeposit('USDC')}>
+            <div className="mb-6 flex justify-center">
+              <AssetIcon asset="USDC" size={56} />
             </div>
-            <div className="asset-name">USDC</div>
-            <div className="asset-balance">Ethereum USDC → ckUSDC</div>
+            <div className="text-xl font-bold text-text-primary mb-3">USDC</div>
+            <div className="text-base text-text-muted">Ethereum USDC → ckUSDC</div>
           </div>
           
           {/* BACKEND NOTE: Ethereum wallet interface + Ethereum RPC canister (ERC-20 USDT) */}
-          <div className="asset-card" onClick={() => startDeposit('USDT')}>
-            <div className="asset-icon-container">
-              <AssetIcon asset="USDT" size={48} />
+          <div className="group rounded-3xl border border-white/10 bg-surface-1 p-8 hover:bg-surface-2 hover:border-white/20 transition-all duration-300 cursor-pointer text-center" onClick={() => startDeposit('USDT')}>
+            <div className="mb-6 flex justify-center">
+              <AssetIcon asset="USDT" size={56} />
             </div>
-            <div className="asset-name">USDT</div>
-            <div className="asset-balance">Ethereum USDT → ckUSDT</div>
+            <div className="text-xl font-bold text-text-primary mb-3">USDT</div>
+            <div className="text-base text-text-muted">Ethereum USDT → ckUSDT</div>
           </div>
           
           {/* BACKEND NOTE: Solana wallet interface + Solana RPC canister (SPL USDC) */}
-          <div className="asset-card" onClick={() => startDeposit('USDC-SOL')}>
-            <div className="asset-icon-container">
-              <AssetIcon asset="USDC-SOL" size={48} />
+          <div className="group rounded-3xl border border-white/10 bg-surface-1 p-8 hover:bg-surface-2 hover:border-white/20 transition-all duration-300 cursor-pointer text-center" onClick={() => startDeposit('USDC-SOL')}>
+            <div className="mb-6 flex justify-center">
+              <AssetIcon asset="USDC-SOL" size={56} />
             </div>
-            <div className="asset-name">USDC (SOL)</div>
-            <div className="asset-balance">Solana USDC → ckUSDC</div>
+            <div className="text-xl font-bold text-text-primary mb-3">USDC (SOL)</div>
+            <div className="text-base text-text-muted">Solana USDC → ckUSDC</div>
           </div>
         </div>
       </div>
 
       {/* ICRC/ICP Assets */}
-      <div className="deposit-category">
-        <h3 className="add-assets-section-title">Add ICRC and ICP Assets</h3>
-        <p className="add-assets-section-subtitle">Deposit assets already on the Internet Computer Protocol</p>
+      <div className="mb-20">
+        <div className="text-center mb-12">
+          <h3 className="text-3xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Add ICRC and ICP Assets</h3>
+          <p className="text-xl text-text-secondary">Deposit assets already on the Internet Computer Protocol</p>
+        </div>
         
-        <div className="asset-grid">
-          <div className="asset-card" onClick={() => startDeposit('ckBTC')}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="group rounded-3xl border border-white/10 bg-surface-1 p-8 hover:bg-surface-2 hover:border-white/20 transition-all duration-300 cursor-pointer text-center" onClick={() => startDeposit('ckBTC')}>
             {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
-            <div className="asset-icon-container">
-              <AssetIcon asset="ckBTC" size={48} />
+            <div className="mb-6 flex justify-center">
+              <AssetIcon asset="ckBTC" size={56} />
             </div>
-            <div className="asset-name">ckBTC</div>
-            <div className="asset-balance">Chain Key Bitcoin</div>
+            <div className="text-xl font-bold text-text-primary mb-3">ckBTC</div>
+            <div className="text-base text-text-muted">Chain Key Bitcoin</div>
           </div>
           
-          <div className="asset-card" onClick={() => startDeposit('ckETH')}>
+          <div className="group rounded-3xl border border-white/10 bg-surface-1 p-8 hover:bg-surface-2 hover:border-white/20 transition-all duration-300 cursor-pointer text-center" onClick={() => startDeposit('ckETH')}>
             {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
-            <div className="asset-icon-container">
-              <AssetIcon asset="ckETH" size={48} />
+            <div className="mb-6 flex justify-center">
+              <AssetIcon asset="ckETH" size={56} />
             </div>
-            <div className="asset-name">ckETH</div>
-            <div className="asset-balance">Chain Key Ethereum</div>
+            <div className="text-xl font-bold text-text-primary mb-3">ckETH</div>
+            <div className="text-base text-text-muted">Chain Key Ethereum</div>
           </div>
           
-          <div className="asset-card" onClick={() => startDeposit('ckUSDC')}>
+          <div className="group rounded-3xl border border-white/10 bg-surface-1 p-8 hover:bg-surface-2 hover:border-white/20 transition-all duration-300 cursor-pointer text-center" onClick={() => startDeposit('ckUSDC')}>
             {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
-            <div className="asset-icon-container">
-              <AssetIcon asset="ckUSDC" size={48} />
+            <div className="mb-6 flex justify-center">
+              <AssetIcon asset="ckUSDC" size={56} />
             </div>
-            <div className="asset-name">ckUSDC</div>
-            <div className="asset-balance">Chain Key USDC</div>
+            <div className="text-xl font-bold text-text-primary mb-3">ckUSDC</div>
+            <div className="text-base text-text-muted">Chain Key USDC</div>
           </div>
           
-          <div className="asset-card" onClick={() => startDeposit('ckUSDT')}>
+          <div className="group rounded-3xl border border-white/10 bg-surface-1 p-8 hover:bg-surface-2 hover:border-white/20 transition-all duration-300 cursor-pointer text-center" onClick={() => startDeposit('ckUSDT')}>
             {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
-            <div className="asset-icon-container">
-              <AssetIcon asset="ckUSDT" size={48} />
+            <div className="mb-6 flex justify-center">
+              <AssetIcon asset="ckUSDT" size={56} />
             </div>
-            <div className="asset-name">ckUSDT</div>
-            <div className="asset-balance">Chain Key USDT</div>
+            <div className="text-xl font-bold text-text-primary mb-3">ckUSDT</div>
+            <div className="text-base text-text-muted">Chain Key USDT</div>
           </div>
           
-          <div className="asset-card" onClick={() => startDeposit('ckSOL')}>
+          <div className="group rounded-3xl border border-white/10 bg-surface-1 p-8 hover:bg-surface-2 hover:border-white/20 transition-all duration-300 cursor-pointer text-center" onClick={() => startDeposit('ckSOL')}>
             {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
-            <div className="asset-icon-container">
-              <AssetIcon asset="ckSOL" size={48} />
+            <div className="mb-6 flex justify-center">
+              <AssetIcon asset="ckSOL" size={56} />
             </div>
-            <div className="asset-name">ckSOL</div>
-            <div className="asset-balance">Chain Key Solana</div>
+            <div className="text-xl font-bold text-text-primary mb-3">ckSOL</div>
+            <div className="text-base text-text-muted">Chain Key Solana</div>
           </div>
           
-          <div className="asset-card" onClick={() => startDeposit('ICP')}>
+          <div className="group rounded-3xl border border-white/10 bg-surface-1 p-8 hover:bg-surface-2 hover:border-white/20 transition-all duration-300 cursor-pointer text-center" onClick={() => startDeposit('ICP')}>
             {/* Backend: ICP wallet interface (Plug, etc.) + native ICP integration */}
-            <div className="asset-icon-container">
-              <AssetIcon asset="ICP" size={48} />
+            <div className="mb-6 flex justify-center">
+              <AssetIcon asset="ICP" size={56} />
             </div>
-            <div className="asset-name">ICP</div>
-            <div className="asset-balance">Internet Computer</div>
+            <div className="text-xl font-bold text-text-primary mb-3">ICP</div>
+            <div className="text-base text-text-muted">Internet Computer</div>
           </div>
         </div>
       </div>
@@ -868,174 +886,179 @@ const Dashboard: React.FC = () => {
   );
 
   const renderSwapAssetsSection = () => (
-    <div className="section-content">
-      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <div className="card-title">Sovereign Multichain Custom Routing</div>
+    <div className="w-full flex flex-col items-center px-4 py-8">
+      <div className="text-center mb-8">
+        <div className="text-3xl font-bold text-text-primary mb-2" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Swap Tokens</div>
+        <p className="text-text-secondary">Trade tokens in an instant</p>
       </div>
       
-      <div className="enhanced-swap-interface">
-        <div className="swap-grid">
-          {/* From Asset (Left) */}
-          <div className="asset-selector from">
-            <label className="asset-label swap-white-label">From (Your Assets)</label>
-            {/* Backend: Pulls user assets from their sovereign canister (MyHut) */}
-            <CustomDropdown
-              className="asset-dropdown"
-              value={fromAsset}
-              onChange={(value) => {
-                setFromAsset(value);
-                setSwapAmount('');
-              }}
-              placeholder="Select asset to swap"
-              options={[
-                { value: 'ckBTC', label: 'ckBTC (Bitcoin)' },
-                { value: 'ckETH', label: 'ckETH (Ethereum)' },
-                { value: 'ckSOL', label: 'ckSOL (Solana)' },
-                { value: 'ckUSDC', label: 'ckUSDC (Multi-chain)' },
-                { value: 'ckUSDT', label: 'ckUSDT (Multi-chain)' },
-                { value: 'ICP', label: 'ICP (Internet Computer)' }
-              ]}
+      {/* Main Swap Interface */}
+      <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-surface-1 p-4">
+        {/* From Asset */}
+        <div className="bg-surface-2 border border-white/10 rounded-2xl p-6">
+          <div className="flex justify-between items-center mb-4">
+            <label className="text-sm font-medium text-text-secondary">From</label>
+            <span className="text-sm text-text-muted">
+              Balance: {fromAsset && portfolio[fromAsset] ? formatAmount(portfolio[fromAsset]) : '--'}
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <input 
+              type="number" 
+              className="flex-1 text-2xl font-semibold bg-transparent border-none outline-none text-text-primary placeholder:text-text-muted"
+              placeholder="0.0" 
+              step="0.000001" 
+              min="0"
+              value={swapAmount}
+              onChange={(e) => setSwapAmount(e.target.value)}
             />
-            
-            <div>
-              <label className="asset-label swap-white-label">Amount</label>
-              <input 
-                type="number" 
-                className="amount-input" 
-                placeholder="0.00" 
-                step="0.000001" 
-                min="0"
-                value={swapAmount}
-                onChange={(e) => setSwapAmount(e.target.value)}
+            <div className="flex items-center gap-3">
+              <button 
+                className={`text-xs px-2 py-1 rounded-lg bg-primary-600 hover:bg-primary-500 text-on-primary transition-colors ${(!fromAsset || !portfolio[fromAsset]) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={() => {
+                  if (fromAsset && portfolio[fromAsset]) {
+                    setSwapAmount(portfolio[fromAsset].toString());
+                  }
+                }}
+                disabled={!fromAsset || !portfolio[fromAsset]}
+              >
+                MAX
+              </button>
+              <CustomDropdown
+                className="asset-dropdown min-w-[140px]"
+                value={fromAsset}
+                onChange={(value) => {
+                  setFromAsset(value);
+                  setSwapAmount('');
+                }}
+                placeholder="Select asset"
+                options={[
+                  { value: 'ckBTC', label: 'ckBTC' },
+                  { value: 'ckETH', label: 'ckETH' },
+                  { value: 'ckSOL', label: 'ckSOL' },
+                  { value: 'ckUSDC', label: 'ckUSDC' },
+                  { value: 'ckUSDT', label: 'ckUSDT' },
+                  { value: 'ICP', label: 'ICP' }
+                ]}
               />
-              <div className="balance-row">
-                <span className="balance-text">
-                  Balance: {fromAsset && portfolio[fromAsset] ? portfolio[fromAsset] : '--'}
-                </span>
-                <button 
-                  className="max-button" 
-                  onClick={() => {
-                    if (fromAsset && portfolio[fromAsset]) {
-                      setSwapAmount(portfolio[fromAsset].toString());
-                    }
-                  }}
-                  disabled={!fromAsset || !portfolio[fromAsset]}
-                >
-                  MAX
-                </button>
-              </div>
             </div>
           </div>
-          
-          {/* Swap Arrow (Center) */}
-          <div className="swap-arrow">
-            <button 
-              className="arrow-button" 
-              onClick={() => {
-                if (fromAsset && toAsset && portfolio[toAsset]) {
-                  const temp = fromAsset;
-                  setFromAsset(toAsset);
-                  setToAsset(temp);
-                  setSwapAmount('');
-                } else {
-                  alert('You can only reverse swap if you own both assets!');
-                }
-              }}
-              title="Reverse swap direction"
-            >
-              ⇄
-            </button>
+        </div>
+        
+        {/* Swap Arrow */}
+        <div className="flex justify-center py-2">
+          <button 
+            className="p-2 rounded-full bg-surface-3 hover:bg-surface-2 border border-white/10 transition-all duration-200"
+            onClick={() => {
+              if (fromAsset && toAsset && portfolio[toAsset]) {
+                const temp = fromAsset;
+                setFromAsset(toAsset);
+                setToAsset(temp);
+                setSwapAmount('');
+              } else {
+                alert('You can only reverse swap if you own both assets!');
+              }
+            }}
+            title="Reverse swap direction"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-text-primary">
+              <path d="M7 14L12 9L17 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M17 10L12 15L7 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        
+        {/* To Asset */}
+        <div className="bg-surface-2 border border-white/10 rounded-2xl p-6">
+          <div className="flex justify-between items-center mb-4">
+            <label className="text-sm font-medium text-text-secondary">To</label>
+            <span className="text-sm text-text-muted">
+              Balance: You'll receive {toAsset || 'tokens'}
+            </span>
           </div>
           
-          {/* To Asset (Right) */}
-          <div className="asset-selector to">
-            <label className="asset-label swap-white-label">To (Multichain Destination)</label>
-            {/* Backend: BTC triggers Bitcoin RPC, ETH/USDC/USDT triggers EVM RPC, SOL/USDC-SOL triggers Solana RPC */}
+          <div className="flex items-center gap-4">
+            <div className="flex-1 text-2xl font-semibold text-text-primary">
+              {swapAnalysis?.outputAmount ? formatAmount(swapAnalysis.outputAmount) : '0.0'}
+            </div>
             <CustomDropdown
-              className="asset-dropdown"
+              className="asset-dropdown min-w-[140px]"
               value={toAsset}
               onChange={setToAsset}
-              placeholder="Select destination"
+              placeholder="Select token"
               options={[
-                { value: 'ckBTC', label: 'ckBTC (Bitcoin L2)' },
-                { value: 'ckETH', label: 'ckETH (Ethereum L2)' },
-                { value: 'ckSOL', label: 'ckSOL (Solana L2)' },
-                { value: 'ckUSDC', label: 'ckUSDC (ICP)' },
-                { value: 'ckUSDT', label: 'ckUSDT (ICP)' },
+                { value: 'ckBTC', label: 'ckBTC' },
+                { value: 'ckETH', label: 'ckETH' },
+                { value: 'ckSOL', label: 'ckSOL' },
+                { value: 'ckUSDC', label: 'ckUSDC' },
+                { value: 'ckUSDT', label: 'ckUSDT' },
                 { value: 'ICP', label: 'ICP' },
-                { value: 'BTC', label: 'Bitcoin L1' }, // Bitcoin RPC canister
-                { value: 'ETH', label: 'Ethereum L1' }, // EVM RPC canister
-                { value: 'SOL', label: 'Solana L1' }, // Solana RPC canister
-                { value: 'USDC-ETH', label: 'USDC (ETH)' }, // EVM RPC canister
-                { value: 'USDT-ETH', label: 'USDT (ETH)' }, // EVM RPC canister
-                { value: 'USDC-SOL', label: 'USDC (Solana)' } // Solana RPC canister
+                { value: 'BTC', label: 'Bitcoin' },
+                { value: 'ETH', label: 'Ethereum' },
+                { value: 'SOL', label: 'Solana' },
+                { value: 'USDC-ETH', label: 'USDC (ETH)' },
+                { value: 'USDT-ETH', label: 'USDT (ETH)' },
+                { value: 'USDC-SOL', label: 'USDC (SOL)' }
               ].filter(option => option.value !== fromAsset)}
             />
-            
-            <div>
-              <label className="asset-label swap-white-label">You'll Receive</label>
-              <div className="amount-input equivalent-amount">
-                {swapAnalysis?.outputAmount ? formatAmount(swapAnalysis.outputAmount) : '0'}
-              </div>
-              <div className="balance-row">
-                <span className="balance-text">
-                  Balance: You'll receive {toAsset}
-                </span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
 
       {/* Exchange Rate Display */}
-      <div className="exchange-rate-display">
-        {swapAnalysis?.outputAmount && swapAmount ? 
-          `Rate: 1 ${fromAsset} = ${(swapAnalysis.outputAmount / parseFloat(swapAmount)).toFixed(2)} ${toAsset}` : 
-          'Enter amount to see exchange rate'
-        }
+      <div className="w-full max-w-lg mt-6 text-center py-6 px-8 rounded-xl bg-surface-2">
+        <span className="text-text-secondary text-sm">
+          {swapAnalysis?.outputAmount && swapAmount ? 
+            `Rate: 1 ${fromAsset} = ${(swapAnalysis.outputAmount / parseFloat(swapAmount)).toFixed(2)} ${toAsset}` : 
+            'Enter amount to see exchange rate'
+          }
+        </span>
       </div>
 
       {/* STEP 1: What's Happening (Route Explanation) - ALWAYS SHOWN FIRST */}
       {showRouteDetails && swapAnalysis && (
-        <div className="route-display" style={{
-          background: '#017e29',
-          borderColor: fromAsset === toAsset ? 'var(--secondary-500)' : 'var(--tertiary-500)'
-        }}>
-          <div className="route-header" style={{ justifyContent: 'center' }}>
-            <span className="swap-transaction-title">What's Happening: Your Transaction Explained</span>
+        <div className="w-full max-w-lg mt-6 rounded-2xl border border-white/10 bg-surface-1 p-8">
+          <div className="flex justify-center mb-8">
+            <span className="text-2xl font-bold text-text-primary">What's Happening: Your Transaction Explained</span>
           </div>
           
           {fromAsset === toAsset ? (
-            <div className="same-token-warning">
-              <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px'}}><Waves size={20} />Hold on there surfer!</div>
-              You are trying to swap the same token.<br />
-              Please check your swap and try again.
+            <div className="rounded-xl bg-warning-600/10 border border-warning-500/20 p-4 text-center">
+              <div className="flex items-center justify-center gap-2 mb-2 text-warning-400">
+                <Waves size={20} />
+                <span className="font-semibold">Hold on there surfer!</span>
+              </div>
+              <p className="text-text-secondary">
+                You are trying to swap the same token.<br />
+                Please check your swap and try again.
+              </p>
             </div>
           ) : (
             <>
               <SimpleRouteDisplay route={swapAnalysis.route} />
 
-              <div className="route-details">
-                <div className="route-detail">
-                  <div className="route-detail-label">Operation</div>
-                  <div className="route-detail-value">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+                <div className="bg-surface-2 rounded-xl p-6">
+                  <div className="text-text-muted text-sm font-medium mb-2">Operation</div>
+                  <div className="text-text-primary font-semibold">
                     {swapAnalysis.route.operationType === 'DEX + Minter' ? 'DEX + Chain Fusion' :
                      swapAnalysis.route.operationType === 'DEX Swap' ? 'DEX' :
                      swapAnalysis.route.operationType === 'Minter Operation' ? 'Chain Fusion' :
                      swapAnalysis.route.operationType}
                   </div>
                 </div>
-                <div className="route-detail">
-                  <div className="route-detail-label">Networks</div>
-                  <div className="route-detail-value">
+                <div className="bg-surface-2 rounded-xl p-6">
+                  <div className="text-text-muted text-sm font-medium mb-2">Networks</div>
+                  <div className="text-text-primary font-semibold">
                     {swapAnalysis.route.chainsInvolved.map(chain => 
                       chain === 'Internet Computer' ? 'ICP' : chain
                     ).join(' → ')}
                   </div>
                 </div>
-                <div className="route-detail">
-                  <div className="route-detail-label">Est. Time</div>
-                  <div className="route-detail-value">{swapAnalysis.route.estimatedTime}</div>
+                <div className="bg-surface-2 rounded-xl p-6">
+                  <div className="text-text-muted text-sm font-medium mb-2">Est. Time</div>
+                  <div className="text-text-primary font-semibold">{swapAnalysis.route.estimatedTime}</div>
                 </div>
               </div>
             </>
@@ -1045,77 +1068,85 @@ const Dashboard: React.FC = () => {
 
       {/* STEP 2: Choose Your Method (DEX Selection) - ONLY WHEN NEEDED */}
       {showDEXSelection && swapAnalysis && fromAsset !== toAsset && (
-        <div className="dex-selection-panel">
-          <div className="dex-header" style={{ justifyContent: 'center' }}>
-            <span className="swap-dex-title">
+        <div className="w-full max-w-lg mt-6 rounded-2xl border border-white/10 bg-surface-1 p-8">
+          <div className="flex justify-center mb-8">
+            <span className="text-2xl font-bold text-text-primary">
               {swapAnalysis.route.operationType === 'DEX + Minter'
                 ? 'First choose your DEX' 
                 : 'Choose your DEX'}
             </span>
           </div>
           
-          <div className="dex-options">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Backend: KongSwap onclick calls KongSwap API, ICPSwap onclick calls ICPSwap API */}
             {Object.entries(DEX_OPTIONS_ENHANCED).map(([key, dex]) => (
               <div 
                 key={key}
-                className={`dex-option ${selectedDEX === key ? 'selected' : ''}`}
+                className={`rounded-xl border p-6 cursor-pointer transition-all duration-300 ${
+                  selectedDEX === key 
+                    ? 'border-primary-500 bg-primary-600/10' 
+                    : 'border-white/20 bg-surface-2 hover:bg-surface-3'
+                }`}
                 onClick={() => setSelectedDEX(key)}
               >
-                <div className={`dex-badge ${dex.badge}`}>
+                <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold mb-3 ${
+                  dex.badge === 'speed' 
+                    ? 'bg-warning-400/15 text-warning-300' 
+                    : 'bg-primary-600/15 text-primary-400'
+                }`}>
                   {dex.badge === 'speed' ? <><Zap className="inline w-4 h-4 mr-1" /> SPEED FOCUSED</> : <><Waves className="inline w-4 h-4 mr-1" /> LIQUIDITY FOCUSED</>}
                 </div>
-                <div className="dex-name">{dex.name}</div>
+                <div className="text-lg font-bold text-text-primary mb-4">{dex.name}</div>
                 
                 {/* Improved Stats Grid */}
-                <div className="dex-stats-grid">
+                <div className="grid grid-cols-2 gap-4 mb-4">
                   {Object.entries(dex.stats).map(([stat, value]) => (
-                    <div key={stat} className="stat-item">
-                      <div className="stat-label">{stat}</div>
-                      <div className="stat-value">{value}</div>
+                    <div key={stat} className="text-center">
+                      <div className="text-xs text-text-muted mb-1">{stat}</div>
+                      <div className="text-sm font-semibold text-text-primary">{value}</div>
                     </div>
                   ))}
                 </div>
                 
                 {/* Clean Advantages/Trade-offs */}
-                <div className="dex-info-section">
-                  <div className="dex-advantages">
-                    <strong><Star size={16} style={{marginRight: '4px', verticalAlign: 'middle'}} />Best for:</strong>
-                    <span>{dex.advantages.join(' • ')}</span>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-start gap-2">
+                    <Star size={16} className="text-success-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <span className="font-semibold text-text-primary">Best for:</span>
+                      <span className="text-text-secondary ml-1">{dex.advantages.join(' • ')}</span>
+                    </div>
                   </div>
-                  <div className="dex-tradeoffs">
-                    <strong><Scale size={16} style={{marginRight: '4px', verticalAlign: 'middle'}} />Trade-offs:</strong>
-                    <span>{dex.tradeoffs.join(' • ')}</span>
+                  <div className="flex items-start gap-2">
+                    <Scale size={16} className="text-warning-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <span className="font-semibold text-text-primary">Trade-offs:</span>
+                      <span className="text-text-secondary ml-1">{dex.tradeoffs.join(' • ')}</span>
+                    </div>
                   </div>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="choice-matters-text">
-            <strong>Your Choice Matters:</strong> We show you all options with real data - you decide what's most important for your trade.
+          <div className="mt-6 p-4 bg-primary-600/5 rounded-lg border border-primary-600/20">
+            <p className="text-sm text-text-secondary">
+              <span className="font-semibold text-text-primary">Your Choice Matters:</span> We show you all options with real data - you decide what's most important for your trade.
+            </p>
           </div>
         </div>
       )}
 
       {/* STEP 3: Smart Solutions with Progressive Yes/No Interactions */}
       {showSmartSolutions && smartSolutions.length > 0 && (
-        <div className="smart-solutions-panel">
-          <div className="solutions-header" style={{justifyContent: 'center', alignItems: 'center'}}>
-            <Lightbulb size={20} style={{color: 'white'}} />
-            <span className="swap-smart-solutions-title">Smart Solutions for Fee Payment</span>
+        <div className="w-full max-w-lg mt-6 rounded-2xl border border-white/10 bg-surface-1 p-8">
+          <div className="flex justify-center items-center gap-3 mb-8">
+            <Lightbulb size={24} className="text-primary-500" />
+            <span className="text-2xl font-bold text-text-primary">Smart Solutions for Fee Payment</span>
             {selectedSolution !== null && (
               <button 
                 onClick={resetSolutionsView}
-                style={{ 
-                  marginLeft: 'auto', 
-                  background: 'var(--surface-primary)', 
-                  border: '1px solid var(--border-primary)', 
-                  borderRadius: '4px', 
-                  padding: '0.25rem 0.5rem',
-                  fontSize: '0.8rem',
-                  cursor: 'pointer'
-                }}
+                className="ml-auto bg-surface-2 border border-white/20 rounded px-2 py-1 text-xs cursor-pointer hover:bg-surface-3 transition-colors duration-200 text-text-secondary"
               >
                 ↶ Back to All Options
               </button>
@@ -1254,52 +1285,54 @@ const Dashboard: React.FC = () => {
 
       {/* Transaction Preview */}
       {swapAnalysis && fromAsset !== toAsset && (
-        <div className="transaction-preview-enhanced">
-          <div className="preview-header">
-            📋 Transaction Preview
+        <div className="w-full max-w-lg mt-6 rounded-2xl border border-white/10 bg-surface-1 p-8">
+          <div className="flex items-center justify-center mb-8">
+            <span className="text-2xl font-bold text-text-primary">📋 Transaction Preview</span>
           </div>
           
-          <div className="preview-grid">
-            <div className="preview-item">
-              <div className="preview-label">From</div>
-              <div className="preview-value">{formatAmount(swapAnalysis.amount)} {swapAnalysis.fromAsset}</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div className="bg-surface-2 rounded-xl p-6">
+              <div className="text-text-muted text-sm font-medium mb-2">From</div>
+              <div className="text-text-primary font-semibold">{formatAmount(swapAnalysis.amount)} {swapAnalysis.fromAsset}</div>
             </div>
-            <div className="preview-item">
-              <div className="preview-label">To</div>
-              <div className="preview-value">{formatAmount(swapAnalysis.outputAmount)} {swapAnalysis.toAsset}</div>
+            <div className="bg-surface-2 rounded-xl p-6">
+              <div className="text-text-muted text-sm font-medium mb-2">To</div>
+              <div className="text-text-primary font-semibold">{formatAmount(swapAnalysis.outputAmount)} {swapAnalysis.toAsset}</div>
             </div>
-            <div className="preview-item">
-              <div className="preview-label">Rate</div>
-              <div className="preview-value">1 {swapAnalysis.fromAsset} = {formatAmount(swapAnalysis.rate)} {swapAnalysis.toAsset}</div>
+            <div className="bg-surface-2 rounded-xl p-6">
+              <div className="text-text-muted text-sm font-medium mb-2">Rate</div>
+              <div className="text-text-primary font-semibold">1 {swapAnalysis.fromAsset} = {formatAmount(swapAnalysis.rate)} {swapAnalysis.toAsset}</div>
             </div>
-            <div className="preview-item">
-              <div className="preview-label">Route</div>
-              <div className="preview-value">{swapAnalysis.route.steps.join(' → ')}</div>
+            <div className="bg-surface-2 rounded-xl p-6">
+              <div className="text-text-muted text-sm font-medium mb-2">Route</div>
+              <div className="text-text-primary font-semibold">{swapAnalysis.route.steps.join(' → ')}</div>
             </div>
           </div>
 
           {swapAnalysis.feeRequirements.length > 0 && (
-            <div className="fees-breakdown">
-              <div className="preview-label">Fee Breakdown</div>
+            <div className="bg-surface-2 rounded-xl p-6 mb-6">
+              <div className="text-text-muted text-sm font-medium mb-4">Fee Breakdown</div>
               {/* Backend: DEX trading fees should pull live data from KongSwap API or ICPSwap API */}
-              {swapAnalysis.feeRequirements.map((fee: any, index: number) => (
-                <div key={index} className="fee-item">
-                  <span>{fee.description}</span>
-                  <span>${fee.usdValue.toFixed(2)}</span>
-                </div>
-              ))}
+              <div className="space-y-2">
+                {swapAnalysis.feeRequirements.map((fee: any, index: number) => (
+                  <div key={index} className="flex justify-between items-center text-sm">
+                    <span className="text-text-secondary">{fee.description}</span>
+                    <span className="text-text-primary font-medium">${fee.usdValue.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
-          <div className="total-section">
-            <div className="total-item">
-              <span>Total Fees</span>
-              <span>${swapAnalysis.totalFeesUSD.toFixed(2)}</span>
+          <div className="bg-surface-3 rounded-xl p-6 mb-8">
+            <div className="flex justify-between items-center">
+              <span className="text-text-primary font-semibold">Total Fees</span>
+              <span className="text-text-primary font-bold">${swapAnalysis.totalFeesUSD.toFixed(2)}</span>
             </div>
           </div>
 
           <button 
-            className="execute-swap-btn"
+            className="w-full px-6 py-3 rounded-2xl bg-primary-600 hover:bg-primary-500 text-on-primary font-semibold transition-all duration-200"
             onClick={() => {
               // Set transaction data and trigger authentication modal
               setTransactionData(swapAnalysis);
@@ -1353,21 +1386,28 @@ const Dashboard: React.FC = () => {
       const weeklyYield = planted * assetPrice * 0.05;
 
       return (
-        <div key={asset} className={`plant-field ${isPlanted ? 'planted' : 'empty'}`}>
-          <div className="field-icon">
+        <div key={asset} className={`rounded-xl p-6 text-center transition-all duration-300 ${
+          isPlanted 
+            ? 'bg-success-600/20 border border-success-400/30 hover:bg-success-600/30' 
+            : 'bg-surface-2 border border-white/10 hover:bg-surface-3'
+        }`}>
+          <div className="flex justify-center mb-4">
             <AssetIcon asset={asset} size={48} />
           </div>
-          <div className={`field-asset ${isPlanted ? 'planted' : 'empty'}`}>
+          
+          <div className="text-lg font-bold text-text-primary mb-2">
             {asset}
           </div>
-          <div className={`field-amount ${isPlanted ? 'planted' : ''}`}>
+          
+          <div className="text-sm font-semibold text-text-secondary mb-2">
             {isPlanted ? `${formatAmount(planted)} ${asset}` : 'Ready to plant'}
           </div>
-          <div className={`field-growth ${isPlanted ? 'planted' : ''}`}>
+          
+          <div className="text-xs text-text-muted leading-relaxed mb-4">
             {isPlanted ? (
               <>
                 🌱 Growing (45 days)
-                <br />Yield/Week
+                <br />Yield/Week: ${weeklyYield.toFixed(2)}
               </>
             ) : (
               <>
@@ -1376,17 +1416,26 @@ const Dashboard: React.FC = () => {
               </>
             )}
           </div>
+          
           {isPlanted ? (
             <button 
-              className={`harvest-btn ${claimedAssets.has(asset) ? 'claimed' : ''} ${sparklingAssets.has(asset) ? 'sparkling' : ''}`}
+              className={`w-full px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                claimedAssets.has(asset)
+                  ? 'bg-surface-3 text-text-muted cursor-not-allowed'
+                  : sparklingAssets.has(asset)
+                  ? 'bg-success-600 hover:bg-success-500 text-on-success animate-pulse'
+                  : 'bg-success-600 hover:bg-success-500 text-on-success'
+              }`}
               onClick={() => !claimedAssets.has(asset) && handleClaimYield(asset)}
               disabled={claimedAssets.has(asset)}
-              style={{ textAlign: 'center' }}
             >
-              {claimedAssets.has(asset) ? 'Claimed' : 'Claim Yield'}
+              {claimedAssets.has(asset) ? 'Claimed ✓' : 'Claim Yield'}
             </button>
           ) : (
-            <button className="plant-btn" onClick={() => alert(`🌱 Plant ${asset} feature coming soon!`)}>
+            <button 
+              className="w-full px-4 py-2 rounded-xl text-sm font-semibold bg-primary-600 hover:bg-primary-500 text-on-primary transition-all duration-200"
+              onClick={() => alert(`🌱 Plant ${asset} feature coming soon!`)}
+            >
               Plant {asset} 🌱
             </button>
           )}
@@ -1395,69 +1444,70 @@ const Dashboard: React.FC = () => {
     };
 
     return (
-      <div className="garden-container">
+      <div className="rounded-2xl border border-white/10 bg-surface-1 p-6">
         {/* Garden Header */}
-        <div className="garden-header">
-          <h1 className="garden-title" style={{ color: '#440f04' }}>🌱 My Garden 🌱</h1>
-          <p className="garden-subtitle">Hodl Longevity & Asset Diversity Claimable Rewards</p>
-          <div className="garden-level-display" style={{ color: 'white' }}>
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-text-primary mb-4">🌱 My Garden 🌱</h1>
+          <p className="text-text-secondary mb-4">Hodl Longevity & Asset Diversity Claimable Rewards</p>
+          <div className="inline-flex items-center gap-2 rounded-full bg-success-600/15 text-success-400 px-4 py-2 text-sm font-semibold">
             🌿 Sprout Gardener
           </div>
         </div>
 
         {/* Current Yield Stats Title */}
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <h2 style={{ 
-            fontFamily: 'var(--font-display)', 
-            fontSize: 'var(--text-3xl)', 
-            background: 'var(--gradient-primary)', 
-            WebkitBackgroundClip: 'text', 
-            WebkitTextFillColor: 'transparent', 
-            margin: 0 
-          }}>
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold text-text-primary">
             Your Current Yield Stats
           </h2>
         </div>
 
         {/* Stats Grid */}
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-icon"><DollarSign className="w-6 h-6" style={{ color: 'white' }} /></div>
-            <div className="stat-value">${calculateTotalYield().toFixed(0)}</div>
-            <div className="stat-label">Total Garden Yield</div>
-            <div className="stat-details">This week: +${(calculateTotalYield() * 0.1).toFixed(0)}</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-surface-2 rounded-xl p-4 text-center">
+            <div className="flex justify-center mb-3">
+              <DollarSign className="w-6 h-6 text-primary-400" />
+            </div>
+            <div className="text-2xl font-bold text-text-primary mb-1">${calculateTotalYield().toFixed(0)}</div>
+            <div className="text-text-secondary text-sm font-medium mb-2">Total Garden Yield</div>
+            <div className="text-text-muted text-xs">This week: +${(calculateTotalYield() * 0.1).toFixed(0)}</div>
           </div>
           
-          <div className="stat-card">
-            <div className="stat-icon"><Clock className="w-6 h-6" style={{ color: 'white' }} /></div>
-            <div className="stat-value">42</div>
-            <div className="stat-label">Average Hodl Days</div>
-            <div className="stat-details">Longest: 127 days</div>
+          <div className="bg-surface-2 rounded-xl p-4 text-center">
+            <div className="flex justify-center mb-3">
+              <Clock className="w-6 h-6 text-warning-400" />
+            </div>
+            <div className="text-2xl font-bold text-text-primary mb-1">42</div>
+            <div className="text-text-secondary text-sm font-medium mb-2">Average Hodl Days</div>
+            <div className="text-text-muted text-xs">Longest: 127 days</div>
           </div>
           
-          <div className="stat-card">
-            <div className="stat-icon"><Target className="w-6 h-6" style={{ color: 'white' }} /></div>
-            <div className="stat-value">{assetsWithBalance.filter(asset => plantedAmounts[asset] > 0).length}/6</div>
-            <div className="stat-label">Asset Diversity</div>
-            <div className="stat-details">{calculateDiversityMultiplier()}x multiplier active</div>
+          <div className="bg-surface-2 rounded-xl p-4 text-center">
+            <div className="flex justify-center mb-3">
+              <Target className="w-6 h-6 text-success-400" />
+            </div>
+            <div className="text-2xl font-bold text-text-primary mb-1">{assetsWithBalance.filter(asset => plantedAmounts[asset] > 0).length}/6</div>
+            <div className="text-text-secondary text-sm font-medium mb-2">Asset Diversity</div>
+            <div className="text-text-muted text-xs">{calculateDiversityMultiplier()}x multiplier active</div>
           </div>
           
-          <div className="stat-card">
-            <div className="stat-icon"><Trophy className="w-6 h-6" style={{ color: 'white' }} /></div>
-            <div className="stat-value">{calculateDiversityMultiplier()}x</div>
-            <div className="stat-label">Total Multiplier</div>
-            <div className="stat-details">Next level: 15 days</div>
+          <div className="bg-surface-2 rounded-xl p-4 text-center">
+            <div className="flex justify-center mb-3">
+              <Trophy className="w-6 h-6 text-warning-500" />
+            </div>
+            <div className="text-2xl font-bold text-text-primary mb-1">{calculateDiversityMultiplier()}x</div>
+            <div className="text-text-secondary text-sm font-medium mb-2">Total Multiplier</div>
+            <div className="text-text-muted text-xs">Next level: 15 days</div>
           </div>
         </div>
 
         {/* Garden Fields */}
-        <div className="garden-fields">
-          <div className="fields-header">
-            <h2 className="fields-title" style={{ color: '#440f04' }}>🪴 Your Biodiversity</h2>
-            <p className="fields-subtitle">Plant assets to start earning yield • Greater diversity = Higher rewards</p>
+        <div>
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-text-primary mb-2">🪴 Your Biodiversity</h2>
+            <p className="text-text-secondary">Plant assets to start earning yield • Greater diversity = Higher rewards</p>
           </div>
 
-          <div className="planting-grid">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {assetsWithBalance.map(asset => renderPlantField(asset))}
           </div>
         </div>
@@ -1525,31 +1575,41 @@ const Dashboard: React.FC = () => {
     ];
 
     return (
-      <div className="section-content">
-        <h2 style={{ color: 'white' }}>Transaction History</h2>
-        <p style={{ color: 'white' }}>View all your trading and deposit activity</p>
-        <div className="transaction-history-container">
+      <div className="rounded-2xl border border-white/10 bg-surface-1 p-6">
+        <div className="mb-6">
+          <h2 className="text-xl font-bold text-text-primary mb-2">Transaction History</h2>
+          <p className="text-text-secondary">View all your trading and deposit activity</p>
+        </div>
+        
+        <div className="space-y-4">
           {mockTransactions.map((tx) => (
-            <div key={tx.id} className="transaction-item" style={{ backgroundColor: '#fff8eb', color: '#440f04' }}>
-              <div className="transaction-header">
-                <span className="transaction-type">{tx.type}</span>
-                <span className="transaction-time">{tx.time}</span>
+            <div key={tx.id} className="rounded-xl border border-white/10 bg-surface-2 p-4 hover:bg-surface-3 transition-all duration-300">
+              <div className="flex justify-between items-start mb-3">
+                <span className="inline-flex items-center gap-2 rounded-full bg-primary-600/15 text-primary-400 px-3 py-1 text-xs font-semibold">
+                  {tx.type}
+                </span>
+                <span className="text-text-muted text-sm">{tx.time}</span>
               </div>
-              <div className="transaction-details">
-                <div className="transaction-assets">
+              
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
                   <AssetIcon asset={tx.from} size={20} />
-                  <span>{tx.amount} {tx.from}</span>
-                  <span className="arrow">→</span>
+                  <span className="text-text-primary font-medium">{tx.amount} {tx.from}</span>
+                  <span className="text-text-muted">→</span>
                   <AssetIcon asset={tx.to} size={20} />
-                  <span>{tx.to}</span>
+                  <span className="text-text-primary font-medium">{tx.to}</span>
                 </div>
-                <div className="transaction-amounts">
-                  <span className="transaction-value">{tx.value}</span>
-                  <span className="transaction-fee">Fee: {tx.fee}</span>
+                
+                <div className="text-right">
+                  <div className="text-text-primary font-semibold">{tx.value}</div>
+                  <div className="text-text-muted text-sm">Fee: {tx.fee}</div>
                 </div>
               </div>
-              <div className="transaction-status">
-                <span className="status-badge completed">✅ {tx.status}</span>
+              
+              <div className="flex justify-end">
+                <span className="inline-flex items-center gap-1 text-success-400 text-sm font-medium">
+                  ✅ {tx.status}
+                </span>
               </div>
             </div>
           ))}
@@ -1564,26 +1624,26 @@ const Dashboard: React.FC = () => {
     const assetsWithBalance = fromAssets.filter(asset => portfolio[asset] && portfolio[asset] > 0);
     
     return (
-      <div className="portfolio-overview-horizontal">
-        <div className="portfolio-header">
-          <h3>Portfolio Overview</h3>
-          <div className="portfolio-value" style={{ background: '#017e29' }}>
-            <div className="total-value">${calculatePortfolioValue().toLocaleString()}</div>
-            <div className="value-change">+2.4% today</div>
+      <div className="rounded-2xl border border-white/10 bg-surface-1 p-8 mb-16">
+        <div className="flex justify-between items-center mb-8">
+          <h3 className="text-2xl font-bold text-text-primary">Portfolio Overview</h3>
+          <div className="text-right">
+            <div className="text-2xl font-bold text-text-primary">${calculatePortfolioValue().toLocaleString()}</div>
+            <div className="text-sm text-success-400">+2.4% today</div>
           </div>
         </div>
         
-        <div className="portfolio-assets-grid">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {assetsWithBalance.map((asset) => {
             const amount = portfolio[asset];
             return (
-              <div key={asset} className="portfolio-asset-card">
-                <div className="asset-icon-center">
-                  <AssetIcon asset={asset} size={24} />
+              <div key={asset} className="rounded-2xl border border-white/10 bg-surface-2 p-8 hover:bg-surface-3 transition-all duration-300 cursor-pointer text-center">
+                <div className="flex justify-center mb-4">
+                  <AssetIcon asset={asset} size={32} />
                 </div>
-                <div className="asset-name">{asset}</div>
-                <div className="asset-amount">{amount}</div>
-                <div className="asset-value">
+                <div className="text-xl font-semibold text-text-primary mb-3">{asset}</div>
+                <div className="text-text-secondary text-base mb-2">{amount}</div>
+                <div className="text-text-primary font-medium">
                   ${((MASTER_ASSETS[asset]?.price || 0) * amount).toLocaleString()}
                 </div>
               </div>
@@ -1646,20 +1706,20 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="dashboard">
-      <div className="dashboard-container">
+    <div className="bg-bg text-text-primary min-h-screen">
+      <div className="container-app">
         {renderStatusBar()}
         
-        <div className="hero-section">
-          <h1>My Hut</h1>
-          <p>Deposit, Swap, Stake, Play, & Score!</p>
+        <div className="py-24 text-center">
+          <h1 className="text-5xl font-bold text-text-primary mb-8" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>My Hut</h1>
+          <p className="text-xl text-text-secondary mb-12">Deposit, Swap, Stake, Play, & Score!</p>
         </div>
         {renderNavigation()}
         
         {/* Portfolio Overview - Now above main content */}
         {renderPortfolioOverview()}
         
-        <div className="main-content">
+        <div className="main-content pt-8">
           <div className="content-area">
             {renderActiveSection()}
           </div>
@@ -1764,12 +1824,12 @@ const Dashboard: React.FC = () => {
                       <div className="swap-from-to">
                         <div className="swap-asset">
                           <span className="asset-amount">{formatAmount(transactionData.amount)}</span>
-                          <span className="asset-name">{transactionData.fromAsset}</span>
+                          <span className="text-lg font-semibold text-text-primary mb-2">{transactionData.fromAsset}</span>
                         </div>
                         <div className="swap-arrow">→</div>
                         <div className="swap-asset">
                           <span className="asset-amount">{formatAmount(transactionData.outputAmount)}</span>
-                          <span className="asset-name">{transactionData.toAsset}</span>
+                          <span className="text-lg font-semibold text-text-primary mb-2">{transactionData.toAsset}</span>
                         </div>
                       </div>
                       
