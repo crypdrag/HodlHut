@@ -62,12 +62,12 @@ const ASSET_ICONS: { [key: string]: string } = {
   'SOL': SOLIcon,
   'ckUSDC': ckUSDCIcon,
   'USDC': USDCIcon,
-  'USDC-ETH': USDCIcon,
+  'USDC(ETH)': USDCIcon,
   'ckUSDT': ckUSDTIcon,
   'USDT': USDTIcon,
-  'USDT-ETH': USDTIcon,
+  'USDT(ETH)': USDTIcon,
   'ICP': ICPIcon,
-  'USDC-SOL': USDCSOLIcon
+  'USDC(SOL)': USDCSOLIcon
 };
 
 // Helper component for asset icons
@@ -123,9 +123,9 @@ const CustomDropdown: React.FC<{
   }, []);
   
   return (
-    <div ref={dropdownRef} className={`custom-dropdown ${className || ''}`} style={{ position: 'relative' }}>
+    <div ref={dropdownRef} className={`custom-dropdown relative ${className || ''}`}>
       <div 
-        className="dropdown-trigger flex items-center px-3 py-2 border-2 border-primary-500 rounded-lg bg-surface-1 cursor-pointer min-h-[40px]"
+        className="dropdown-trigger flex items-center px-3 py-1.5 border-2 border-primary-500 rounded-lg bg-surface-1 cursor-pointer h-8"
         onClick={() => setIsOpen(!isOpen)}
       >
         {selectedOption ? (
@@ -148,8 +148,7 @@ const CustomDropdown: React.FC<{
             placeholder="Search assets..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="dropdown-search"
-            style={{ width: '100%' }}
+            className="dropdown-search w-full"
             onClick={(e) => e.stopPropagation()}
           />
           {filteredOptions.map(option => (
@@ -262,22 +261,17 @@ const Dashboard: React.FC = () => {
   // Simple Route Visualization - Clean and Clear
   const SimpleRouteDisplay: React.FC<{ route: SwapRoute }> = ({ route }) => {
     return (
-      <div style={{ 
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '1rem',
-        marginBottom: '1rem'
-      }}>
+      <div className="flex items-center justify-center gap-4 mb-4">
         {route.steps.map((step, index) => (
           <React.Fragment key={index}>
-            <div className="bg-surface-1 border-2 border-primary-500 rounded-2xl px-4 py-3 font-semibold text-center min-w-[120px] flex items-center gap-2 justify-center">
-              <span className="swap-asset-box-text">
-                <AssetIcon asset={step} size={16} /> {step}
-              </span>
+            <div className="bg-surface-1 border-2 border-primary-500 rounded-2xl w-32 h-16 flex items-center justify-center">
+              <div className="flex items-center gap-2">
+                <AssetIcon asset={step} size={16} />
+                <span className="font-semibold text-text-primary">{step}</span>
+              </div>
             </div>
             {index < route.steps.length - 1 && (
-              <div className="primary-arrow">→</div>
+              <div className="text-primary-500 font-bold">→</div>
             )}
           </React.Fragment>
         ))}
@@ -762,59 +756,59 @@ const Dashboard: React.FC = () => {
           <p className="text-xl text-text-secondary">Deposit native assets from their L1 chains</p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid-assets">
           {/* BACKEND NOTE: Bitcoin wallet interface + Bitcoin RPC canister */}
-          <div className="group rounded-3xl border border-white/10 bg-surface-1 p-8 hover:bg-surface-2 hover:border-white/20 transition-all duration-300 cursor-pointer text-center" onClick={() => startDeposit('BTC')}>
-            <div className="mb-6 flex justify-center">
-              <AssetIcon asset="BTC" size={56} />
+          <div className="asset-card-compact" onClick={() => startDeposit('BTC')}>
+            <div className="mb-3 flex justify-center items-center h-5">
+              <AssetIcon asset="BTC" size={20} />
             </div>
-            <div className="text-xl font-bold text-text-primary mb-3">Bitcoin</div>
-            <div className="text-base text-text-muted">Native BTC → ckBTC</div>
+            <div className="text-base font-semibold text-text-primary mb-1">Bitcoin</div>
+            <div className="text-xs text-text-muted">Native BTC → ckBTC</div>
           </div>
           
           {/* BACKEND NOTE: Ethereum wallet interface + Ethereum RPC canister */}
-          <div className="group rounded-3xl border border-white/10 bg-surface-1 p-8 hover:bg-surface-2 hover:border-white/20 transition-all duration-300 cursor-pointer text-center" onClick={() => startDeposit('ETH')}>
-            <div className="mb-6 flex justify-center">
-              <AssetIcon asset="ETH" size={56} />
+          <div className="asset-card-compact" onClick={() => startDeposit('ETH')}>
+            <div className="mb-3 flex justify-center items-center h-5">
+              <AssetIcon asset="ETH" size={20} />
             </div>
-            <div className="text-xl font-bold text-text-primary mb-3">Ethereum</div>
-            <div className="text-base text-text-muted">Native ETH → ckETH</div>
+            <div className="text-base font-semibold text-text-primary mb-1">Ethereum</div>
+            <div className="text-xs text-text-muted">Native ETH → ckETH</div>
           </div>
           
           {/* BACKEND NOTE: Solana wallet interface + Solana RPC canister */}
-          <div className="group rounded-3xl border border-white/10 bg-surface-1 p-8 hover:bg-surface-2 hover:border-white/20 transition-all duration-300 cursor-pointer text-center" onClick={() => startDeposit('SOL')}>
-            <div className="mb-6 flex justify-center">
-              <AssetIcon asset="SOL" size={56} />
+          <div className="asset-card-compact" onClick={() => startDeposit('SOL')}>
+            <div className="mb-3 flex justify-center items-center h-5">
+              <AssetIcon asset="SOL" size={20} />
             </div>
-            <div className="text-xl font-bold text-text-primary mb-3">Solana</div>
-            <div className="text-base text-text-muted">Native SOL → ckSOL</div>
+            <div className="text-base font-semibold text-text-primary mb-1">Solana</div>
+            <div className="text-xs text-text-muted">Native SOL → ckSOL</div>
           </div>
           
           {/* BACKEND NOTE: Ethereum wallet interface + Ethereum RPC canister (ERC-20 USDC) */}
-          <div className="group rounded-3xl border border-white/10 bg-surface-1 p-8 hover:bg-surface-2 hover:border-white/20 transition-all duration-300 cursor-pointer text-center" onClick={() => startDeposit('USDC')}>
-            <div className="mb-6 flex justify-center">
-              <AssetIcon asset="USDC" size={56} />
+          <div className="asset-card-compact" onClick={() => startDeposit('USDC')}>
+            <div className="mb-3 flex justify-center items-center h-5">
+              <AssetIcon asset="USDC" size={20} />
             </div>
-            <div className="text-xl font-bold text-text-primary mb-3">USDC</div>
-            <div className="text-base text-text-muted">Ethereum USDC → ckUSDC</div>
+            <div className="text-base font-semibold text-text-primary mb-1">USDC</div>
+            <div className="text-xs text-text-muted">Ethereum USDC → ckUSDC</div>
           </div>
           
           {/* BACKEND NOTE: Ethereum wallet interface + Ethereum RPC canister (ERC-20 USDT) */}
-          <div className="group rounded-3xl border border-white/10 bg-surface-1 p-8 hover:bg-surface-2 hover:border-white/20 transition-all duration-300 cursor-pointer text-center" onClick={() => startDeposit('USDT')}>
-            <div className="mb-6 flex justify-center">
-              <AssetIcon asset="USDT" size={56} />
+          <div className="asset-card-compact" onClick={() => startDeposit('USDT')}>
+            <div className="mb-3 flex justify-center items-center h-5">
+              <AssetIcon asset="USDT" size={20} />
             </div>
-            <div className="text-xl font-bold text-text-primary mb-3">USDT</div>
-            <div className="text-base text-text-muted">Ethereum USDT → ckUSDT</div>
+            <div className="text-base font-semibold text-text-primary mb-1">USDT</div>
+            <div className="text-xs text-text-muted">Ethereum USDT → ckUSDT</div>
           </div>
           
           {/* BACKEND NOTE: Solana wallet interface + Solana RPC canister (SPL USDC) */}
-          <div className="group rounded-3xl border border-white/10 bg-surface-1 p-8 hover:bg-surface-2 hover:border-white/20 transition-all duration-300 cursor-pointer text-center" onClick={() => startDeposit('USDC-SOL')}>
-            <div className="mb-6 flex justify-center">
-              <AssetIcon asset="USDC-SOL" size={56} />
+          <div className="asset-card-compact" onClick={() => startDeposit('USDC(SOL)')}>
+            <div className="mb-3 flex justify-center items-center h-5">
+              <AssetIcon asset="USDC(SOL)" size={20} />
             </div>
-            <div className="text-xl font-bold text-text-primary mb-3">USDC (SOL)</div>
-            <div className="text-base text-text-muted">Solana USDC → ckUSDC</div>
+            <div className="text-base font-semibold text-text-primary mb-1">USDC (SOL)</div>
+            <div className="text-xs text-text-muted">Solana USDC → ckUSDC</div>
           </div>
         </div>
       </div>
@@ -826,59 +820,59 @@ const Dashboard: React.FC = () => {
           <p className="text-xl text-text-secondary">Deposit assets already on the Internet Computer Protocol</p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <div className="group rounded-3xl border border-white/10 bg-surface-1 p-8 hover:bg-surface-2 hover:border-white/20 transition-all duration-300 cursor-pointer text-center" onClick={() => startDeposit('ckBTC')}>
+        <div className="grid-assets">
+          <div className="asset-card-compact" onClick={() => startDeposit('ckBTC')}>
             {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
-            <div className="mb-6 flex justify-center">
-              <AssetIcon asset="ckBTC" size={56} />
+            <div className="mb-3 flex justify-center items-center h-5">
+              <AssetIcon asset="ckBTC" size={20} />
             </div>
-            <div className="text-xl font-bold text-text-primary mb-3">ckBTC</div>
-            <div className="text-base text-text-muted">Chain Key Bitcoin</div>
+            <div className="text-base font-semibold text-text-primary mb-1">ckBTC</div>
+            <div className="text-xs text-text-muted">Chain Key Bitcoin</div>
           </div>
           
-          <div className="group rounded-3xl border border-white/10 bg-surface-1 p-8 hover:bg-surface-2 hover:border-white/20 transition-all duration-300 cursor-pointer text-center" onClick={() => startDeposit('ckETH')}>
+          <div className="asset-card-compact" onClick={() => startDeposit('ckETH')}>
             {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
-            <div className="mb-6 flex justify-center">
-              <AssetIcon asset="ckETH" size={56} />
+            <div className="mb-3 flex justify-center items-center h-5">
+              <AssetIcon asset="ckETH" size={20} />
             </div>
-            <div className="text-xl font-bold text-text-primary mb-3">ckETH</div>
-            <div className="text-base text-text-muted">Chain Key Ethereum</div>
+            <div className="text-base font-semibold text-text-primary mb-1">ckETH</div>
+            <div className="text-xs text-text-muted">Chain Key Ethereum</div>
           </div>
           
-          <div className="group rounded-3xl border border-white/10 bg-surface-1 p-8 hover:bg-surface-2 hover:border-white/20 transition-all duration-300 cursor-pointer text-center" onClick={() => startDeposit('ckUSDC')}>
+          <div className="asset-card-compact" onClick={() => startDeposit('ckUSDC')}>
             {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
-            <div className="mb-6 flex justify-center">
-              <AssetIcon asset="ckUSDC" size={56} />
+            <div className="mb-3 flex justify-center items-center h-5">
+              <AssetIcon asset="ckUSDC" size={20} />
             </div>
-            <div className="text-xl font-bold text-text-primary mb-3">ckUSDC</div>
-            <div className="text-base text-text-muted">Chain Key USDC</div>
+            <div className="text-base font-semibold text-text-primary mb-1">ckUSDC</div>
+            <div className="text-xs text-text-muted">Chain Key USDC</div>
           </div>
           
-          <div className="group rounded-3xl border border-white/10 bg-surface-1 p-8 hover:bg-surface-2 hover:border-white/20 transition-all duration-300 cursor-pointer text-center" onClick={() => startDeposit('ckUSDT')}>
+          <div className="asset-card-compact" onClick={() => startDeposit('ckUSDT')}>
             {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
-            <div className="mb-6 flex justify-center">
-              <AssetIcon asset="ckUSDT" size={56} />
+            <div className="mb-3 flex justify-center items-center h-5">
+              <AssetIcon asset="ckUSDT" size={20} />
             </div>
-            <div className="text-xl font-bold text-text-primary mb-3">ckUSDT</div>
-            <div className="text-base text-text-muted">Chain Key USDT</div>
+            <div className="text-base font-semibold text-text-primary mb-1">ckUSDT</div>
+            <div className="text-xs text-text-muted">Chain Key USDT</div>
           </div>
           
-          <div className="group rounded-3xl border border-white/10 bg-surface-1 p-8 hover:bg-surface-2 hover:border-white/20 transition-all duration-300 cursor-pointer text-center" onClick={() => startDeposit('ckSOL')}>
+          <div className="asset-card-compact" onClick={() => startDeposit('ckSOL')}>
             {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
-            <div className="mb-6 flex justify-center">
-              <AssetIcon asset="ckSOL" size={56} />
+            <div className="mb-3 flex justify-center items-center h-5">
+              <AssetIcon asset="ckSOL" size={20} />
             </div>
-            <div className="text-xl font-bold text-text-primary mb-3">ckSOL</div>
-            <div className="text-base text-text-muted">Chain Key Solana</div>
+            <div className="text-base font-semibold text-text-primary mb-1">ckSOL</div>
+            <div className="text-xs text-text-muted">Chain Key Solana</div>
           </div>
           
-          <div className="group rounded-3xl border border-white/10 bg-surface-1 p-8 hover:bg-surface-2 hover:border-white/20 transition-all duration-300 cursor-pointer text-center" onClick={() => startDeposit('ICP')}>
+          <div className="asset-card-compact" onClick={() => startDeposit('ICP')}>
             {/* Backend: ICP wallet interface (Plug, etc.) + native ICP integration */}
-            <div className="mb-6 flex justify-center">
-              <AssetIcon asset="ICP" size={56} />
+            <div className="mb-3 flex justify-center items-center h-5">
+              <AssetIcon asset="ICP" size={20} />
             </div>
-            <div className="text-xl font-bold text-text-primary mb-3">ICP</div>
-            <div className="text-base text-text-muted">Internet Computer</div>
+            <div className="text-base font-semibold text-text-primary mb-1">ICP</div>
+            <div className="text-xs text-text-muted">Internet Computer</div>
           </div>
         </div>
       </div>
@@ -888,8 +882,8 @@ const Dashboard: React.FC = () => {
   const renderSwapAssetsSection = () => (
     <div className="w-full flex flex-col items-center px-4 py-8">
       <div className="text-center mb-8">
-        <div className="text-3xl font-bold text-text-primary mb-2" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Swap Tokens</div>
-        <p className="text-text-secondary">Trade tokens in an instant</p>
+        <div className="text-3xl font-bold text-text-primary mb-2" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Swap Assets Crosschain</div>
+        <p className="text-text-secondary">Swap assets within ICP or out to Bitcoin, Ethereum, and Solana</p>
       </div>
       
       {/* Main Swap Interface */}
@@ -904,50 +898,32 @@ const Dashboard: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-4">
-            <input 
-              type="number" 
-              className="flex-1 text-2xl font-semibold bg-transparent border-none outline-none text-text-primary placeholder:text-text-muted"
-              placeholder="0.0" 
-              step="0.000001" 
-              min="0"
-              value={swapAmount}
-              onChange={(e) => setSwapAmount(e.target.value)}
-            />
-            <div className="flex items-center gap-3">
-              <button 
-                className={`text-xs px-2 py-1 rounded-lg bg-primary-600 hover:bg-primary-500 text-on-primary transition-colors ${(!fromAsset || !portfolio[fromAsset]) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={() => {
-                  if (fromAsset && portfolio[fromAsset]) {
-                    setSwapAmount(portfolio[fromAsset].toString());
-                  }
-                }}
-                disabled={!fromAsset || !portfolio[fromAsset]}
-              >
-                MAX
-              </button>
-              <CustomDropdown
-                className="asset-dropdown min-w-[140px]"
-                value={fromAsset}
-                onChange={(value) => {
-                  setFromAsset(value);
-                  setSwapAmount('');
-                }}
-                placeholder="Select asset"
-                options={[
-                  { value: 'ckBTC', label: 'ckBTC' },
-                  { value: 'ckETH', label: 'ckETH' },
-                  { value: 'ckSOL', label: 'ckSOL' },
-                  { value: 'ckUSDC', label: 'ckUSDC' },
-                  { value: 'ckUSDT', label: 'ckUSDT' },
-                  { value: 'ICP', label: 'ICP' }
-                ]}
-              />
+            <div className="flex-1 text-2xl font-semibold text-text-primary">
+              {swapAmount || '0.0'}
             </div>
+            <CustomDropdown
+              className="asset-dropdown min-w-[140px]"
+              value={fromAsset}
+              onChange={(value) => {
+                setFromAsset(value);
+                setSwapAmount('');
+              }}
+              placeholder="Select asset"
+              options={[
+                { value: 'ckBTC', label: 'ckBTC' },
+                { value: 'ckETH', label: 'ckETH' },
+                { value: 'ckSOL', label: 'ckSOL' },
+                { value: 'ckUSDC', label: 'ckUSDC' },
+                { value: 'ckUSDT', label: 'ckUSDT' },
+                { value: 'ICP', label: 'ICP' }
+              ]}
+            />
           </div>
         </div>
         
-        {/* Swap Arrow */}
-        <div className="flex justify-center py-2">
+        {/* Swap Arrow and MAX Button */}
+        <div className="flex justify-between items-center py-2">
+          <div className="flex-1"></div>
           <button 
             className="p-2 rounded-full bg-surface-3 hover:bg-surface-2 border border-white/10 transition-all duration-200"
             onClick={() => {
@@ -967,6 +943,20 @@ const Dashboard: React.FC = () => {
               <path d="M17 10L12 15L7 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
+          <div className="flex-1 flex justify-end">
+            <button 
+              className={`text-xs px-2 py-1 rounded-lg bg-primary-600 hover:bg-primary-500 text-on-primary transition-colors ${(!fromAsset || !portfolio[fromAsset]) ? 'opacity-50 cursor-not-allowed' : ''}`}
+              onClick={() => {
+                if (fromAsset && portfolio[fromAsset]) {
+                  setSwapAmount(portfolio[fromAsset].toString());
+                }
+              }}
+              disabled={!fromAsset || !portfolio[fromAsset]}
+              title="Set maximum amount"
+            >
+              MAX
+            </button>
+          </div>
         </div>
         
         {/* To Asset */}
@@ -986,7 +976,7 @@ const Dashboard: React.FC = () => {
               className="asset-dropdown min-w-[140px]"
               value={toAsset}
               onChange={setToAsset}
-              placeholder="Select token"
+              placeholder="Select asset"
               options={[
                 { value: 'ckBTC', label: 'ckBTC' },
                 { value: 'ckETH', label: 'ckETH' },
@@ -997,9 +987,9 @@ const Dashboard: React.FC = () => {
                 { value: 'BTC', label: 'Bitcoin' },
                 { value: 'ETH', label: 'Ethereum' },
                 { value: 'SOL', label: 'Solana' },
-                { value: 'USDC-ETH', label: 'USDC (ETH)' },
-                { value: 'USDT-ETH', label: 'USDT (ETH)' },
-                { value: 'USDC-SOL', label: 'USDC (SOL)' }
+                { value: 'USDC(ETH)', label: 'USDC (ETH)' },
+                { value: 'USDT(ETH)', label: 'USDT (ETH)' },
+                { value: 'USDC(SOL)', label: 'USDC (SOL)' }
               ].filter(option => option.value !== fromAsset)}
             />
           </div>
@@ -1019,8 +1009,9 @@ const Dashboard: React.FC = () => {
       {/* STEP 1: What's Happening (Route Explanation) - ALWAYS SHOWN FIRST */}
       {showRouteDetails && swapAnalysis && (
         <div className="w-full max-w-lg mt-6 rounded-2xl border border-white/10 bg-surface-1 p-8">
-          <div className="flex justify-center mb-8">
-            <span className="text-2xl font-bold text-text-primary">What's Happening: Your Transaction Explained</span>
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold text-text-primary mb-2">What's Happening?</h1>
+            <p className="text-text-secondary">Your transaction explained</p>
           </div>
           
           {fromAsset === toAsset ? (
@@ -1040,8 +1031,8 @@ const Dashboard: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
                 <div className="bg-surface-2 rounded-xl p-6">
-                  <div className="text-text-muted text-sm font-medium mb-2">Operation</div>
-                  <div className="text-text-primary font-semibold">
+                  <div className="ui-label text-text-muted mb-2">Operation</div>
+                  <div className="body-md text-text-primary font-semibold">
                     {swapAnalysis.route.operationType === 'DEX + Minter' ? 'DEX + Chain Fusion' :
                      swapAnalysis.route.operationType === 'DEX Swap' ? 'DEX' :
                      swapAnalysis.route.operationType === 'Minter Operation' ? 'Chain Fusion' :
@@ -1049,16 +1040,16 @@ const Dashboard: React.FC = () => {
                   </div>
                 </div>
                 <div className="bg-surface-2 rounded-xl p-6">
-                  <div className="text-text-muted text-sm font-medium mb-2">Networks</div>
-                  <div className="text-text-primary font-semibold">
+                  <div className="ui-label text-text-muted mb-2">Networks</div>
+                  <div className="body-md text-text-primary font-semibold">
                     {swapAnalysis.route.chainsInvolved.map(chain => 
                       chain === 'Internet Computer' ? 'ICP' : chain
                     ).join(' → ')}
                   </div>
                 </div>
                 <div className="bg-surface-2 rounded-xl p-6">
-                  <div className="text-text-muted text-sm font-medium mb-2">Est. Time</div>
-                  <div className="text-text-primary font-semibold">{swapAnalysis.route.estimatedTime}</div>
+                  <div className="ui-label text-text-muted mb-2">Est. Time</div>
+                  <div className="body-md text-text-primary font-semibold">{swapAnalysis.route.estimatedTime}</div>
                 </div>
               </div>
             </>
@@ -1070,7 +1061,7 @@ const Dashboard: React.FC = () => {
       {showDEXSelection && swapAnalysis && fromAsset !== toAsset && (
         <div className="w-full max-w-lg mt-6 rounded-2xl border border-white/10 bg-surface-1 p-8">
           <div className="flex justify-center mb-8">
-            <span className="text-2xl font-bold text-text-primary">
+            <span className="heading-4 text-text-primary">
               {swapAnalysis.route.operationType === 'DEX + Minter'
                 ? 'First choose your DEX' 
                 : 'Choose your DEX'}
@@ -1089,31 +1080,31 @@ const Dashboard: React.FC = () => {
                 }`}
                 onClick={() => setSelectedDEX(key)}
               >
-                <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold mb-3 ${
+                <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 badge-text mb-3 ${
                   dex.badge === 'speed' 
                     ? 'bg-warning-400/15 text-warning-300' 
                     : 'bg-primary-600/15 text-primary-400'
                 }`}>
                   {dex.badge === 'speed' ? <><Zap className="inline w-4 h-4 mr-1" /> SPEED FOCUSED</> : <><Waves className="inline w-4 h-4 mr-1" /> LIQUIDITY FOCUSED</>}
                 </div>
-                <div className="text-lg font-bold text-text-primary mb-4">{dex.name}</div>
+                <div className="heading-4 text-text-primary mb-4">{dex.name}</div>
                 
                 {/* Improved Stats Grid */}
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   {Object.entries(dex.stats).map(([stat, value]) => (
                     <div key={stat} className="text-center">
-                      <div className="text-xs text-text-muted mb-1">{stat}</div>
-                      <div className="text-sm font-semibold text-text-primary">{value}</div>
+                      <div className="ui-label text-text-muted mb-1">{stat}</div>
+                      <div className="body-sm text-text-primary font-semibold">{value}</div>
                     </div>
                   ))}
                 </div>
                 
                 {/* Clean Advantages/Trade-offs */}
-                <div className="space-y-2 text-sm">
+                <div className="space-y-2 body-sm">
                   <div className="flex items-start gap-2">
                     <Star size={16} className="text-success-400 mt-0.5 flex-shrink-0" />
                     <div>
-                      <span className="font-semibold text-text-primary">Best for:</span>
+                      <span className="ui-label text-text-primary">Best for:</span>
                       <span className="text-text-secondary ml-1">{dex.advantages.join(' • ')}</span>
                     </div>
                   </div>
@@ -1142,7 +1133,7 @@ const Dashboard: React.FC = () => {
         <div className="w-full max-w-lg mt-6 rounded-2xl border border-white/10 bg-surface-1 p-8">
           <div className="flex justify-center items-center gap-3 mb-8">
             <Lightbulb size={24} className="text-primary-500" />
-            <span className="text-2xl font-bold text-text-primary">Smart Solutions for Fee Payment</span>
+            <span className="heading-4 text-text-primary">Smart Solutions for Fee Payment</span>
             {selectedSolution !== null && (
               <button 
                 onClick={resetSolutionsView}
@@ -1165,31 +1156,39 @@ const Dashboard: React.FC = () => {
               const isFirstSolution = actualIndex === 0;
               
               return (
-                <div key={actualIndex} className={`solution-card ${solution.badge.toLowerCase().replace(/\s+/g, '-')} ${isSelected ? 'selected' : ''}`}>
-                  <div className={`solution-badge ${solution.badge.toLowerCase().replace(/\s+/g, '-')}`}>
-                    {solution.badge === 'RECOMMENDED' ? <><CheckCircle size={16} style={{marginRight: '4px', verticalAlign: 'middle', color: '#10b981'}} />RECOMMENDED</> : 
-                     solution.badge === 'REQUIRED STEP' ? <><AlertTriangle size={16} style={{marginRight: '4px', verticalAlign: 'middle', color: '#f59e0b'}} />REQUIRED STEP</> : 
-                     solution.badge === 'ALTERNATIVE' ? <><Lightbulb size={16} style={{marginRight: '4px', verticalAlign: 'middle', color: '#6366f1'}} />ALTERNATIVE</> : 
-                     <><Lightbulb size={16} style={{marginRight: '4px', verticalAlign: 'middle', color: '#6366f1'}} />{solution.badge}</>}
+                <div key={actualIndex} className={`bg-surface-2 rounded-xl p-6 border transition-all duration-300 ${isSelected ? 'border-primary-500 bg-primary-600/10' : 'border-white/20 hover:bg-surface-3'}`}>
+                  <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 badge-text mb-3 ${
+                    solution.badge === 'RECOMMENDED' ? 'bg-success-400/15 text-success-300' :
+                    solution.badge === 'REQUIRED STEP' ? 'bg-warning-400/15 text-warning-300' :
+                    'bg-primary-600/15 text-primary-400'
+                  }`}>
+                    {solution.badge === 'RECOMMENDED' ? <><CheckCircle size={16} className="inline mr-1" />RECOMMENDED</> : 
+                     solution.badge === 'REQUIRED STEP' ? <><AlertTriangle size={16} className="inline mr-1" />REQUIRED STEP</> : 
+                     solution.badge === 'ALTERNATIVE' ? <><Lightbulb size={16} className="inline mr-1" />ALTERNATIVE</> : 
+                     <><Lightbulb size={16} className="inline mr-1" />{solution.badge}</>}
                   </div>
                   
-                  <div className="solution-title">{solution.title}</div>
-                  <div className="solution-description">{solution.description}</div>
+                  <div className="heading-4 text-text-primary mb-3">{solution.title}</div>
+                  <div className="body-md text-text-secondary mb-4">{solution.description}</div>
                   
-                  <div className="solution-details">
-                    <div className="solution-receive">
-                      You'll receive: <strong>{formatNumber(solution.userReceives.amount)} {solution.userReceives.asset}</strong>
+                  <div className="space-y-2 mb-4">
+                    <div className="body-sm text-text-primary">
+                      You'll receive: <span className="ui-label">{formatNumber(solution.userReceives.amount)} {solution.userReceives.asset}</span>
                     </div>
-                    <div className="solution-cost">
-                      Cost: <strong>{solution.cost.amount} {solution.cost.asset}</strong>
+                    <div className="body-sm text-text-primary">
+                      Cost: <span className="ui-label">{solution.cost.amount} {solution.cost.asset}</span>
                     </div>
                   </div>
 
                   {/* Progressive Yes/No Buttons */}
                   {!isSelected && (
-                    <div className="solution-actions">
+                    <div className="flex gap-3">
                       <button 
-                        className={`solution-btn approve ${solution.badge === 'RECOMMENDED' ? 'primary' : 'secondary'}`}
+                        className={`flex-1 py-3 px-4 rounded-xl btn-text font-semibold transition-all duration-200 ${
+                          solution.badge === 'RECOMMENDED' 
+                            ? 'bg-primary-600 hover:bg-primary-500 text-on-primary focus:ring-2 focus:ring-primary-400 focus:outline-none' 
+                            : 'bg-surface-3 hover:bg-surface-2 text-text-primary border border-white/20'
+                        }`}
                         onClick={() => handleApproveSolution(actualIndex)}
                       >
                         {solution.badge === 'RECOMMENDED' ? 'Yes, Use This' : 
@@ -1198,7 +1197,7 @@ const Dashboard: React.FC = () => {
                       </button>
                       
                       <button 
-                        className="solution-btn reject"
+                        className="flex-1 py-3 px-4 rounded-xl btn-text font-semibold transition-all duration-200 bg-surface-3 hover:bg-surface-2 text-text-secondary border border-white/20"
                         onClick={() => handleRejectSolution(actualIndex)}
                       >
                         {isFirstSolution ? 'See Other Options' : 'Skip This'}
@@ -1287,37 +1286,37 @@ const Dashboard: React.FC = () => {
       {swapAnalysis && fromAsset !== toAsset && (
         <div className="w-full max-w-lg mt-6 rounded-2xl border border-white/10 bg-surface-1 p-8">
           <div className="flex items-center justify-center mb-8">
-            <span className="text-2xl font-bold text-text-primary">📋 Transaction Preview</span>
+            <span className="heading-4 text-text-primary">📋 Transaction Preview</span>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div className="bg-surface-2 rounded-xl p-6">
-              <div className="text-text-muted text-sm font-medium mb-2">From</div>
-              <div className="text-text-primary font-semibold">{formatAmount(swapAnalysis.amount)} {swapAnalysis.fromAsset}</div>
+              <div className="ui-label text-text-muted mb-2">From</div>
+              <div className="body-md text-text-primary font-semibold">{formatAmount(swapAnalysis.amount)} {swapAnalysis.fromAsset}</div>
             </div>
             <div className="bg-surface-2 rounded-xl p-6">
-              <div className="text-text-muted text-sm font-medium mb-2">To</div>
-              <div className="text-text-primary font-semibold">{formatAmount(swapAnalysis.outputAmount)} {swapAnalysis.toAsset}</div>
+              <div className="ui-label text-text-muted mb-2">To</div>
+              <div className="body-md text-text-primary font-semibold">{formatAmount(swapAnalysis.outputAmount)} {swapAnalysis.toAsset}</div>
             </div>
             <div className="bg-surface-2 rounded-xl p-6">
-              <div className="text-text-muted text-sm font-medium mb-2">Rate</div>
-              <div className="text-text-primary font-semibold">1 {swapAnalysis.fromAsset} = {formatAmount(swapAnalysis.rate)} {swapAnalysis.toAsset}</div>
+              <div className="ui-label text-text-muted mb-2">Rate</div>
+              <div className="body-md text-text-primary font-semibold">1 {swapAnalysis.fromAsset} = {formatAmount(swapAnalysis.rate)} {swapAnalysis.toAsset}</div>
             </div>
             <div className="bg-surface-2 rounded-xl p-6">
-              <div className="text-text-muted text-sm font-medium mb-2">Route</div>
-              <div className="text-text-primary font-semibold">{swapAnalysis.route.steps.join(' → ')}</div>
+              <div className="ui-label text-text-muted mb-2">Route</div>
+              <div className="body-md text-text-primary font-semibold">{swapAnalysis.route.steps.join(' → ')}</div>
             </div>
           </div>
 
           {swapAnalysis.feeRequirements.length > 0 && (
             <div className="bg-surface-2 rounded-xl p-6 mb-6">
-              <div className="text-text-muted text-sm font-medium mb-4">Fee Breakdown</div>
+              <div className="ui-label text-text-muted mb-4">Fee Breakdown</div>
               {/* Backend: DEX trading fees should pull live data from KongSwap API or ICPSwap API */}
               <div className="space-y-2">
                 {swapAnalysis.feeRequirements.map((fee: any, index: number) => (
-                  <div key={index} className="flex justify-between items-center text-sm">
+                  <div key={index} className="flex justify-between items-center body-sm">
                     <span className="text-text-secondary">{fee.description}</span>
-                    <span className="text-text-primary font-medium">${fee.usdValue.toFixed(2)}</span>
+                    <span className="text-text-primary ui-label">${fee.usdValue.toFixed(2)}</span>
                   </div>
                 ))}
               </div>
@@ -1326,8 +1325,8 @@ const Dashboard: React.FC = () => {
 
           <div className="bg-surface-3 rounded-xl p-6 mb-8">
             <div className="flex justify-between items-center">
-              <span className="text-text-primary font-semibold">Total Fees</span>
-              <span className="text-text-primary font-bold">${swapAnalysis.totalFeesUSD.toFixed(2)}</span>
+              <span className="body-md text-text-primary font-semibold">Total Fees</span>
+              <span className="body-md text-text-primary font-bold">${swapAnalysis.totalFeesUSD.toFixed(2)}</span>
             </div>
           </div>
 
@@ -1521,7 +1520,7 @@ const Dashboard: React.FC = () => {
         id: 1,
         type: 'Chain Fusion',
         from: 'ckBTC',
-        to: 'USDC-ETH',
+        to: 'USDC(ETH)',
         amount: '0.05',
         value: '$4,875.12',
         fee: '$9.60',
@@ -1624,31 +1623,50 @@ const Dashboard: React.FC = () => {
     const assetsWithBalance = fromAssets.filter(asset => portfolio[asset] && portfolio[asset] > 0);
     
     return (
-      <div className="rounded-2xl border border-white/10 bg-surface-1 p-8 mb-16">
-        <div className="flex justify-between items-center mb-8">
-          <h3 className="text-2xl font-bold text-text-primary">Portfolio Overview</h3>
+      <div className="rounded-2xl border border-white/10 bg-surface-1 p-6 mb-8">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-xl font-bold text-text-primary">Portfolio Overview</h3>
           <div className="text-right">
-            <div className="text-2xl font-bold text-text-primary">${calculatePortfolioValue().toLocaleString()}</div>
+            <div className="text-xl font-bold text-text-primary">${calculatePortfolioValue().toLocaleString()}</div>
             <div className="text-sm text-success-400">+2.4% today</div>
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {assetsWithBalance.map((asset) => {
-            const amount = portfolio[asset];
-            return (
-              <div key={asset} className="rounded-2xl border border-white/10 bg-surface-2 p-8 hover:bg-surface-3 transition-all duration-300 cursor-pointer text-center">
-                <div className="flex justify-center mb-4">
-                  <AssetIcon asset={asset} size={32} />
-                </div>
-                <div className="text-xl font-semibold text-text-primary mb-3">{asset}</div>
-                <div className="text-text-secondary text-base mb-2">{amount}</div>
-                <div className="text-text-primary font-medium">
-                  ${((MASTER_ASSETS[asset]?.price || 0) * amount).toLocaleString()}
-                </div>
-              </div>
-            );
-          })}
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-white/10">
+                <th className="text-left text-text-secondary text-sm font-medium pb-3">Asset</th>
+                <th className="text-left text-text-secondary text-sm font-medium pb-3">Token</th>
+                <th className="text-right text-text-secondary text-sm font-medium pb-3">Amount</th>
+                <th className="text-right text-text-secondary text-sm font-medium pb-3">Value (USD)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {assetsWithBalance.map((asset) => {
+                const amount = portfolio[asset];
+                const usdValue = (MASTER_ASSETS[asset]?.price || 0) * amount;
+                return (
+                  <tr key={asset} className="border-b border-white/5 hover:bg-surface-2/50 transition-colors">
+                    <td className="py-4">
+                      <div className="flex items-center gap-3">
+                        <AssetIcon asset={asset} size={24} />
+                      </div>
+                    </td>
+                    <td className="py-4">
+                      <div className="text-text-primary font-medium">{asset}</div>
+                    </td>
+                    <td className="py-4 text-right">
+                      <div className="text-text-primary font-medium">{formatAmount(amount)}</div>
+                    </td>
+                    <td className="py-4 text-right">
+                      <div className="text-text-primary font-medium">${usdValue.toLocaleString()}</div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
     );
@@ -1994,7 +2012,7 @@ const Dashboard: React.FC = () => {
                           <Zap className="inline w-4 h-4 mr-1" /> Waiting for 65 confirmations...
                         </div>
                         <div className="confirmation-count">
-                          <Lock className="inline w-4 h-4 mr-1" /> ICP requires 65 confirmations for Ethereum finality (~13 minutes)
+                          <Lock className="inline w-4 h-4 mr-1" /> ICP requires 65 confirmations for Ethereum finality (~13 min)
                         </div>
                       </div>
                     </div>

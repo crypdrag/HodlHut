@@ -393,7 +393,7 @@ function getAssetPrice(asset: string): number {
         'USDT': 1.00,
         'ckSOL': 200,
         'SOL': 200,
-        'USDC-SOL': 1.00,
+        'USDC(SOL)': 1.00,
         'ICP': 12.50
     };
     

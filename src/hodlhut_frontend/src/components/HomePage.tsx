@@ -91,7 +91,7 @@ const HomePage: React.FC = () => {
     <div className="bg-bg text-text-primary min-h-screen overflow-x-hidden">
       {/* Header */}
       <header className="nav-header">
-        <nav className="container-app flex justify-between items-center py-4">
+        <nav className="container-app flex justify-between items-center pad-section">
           <div className="flex items-center gap-3">
             <AssetIcon asset="logo" size={50} className="w-12 h-12 object-contain" />
             <span className="text-2xl font-bold text-text-primary" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>HodlHut</span>
@@ -100,9 +100,9 @@ const HomePage: React.FC = () => {
                 <span className="text-sm bg-surface-2 text-text-secondary px-3 py-1 rounded-full border border-white/10 cursor-pointer hover:bg-surface-3 transition-all duration-200">
                   👤 {principal.toString().slice(0, 8)}...
                 </span>
-                <div className="absolute top-full right-0 mt-1 bg-surface-1 border border-white/10 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transform translate-y-2 group-hover:translate-y-0 transition-all duration-200 z-50">
+                <div className="absolute top-full right-0 mt-1 bg-surface-1 border border-white/10 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transform translate-y-2 group-hover:translate-y-0 transition-all duration-200 z-50 p-2">
                   <button 
-                    className="block w-full text-left px-4 py-2 text-sm text-text-secondary hover:bg-surface-2 hover:text-text-primary rounded-lg transition-all duration-200"
+                    className="btn-sienna text-sm w-full"
                     onClick={logout}
                   >
                     Logout
@@ -115,21 +115,21 @@ const HomePage: React.FC = () => {
             {isAuthenticated ? (
               <>
                 <button 
-                  className="px-4 py-2 rounded-2xl text-sm font-semibold bg-primary-600 hover:bg-primary-500 text-on-primary focus:ring-2 focus:ring-primary-400 focus:outline-none transition-all duration-200 text-base"
+                  className="btn-bitcoin"
                   onClick={handleGetHut}
                 >
                   {/* Backend: Triggers Internet Identity authentication with custom security options */}
                   Get Hut
                 </button>
                 <button 
-                  className="px-4 py-2 rounded-2xl text-sm font-semibold bg-surface-2 hover:bg-surface-3 text-text-secondary ring-1 ring-white/10 focus:outline-none transition-all duration-200"
+                  className="btn-success"
                   onClick={handleMyHuts}
                 >
                   {/* Backend: Triggers Internet Identity authentication with custom security options */}
                   My Huts
                 </button>
                 <button 
-                  className="px-4 py-2 rounded-2xl text-sm font-semibold bg-surface-2 hover:bg-surface-3 text-text-secondary ring-1 ring-white/10 focus:outline-none transition-all duration-200"
+                  className="btn-sienna"
                   onClick={logout}
                 >
                   Logout
@@ -138,7 +138,7 @@ const HomePage: React.FC = () => {
             ) : (
               <>
                 <button 
-                  className={`px-4 py-2 rounded-2xl text-sm font-semibold bg-primary-600 hover:bg-primary-500 text-on-primary focus:ring-2 focus:ring-primary-400 focus:outline-none transition-all duration-200 text-base ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`btn-bitcoin ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                   onClick={handleGetHut}
                   disabled={isLoading}
                 >
@@ -146,7 +146,7 @@ const HomePage: React.FC = () => {
                   {isLoading ? 'Connecting...' : 'Get Hut'}
                 </button>
                 <button 
-                  className={`px-4 py-2 rounded-2xl text-sm font-semibold bg-surface-2 hover:bg-surface-3 text-text-secondary ring-1 ring-white/10 focus:outline-none transition-all duration-200 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`btn-success ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                   onClick={handleMyHuts}
                   disabled={isLoading}
                 >
@@ -156,7 +156,7 @@ const HomePage: React.FC = () => {
               </>
             )}
             <button 
-              className="px-4 py-2 rounded-2xl text-sm font-semibold bg-surface-2 hover:bg-surface-3 text-text-secondary ring-1 ring-white/10 focus:outline-none transition-all duration-200"
+              className="btn-primary"
               onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
             >
               Learn
@@ -166,7 +166,7 @@ const HomePage: React.FC = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="relative min-h-[70vh] flex items-end justify-center overflow-hidden mt-20 bg-surface-1 pb-16">
+      <section className="relative min-h-[70vh] flex items-end justify-center overflow-hidden section bg-surface-1">
         {/* Hero Animation */}
         <div className={`absolute inset-0 flex items-center justify-center z-10 transition-opacity duration-2000 ${!showAnimation ? 'opacity-0 pointer-events-none' : ''}`}>
           <video
@@ -202,7 +202,7 @@ const HomePage: React.FC = () => {
               Your Sovereign Multichain Paradise
             </p>
             <button 
-              className="px-4 py-2 rounded-2xl text-sm font-semibold bg-primary-600 hover:bg-primary-500 text-on-primary focus:ring-2 focus:ring-primary-400 focus:outline-none transition-all duration-200 text-lg px-12 py-4"
+              className="btn-bitcoin btn-lg"
               onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
             >
               Start Your Journey
@@ -212,9 +212,9 @@ const HomePage: React.FC = () => {
       </section>
 
       {/* Features Section */}
-      <section className="pt-16 pb-20 bg-surface-2">
-        <div className="container-app">
-          <h2 className="text-4xl font-bold text-center text-text-primary mb-12" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Your Personal Universal Router</h2>
+      <section className="section bg-surface-2">
+        <div className="container-app stack-lg">
+          <h2 className="text-4xl font-bold text-center text-text-primary" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Your Personal Universal Router</h2>
           
           <div className="grid-features">
             <div className="rounded-2xl border border-white/10 bg-surface-1 p-6 text-center">
@@ -281,7 +281,7 @@ const HomePage: React.FC = () => {
       </section>
 
       {/* Supported Assets Section */}
-      <section className="pt-16 pb-20 bg-bg">
+      <section className="section bg-bg">
         <div className="container-app">
           <h2 className="text-4xl font-bold text-center text-text-primary mb-12" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Supported Assets</h2>
           
@@ -406,7 +406,7 @@ const HomePage: React.FC = () => {
       </section>
 
       {/* How it Works Section */}
-      <section className="pt-20 pb-4 bg-bg">
+      <section className="section-tight bg-bg">
         <div className="container-app">
           <h2 id="how-it-works" className="text-4xl font-bold text-center text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>How it Works</h2>
           <p className="text-lg text-center text-text-secondary mb-16">Follow these simple steps to activate your personal Hut</p>
@@ -480,11 +480,11 @@ const HomePage: React.FC = () => {
       </section>
 
       {/* CTA Button Section */}
-      <section className="pt-12 pb-20 bg-bg">
+      <section className="section bg-bg">
         <div className="container-app">
           <div className="md:w-2/3 mx-auto flex justify-center">
             <button 
-              className="border-2 border-yellow-600 rounded-lg px-12 py-4 text-yellow-400 cursor-pointer hover:bg-yellow-600 hover:text-yellow-200 text-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-bitcoin btn-lg"
               onClick={handleGetHut}
               disabled={isLoading}
             >
@@ -496,7 +496,7 @@ const HomePage: React.FC = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-16 bg-surface-1 text-text-primary">
+      <footer className="section bg-surface-1 text-text-primary">
         <div className="container-app">
           <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
             <div className="flex items-center gap-2">

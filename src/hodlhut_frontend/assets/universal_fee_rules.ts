@@ -95,7 +95,7 @@ export function getUniversalFeeRules(
   // ============================================
   // RULE 3: DIRECT CHAIN FUSION - DIFFERENT GAS TOKEN
   // ============================================
-  // ckUSDC → USDC-ETH, ckUSDT → USDT-ETH, ckUSDC → USDC-SOL
+  // ckUSDC → USDC(ETH), ckUSDT → USDT(ETH), ckUSDC → USDC(SOL)
   // Direct minter operations requiring separate gas tokens (not deduct-from-final)
   const isDirectDifferentGas = isDirectChainFusionDifferentGas(toAsset);
   console.log('🔥 Direct Different Gas Check:', { toAsset, isDirectDifferentGas });
@@ -108,12 +108,12 @@ export function getUniversalFeeRules(
     let networkName: string;
     let gasPrice: number;
     
-    if (['USDC-ETH', 'USDT-ETH'].includes(toAsset)) {
+    if (['USDC(ETH)', 'USDT(ETH)'].includes(toAsset)) {
       gasAmount = 0.003;
       gasToken = 'ckETH';
       networkName = 'ETH';
       gasPrice = 3200; // ETH price
-    } else if (['USDC-SOL'].includes(toAsset)) {
+    } else if (['USDC(SOL)'].includes(toAsset)) {
       gasAmount = 0.001;
       gasToken = 'ckSOL';
       networkName = 'SOL';
@@ -182,8 +182,8 @@ function isDexPlusChainFusion(fromAsset: string, toAsset: string): boolean {
 
 function isDirectChainFusionDifferentGas(toAsset: string): boolean {
   // Direct Chain Fusion operations that require separate gas tokens
-  // USDC-ETH/USDT-ETH require ckETH, USDC-SOL requires ckSOL
-  return ['USDC-ETH', 'USDT-ETH', 'USDC-SOL'].includes(toAsset);
+  // USDC(ETH)/USDT(ETH) require ckETH, USDC(SOL) requires ckSOL
+  return ['USDC(ETH)', 'USDT(ETH)', 'USDC(SOL)'].includes(toAsset);
 }
 
 function getL1GasAmount(toAsset: string): number {
@@ -197,7 +197,7 @@ function getL1GasAmount(toAsset: string): number {
     'BTC': 0.0005,  // TODO: Replace with Bitcoin RPC canister call
     'ETH': 0.003,   // TODO: Replace with Ethereum RPC canister call  
     'SOL': 0.001,   // TODO: Replace with Solana RPC canister call
-    'USDC-SOL': 0.001  // TODO: Replace with Solana RPC canister call
+    'USDC(SOL)': 0.001  // TODO: Replace with Solana RPC canister call
   };
   return gasAmounts[toAsset] || 0;
 }
@@ -207,14 +207,14 @@ function getBridgeToken(toAsset: string): string {
     'BTC': 'ckBTC',
     'ETH': 'ckETH',
     'SOL': 'ckSOL',
-    'USDC-SOL': 'ckUSDC'
+    'USDC(SOL)': 'ckUSDC'
   };
   return bridges[toAsset] || 'ckUSDC';
 }
 
 function getNetworkName(toAsset: string): string {
   if (['BTC'].includes(toAsset)) return 'Bitcoin';
-  if (['ETH', 'USDC-ETH', 'USDT-ETH'].includes(toAsset)) return 'Ethereum';
-  if (['SOL', 'USDC-SOL'].includes(toAsset)) return 'Solana';
+  if (['ETH', 'USDC(ETH)', 'USDT(ETH)'].includes(toAsset)) return 'Ethereum';
+  if (['SOL', 'USDC(SOL)'].includes(toAsset)) return 'Solana';
   return 'Network';
 }
