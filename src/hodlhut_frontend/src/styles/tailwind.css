@@ -1145,6 +1145,12 @@ section.relative button.bg-primary-600:hover {
   @apply hover:bg-surface-2/50;
 }
 
+/* Unified portfolio header (no margins, part of container) */
+.portfolio-compact-header {
+  @apply p-4 cursor-pointer;
+  @apply flex items-center justify-between transition-all duration-200;
+}
+
 .portfolio-compact-content {
   @apply flex items-center gap-4 flex-1;
 }
@@ -1262,7 +1268,7 @@ section.relative button.bg-primary-600:hover {
 
 .collapsible-content.expanded {
   @apply max-h-[800px] opacity-100; /* Generous height for portfolio table */
-  padding-top: 1rem;
+  padding-top: 0;
   padding-bottom: 1rem;
 }
 

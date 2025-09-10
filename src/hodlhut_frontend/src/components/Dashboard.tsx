@@ -23,6 +23,8 @@ import {
   Waves,         // Surfer replacement
   PartyPopper,   // Celebration
   ArrowLeftRight, // Swap icon
+  ArrowUp,       // Reverse swap up arrow
+  ArrowDown,     // Reverse swap down arrow
   Star,          // Best for
   Target,        // Goals/targets
   PieChart,      // Portfolio stats
@@ -230,8 +232,15 @@ const Dashboard: React.FC = () => {
   const [swapAmount, setSwapAmount] = useState('');
   const [selectedDEX, setSelectedDEX] = useState<string | null>(null);
   
-  // Portfolio collapse state - default based on user flow
-  const [portfolioExpanded, setPortfolioExpanded] = useState(userFlow === 'returningUser');
+  // Portfolio collapse state - remember user preference, default based on user flow
+  const [portfolioExpanded, setPortfolioExpanded] = useState(() => {
+    const savedPreference = localStorage.getItem('portfolioExpanded');
+    if (savedPreference !== null) {
+      return JSON.parse(savedPreference);
+    }
+    // Default: expanded for returning users, collapsed for new users
+    return userFlow === 'returningUser';
+  });
   const [swapAnalysis, setSwapAnalysis] = useState<CompleteSwapAnalysis | null>(null);
   const [showRouteDetails, setShowRouteDetails] = useState(false);
   const [showSmartSolutions, setShowSmartSolutions] = useState(false);
@@ -244,6 +253,11 @@ const Dashboard: React.FC = () => {
   const [smartSolutions, setSmartSolutions] = useState<EnhancedSmartSolution[]>([]);
   const [selectedSolution, setSelectedSolution] = useState<number | null>(null);
   const [showAllSolutions, setShowAllSolutions] = useState(true);
+
+  // Save portfolio expansion preference to localStorage
+  useEffect(() => {
+    localStorage.setItem('portfolioExpanded', JSON.stringify(portfolioExpanded));
+  }, [portfolioExpanded]);
   
   // Smart Solutions Approval Modal State
   const [showApprovalModal, setShowApprovalModal] = useState(false);
@@ -888,14 +902,11 @@ const Dashboard: React.FC = () => {
       <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-surface-1 p-4">
         {/* From Asset */}
         <div className="bg-surface-2 border border-white/10 rounded-2xl p-6">
-          <div className="flex justify-between items-center mb-4">
+          <div className="mb-4">
             <label className="text-sm font-medium text-text-secondary">From</label>
-            <span className="text-sm text-text-muted">
-              Balance: {fromAsset && portfolio[fromAsset] ? formatAmount(portfolio[fromAsset]) : '--'}
-            </span>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 mb-4">
             <div className="flex-1 text-2xl font-semibold text-text-primary">
               {swapAmount || '0.0'}
             </div>
@@ -919,30 +930,80 @@ const Dashboard: React.FC = () => {
               })()}
             />
           </div>
+          
+          <div className="text-center">
+            <span className="text-sm text-text-muted">
+              Balance: {fromAsset && portfolio[fromAsset] ? formatAmount(portfolio[fromAsset]) : '--'}
+            </span>
+          </div>
         </div>
         
         {/* Swap Arrow and MAX Button */}
-        <div className="flex justify-between items-center py-2">
+        <div className="flex justify-between items-center py-6">
           <div className="flex-1"></div>
-          <button 
-            className="p-2 rounded-full bg-surface-3 hover:bg-surface-2 border border-white/10 transition-all duration-200"
-            onClick={() => {
-              if (fromAsset && toAsset && portfolio[toAsset]) {
-                const temp = fromAsset;
-                setFromAsset(toAsset);
-                setToAsset(temp);
-                setSwapAmount('');
-              } else {
-                alert('You can only reverse swap if you own both assets!');
-              }
-            }}
-            title="Reverse swap direction"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-text-primary">
-              <path d="M7 14L12 9L17 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M17 10L12 15L7 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
+          {(() => {
+            // Asset categorization logic
+            const ckAssetsAndICP = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+            const isFromCkAsset = ckAssetsAndICP.includes(fromAsset);
+            const isToCkAsset = ckAssetsAndICP.includes(toAsset);
+            const userOwnsToAsset = portfolio[toAsset] && portfolio[toAsset] > 0;
+            
+            // Case 1: Both are ckAssets/ICP AND user owns both - Show active reverse button
+            if (fromAsset && toAsset && isFromCkAsset && isToCkAsset && userOwnsToAsset) {
+              return (
+                <button 
+                  className="text-xs px-2 py-1 rounded-lg bg-primary-600 hover:bg-primary-500 text-on-primary transition-colors"
+                  onClick={() => {
+                    const temp = fromAsset;
+                    setFromAsset(toAsset);
+                    setToAsset(temp);
+                    setSwapAmount('');
+                  }}
+                  title="Reverse swap direction"
+                >
+                  <ArrowLeftRight size={14} className="rotate-90" />
+                </button>
+              );
+            }
+            
+            // Case 2: Both are ckAssets/ICP BUT user doesn't own TO asset - Show "Add Assets" button
+            if (fromAsset && toAsset && isFromCkAsset && isToCkAsset && !userOwnsToAsset) {
+              return (
+                <button 
+                  className="text-xs px-2 py-1 rounded-lg bg-primary-600 hover:bg-primary-500 text-on-primary transition-colors"
+                  onClick={() => setActiveSection('addAssets')}
+                  title={`Add ${toAsset} to enable reverse swap`}
+                >
+                  <Plus size={12} />
+                  Add Assets
+                </button>
+              );
+            }
+            
+            // Case 3: TO asset is L1/cross-chain - Show disabled reverse button  
+            if (fromAsset && toAsset && !isToCkAsset) {
+              return (
+                <button 
+                  className="p-2 rounded-full bg-surface-3/50 border border-white/5 transition-all duration-200 opacity-50 cursor-not-allowed"
+                  disabled
+                  title="Cannot reverse to cross-chain assets"
+                >
+                  <ArrowLeftRight size={12} className="text-text-muted rotate-90" />
+                </button>
+              );
+            }
+            
+            // Default: Show disabled reverse button when no assets selected
+            return (
+              <button 
+                className="p-2 rounded-full bg-surface-3/50 border border-white/5 transition-all duration-200 opacity-50 cursor-not-allowed"
+                disabled
+                title="Select assets to enable reverse swap"
+              >
+                <ArrowLeftRight size={12} className="text-text-muted rotate-90" />
+              </button>
+            );
+          })()}
           <div className="flex-1 flex justify-end">
             <button 
               className={`text-xs px-2 py-1 rounded-lg bg-primary-600 hover:bg-primary-500 text-on-primary transition-colors ${(!fromAsset || !portfolio[fromAsset]) ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -961,14 +1022,11 @@ const Dashboard: React.FC = () => {
         
         {/* To Asset */}
         <div className="bg-surface-2 border border-white/10 rounded-2xl p-6">
-          <div className="flex justify-between items-center mb-4">
+          <div className="mb-4">
             <label className="text-sm font-medium text-text-secondary">To</label>
-            <span className="text-sm text-text-muted">
-              Balance: You'll receive {toAsset || 'tokens'}
-            </span>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 mb-4">
             <div className="flex-1 text-2xl font-semibold text-text-primary">
               {swapAnalysis?.outputAmount ? formatAmount(swapAnalysis.outputAmount) : '0.0'}
             </div>
@@ -992,6 +1050,18 @@ const Dashboard: React.FC = () => {
                 { value: 'USDC(SOL)', label: 'USDC (SOL)' }
               ].filter(option => option.value !== fromAsset)}
             />
+          </div>
+          
+          <div className="text-center">
+            <span className="text-sm text-text-muted">
+              {(() => {
+                // Show dynamic "You'll receive" message based on swap analysis
+                if (fromAsset && toAsset && swapAmount && swapAnalysis?.outputAmount) {
+                  return `You'll receive: ${toAsset} ${formatAmount(swapAnalysis.outputAmount)}`;
+                }
+                return "You'll receive:";
+              })()}
+            </span>
           </div>
         </div>
       </div>
@@ -1623,10 +1693,10 @@ const Dashboard: React.FC = () => {
     const assetsWithBalance = fromAssets.filter(asset => portfolio[asset] && portfolio[asset] > 0);
     
     return (
-      <div className="mb-8">
+      <div className="mb-8 rounded-2xl border border-white/10 bg-surface-1 overflow-hidden transition-all duration-200 hover:bg-surface-2/50">
         {/* Collapsible Portfolio Compact Row */}
         <div 
-          className="portfolio-compact-row"
+          className="portfolio-compact-header"
           onClick={() => setPortfolioExpanded(!portfolioExpanded)}
         >
           <div className="portfolio-compact-content">
