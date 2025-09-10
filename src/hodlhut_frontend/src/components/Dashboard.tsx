@@ -217,8 +217,9 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Check if navigation state specifies an active section
+  // Check if navigation state specifies an active section and user flow
   const initialSection = (location.state as any)?.activeSection || 'addAssets';
+  const userFlow = (location.state as any)?.userFlow || 'newUser';
   const [activeSection, setActiveSection] = useState(initialSection);
   const [currentScenario, setCurrentScenario] = useState<keyof typeof PORTFOLIO_SCENARIOS>('defi-user');
   const [portfolio, setPortfolio] = useState<Portfolio>(PORTFOLIO_SCENARIOS[currentScenario]);
@@ -228,6 +229,9 @@ const Dashboard: React.FC = () => {
   const [toAsset, setToAsset] = useState('');
   const [swapAmount, setSwapAmount] = useState('');
   const [selectedDEX, setSelectedDEX] = useState<string | null>(null);
+  
+  // Portfolio collapse state - default based on user flow
+  const [portfolioExpanded, setPortfolioExpanded] = useState(userFlow === 'returningUser');
   const [swapAnalysis, setSwapAnalysis] = useState<CompleteSwapAnalysis | null>(null);
   const [showRouteDetails, setShowRouteDetails] = useState(false);
   const [showSmartSolutions, setShowSmartSolutions] = useState(false);
@@ -683,9 +687,19 @@ const Dashboard: React.FC = () => {
   const renderStatusBar = () => (
     <div className="bg-surface-2/90 p-3 rounded-xl mb-6 border border-white/10">
       <div className="flex justify-between items-center flex-wrap gap-4 text-sm text-text-secondary">
-        <div className="flex items-center"><PieChart className="inline w-4 h-4 mr-1" /> Portfolio: ${calculatePortfolioValue().toLocaleString()}</div>
-        <div className="flex items-center">⏰ Add Assets to activate your Sovereign Hut: {formatTime(timeRemaining)}</div>
-        <div className="flex items-center"><span className="w-2 h-2 rounded-full bg-success-500 mr-2"></span> Connected Live Onchain (Demo Mode)</div>
+        {userFlow === 'returningUser' ? (
+          // Returning user: Show Portfolio + Connected status
+          <>
+            <div className="flex items-center text-success-400"><PieChart className="inline w-4 h-4 mr-1" /> Portfolio: ${calculatePortfolioValue().toLocaleString()}</div>
+            <div className="flex items-center text-yellow-400"><span className="w-2 h-2 rounded-full bg-yellow-400 mr-2"></span> Connected Live Onchain (Demo Mode)</div>
+          </>
+        ) : (
+          // New user: Show Activation countdown + Connected status  
+          <>
+            <div className="flex items-center text-warning-400"><Clock className="inline w-4 h-4 mr-1" /> Add Assets to activate your Sovereign Hut: {formatTime(timeRemaining)}</div>
+            <div className="flex items-center text-yellow-400"><span className="w-2 h-2 rounded-full bg-yellow-400 mr-2"></span> Connected Live Onchain (Demo Mode)</div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -694,50 +708,34 @@ const Dashboard: React.FC = () => {
     <div className="mb-16">
       <div className="flex gap-3 justify-center flex-wrap">
         <button
-          className={`px-8 py-4 rounded-2xl font-semibold text-base cursor-pointer transition-all duration-300 flex items-center gap-2 ${
-            activeSection === 'addAssets' 
-              ? 'bg-primary-600 hover:bg-primary-500 text-on-primary focus:ring-2 focus:ring-primary-400 focus:outline-none transform -translate-y-1 shadow-lg' 
-              : 'bg-surface-2 hover:bg-surface-3 text-text-primary ring-1 ring-white/10 focus:outline-none'
-          }`}
+          className={activeSection === 'addAssets' ? 'btn-primary' : 'btn-secondary'}
           onClick={() => setActiveSection('addAssets')}
         >
           <Plus className="w-5 h-5" /> Add Assets
         </button>
         <button
-          className={`px-8 py-4 rounded-2xl font-semibold text-base cursor-pointer transition-all duration-300 flex items-center gap-2 ${
-            activeSection === 'swapAssets' 
-              ? 'bg-primary-600 hover:bg-primary-500 text-on-primary focus:ring-2 focus:ring-primary-400 focus:outline-none transform -translate-y-1 shadow-lg' 
-              : 'bg-surface-2 hover:bg-surface-3 text-text-primary ring-1 ring-white/10 focus:outline-none'
-          }`}
+          className={activeSection === 'swapAssets' ? 'btn-bitcoin' : 'btn-secondary'}
           onClick={() => setActiveSection('swapAssets')}
         >
           <ArrowLeftRight size={20} />Swap Assets
         </button>
         <button
-          className={`px-8 py-4 rounded-2xl font-semibold text-base cursor-pointer transition-all duration-300 flex items-center gap-2 ${
-            activeSection === 'myGarden' 
-              ? 'bg-primary-600 hover:bg-primary-500 text-on-primary focus:ring-2 focus:ring-primary-400 focus:outline-none transform -translate-y-1 shadow-lg' 
-              : 'bg-surface-2 hover:bg-surface-3 text-text-primary ring-1 ring-white/10 focus:outline-none'
-          }`}
+          className={activeSection === 'myGarden' ? 'btn-success' : 'btn-secondary'}
           onClick={() => setActiveSection('myGarden')}
         >
           🌱 My Garden
         </button>
         <button
-          className={`px-8 py-4 rounded-2xl font-semibold text-base cursor-pointer transition-all duration-300 flex items-center gap-2 ${
-            activeSection === 'transactionHistory' 
-              ? 'bg-primary-600 hover:bg-primary-500 text-on-primary focus:ring-2 focus:ring-primary-400 focus:outline-none transform -translate-y-1 shadow-lg' 
-              : 'bg-surface-2 hover:bg-surface-3 text-text-primary ring-1 ring-white/10 focus:outline-none'
-          }`}
+          className={activeSection === 'transactionHistory' ? 'btn-error' : 'btn-secondary'}
           onClick={() => setActiveSection('transactionHistory')}
         >
-          📋 History
+          History
         </button>
         <button
-          className="px-8 py-4 rounded-2xl text-base font-semibold bg-surface-2 hover:bg-surface-3 text-text-primary ring-1 ring-white/10 focus:outline-none transition-all duration-300 cursor-pointer flex items-center gap-2"
+          className="btn-secondary"
           onClick={handleBackToHome}
         >
-          🏠 Home
+          Home
         </button>
       </div>
     </div>
@@ -909,14 +907,16 @@ const Dashboard: React.FC = () => {
                 setSwapAmount('');
               }}
               placeholder="Select asset"
-              options={[
-                { value: 'ckBTC', label: 'ckBTC' },
-                { value: 'ckETH', label: 'ckETH' },
-                { value: 'ckSOL', label: 'ckSOL' },
-                { value: 'ckUSDC', label: 'ckUSDC' },
-                { value: 'ckUSDT', label: 'ckUSDT' },
-                { value: 'ICP', label: 'ICP' }
-              ]}
+              options={(() => {
+                // Only show assets available in the FROM dropdown that have a balance > 0
+                const fromAssets = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+                const assetsWithBalance = fromAssets.filter(asset => portfolio[asset] && portfolio[asset] > 0);
+                
+                return assetsWithBalance.map(asset => ({
+                  value: asset,
+                  label: `${asset} (${formatAmount(portfolio[asset])})`
+                }));
+              })()}
             />
           </div>
         </div>
@@ -1623,50 +1623,66 @@ const Dashboard: React.FC = () => {
     const assetsWithBalance = fromAssets.filter(asset => portfolio[asset] && portfolio[asset] > 0);
     
     return (
-      <div className="rounded-2xl border border-white/10 bg-surface-1 p-6 mb-8">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-bold text-text-primary">Portfolio Overview</h3>
-          <div className="text-right">
-            <div className="text-xl font-bold text-text-primary">${calculatePortfolioValue().toLocaleString()}</div>
-            <div className="text-sm text-success-400">+2.4% today</div>
+      <div className="mb-8">
+        {/* Collapsible Portfolio Compact Row */}
+        <div 
+          className="portfolio-compact-row"
+          onClick={() => setPortfolioExpanded(!portfolioExpanded)}
+        >
+          <div className="portfolio-compact-content">
+            <div className="portfolio-compact-title">Portfolio Overview</div>
+          </div>
+          <div className="portfolio-compact-value">
+            <div className="portfolio-compact-amount">${calculatePortfolioValue().toLocaleString()}</div>
+            <div className="portfolio-compact-change">+2.4% today</div>
+          </div>
+          <div className={`portfolio-expand-icon ${portfolioExpanded ? 'expanded' : ''}`}>
+            ▼
           </div>
         </div>
-        
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-white/10">
-                <th className="text-left text-text-secondary text-sm font-medium pb-3">Asset</th>
-                <th className="text-left text-text-secondary text-sm font-medium pb-3">Token</th>
-                <th className="text-right text-text-secondary text-sm font-medium pb-3">Amount</th>
-                <th className="text-right text-text-secondary text-sm font-medium pb-3">Value (USD)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {assetsWithBalance.map((asset) => {
-                const amount = portfolio[asset];
-                const usdValue = (MASTER_ASSETS[asset]?.price || 0) * amount;
-                return (
-                  <tr key={asset} className="border-b border-white/5 hover:bg-surface-2/50 transition-colors">
-                    <td className="py-4">
-                      <div className="flex items-center gap-3">
-                        <AssetIcon asset={asset} size={24} />
-                      </div>
-                    </td>
-                    <td className="py-4">
-                      <div className="text-text-primary font-medium">{asset}</div>
-                    </td>
-                    <td className="py-4 text-right">
-                      <div className="text-text-primary font-medium">{formatAmount(amount)}</div>
-                    </td>
-                    <td className="py-4 text-right">
-                      <div className="text-text-primary font-medium">${usdValue.toLocaleString()}</div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+
+        {/* Collapsible Content */}
+        <div className={`collapsible-content ${portfolioExpanded ? 'expanded' : 'collapsed'}`}>
+          <div className="portfolio-table-wrapper">
+            <div className="portfolio-table-content">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-white/10">
+                      <th className="text-left text-text-secondary text-sm font-medium pb-3">Asset</th>
+                      <th className="text-left text-text-secondary text-sm font-medium pb-3">Token</th>
+                      <th className="text-right text-text-secondary text-sm font-medium pb-3">Amount</th>
+                      <th className="text-right text-text-secondary text-sm font-medium pb-3">Value (USD)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {assetsWithBalance.map((asset) => {
+                      const amount = portfolio[asset];
+                      const usdValue = (MASTER_ASSETS[asset]?.price || 0) * amount;
+                      return (
+                        <tr key={asset} className="border-b border-white/5 hover:bg-surface-2/50 transition-colors">
+                          <td className="py-4">
+                            <div className="flex items-center gap-3">
+                              <AssetIcon asset={asset} size={24} />
+                            </div>
+                          </td>
+                          <td className="py-4">
+                            <div className="text-text-primary font-medium">{asset}</div>
+                          </td>
+                          <td className="py-4 text-right">
+                            <div className="text-text-primary font-medium">{formatAmount(amount)}</div>
+                          </td>
+                          <td className="py-4 text-right">
+                            <div className="text-text-primary font-medium">${usdValue.toLocaleString()}</div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );

@@ -43,28 +43,28 @@ const HomePage: React.FC = () => {
 
   const handleGetHut = async () => {
     if (isAuthenticated) {
-      // User is already authenticated, navigate to Add Assets
-      navigate('/dashboard', { state: { activeSection: 'addAssets' } });
+      // User is already authenticated, navigate to Add Assets with new user flow
+      navigate('/dashboard', { state: { activeSection: 'addAssets', userFlow: 'newUser' } });
     } else {
       // DEMO MODE: Skip login modal, simulate direct login
       console.log('Demo mode: Bypassing Internet Identity modal');
       const success = await login();
       if (success) {
-        navigate('/dashboard', { state: { activeSection: 'addAssets' } });
+        navigate('/dashboard', { state: { activeSection: 'addAssets', userFlow: 'newUser' } });
       }
     }
   };
 
   const handleMyHuts = async () => {
     if (isAuthenticated) {
-      // User is authenticated, navigate to Add Assets  
-      navigate('/dashboard', { state: { activeSection: 'addAssets' } });
+      // User is authenticated, navigate to Add Assets with returning user flow
+      navigate('/dashboard', { state: { activeSection: 'addAssets', userFlow: 'returningUser' } });
     } else {
       // DEMO MODE: Skip login modal, simulate direct login
       console.log('Demo mode: Bypassing Internet Identity modal');
       const success = await login();
       if (success) {
-        navigate('/dashboard', { state: { activeSection: 'addAssets' } });
+        navigate('/dashboard', { state: { activeSection: 'addAssets', userFlow: 'returningUser' } });
       }
     }
   };
@@ -75,7 +75,7 @@ const HomePage: React.FC = () => {
       if (success) {
         setShowIILogin(false);
         // Navigate to Dashboard with Add Assets section active
-        navigate('/dashboard', { state: { activeSection: 'addAssets' } });
+        navigate('/dashboard', { state: { activeSection: 'addAssets', userFlow: 'newUser' } });
       }
     } catch (error) {
       console.error('Internet Identity login failed:', error);

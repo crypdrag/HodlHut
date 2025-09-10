@@ -103,6 +103,7 @@ HodlHut is necessarily ambitious to explore the development of AI Agents within 
 **✅ What Users Can Experience Today:**
 
 **Frontend Interface:**
+**CRITICAL: Always check global CSS classes first. Never add utility classes as quick fixes. Follow Tailwind v4 architecture.**
 - Functional React-based dashboard with asset selection interfaces
 - Working FROM/TO asset dropdowns supporting BTC, ETH, SOL asset selection
 - DEX selection interface (`setSelectedDEX('KongSwap')` / `setSelectedDEX('ICPSwap')`)
