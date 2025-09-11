@@ -31,9 +31,7 @@ const assetIconMap: Record<string, string> = {
   'ckUSDC': ckUSDCIcon,
   'USDT': USDTIcon,
   'ckUSDT': ckUSDTIcon,
-  'USDC(SOL)': ckUSDCIcon,
-  'USDC(ETH)': USDCIcon,
-  'USDT(ETH)': USDTIcon,
+  'USDCs': ckUSDCIcon,
   'USDC_SOL': USDC_SOLIcon,
   'ICP': ICPIcon,
   'logo': HodlHutLogo

@@ -25,13 +25,11 @@ const TOKEN_ICON_MAP: Record<string, string> = {
   'ICP': 'ICP',
   
   // Stablecoins
-  'USDC': 'USDC',
+  'USDC': 'USDC', // Ethereum USDC uses USDC icon
   'ckUSDC': 'USDC', // Use USDC icon for chain key USDC
-  'USDT': 'USDT',
+  'USDT': 'USDT', // Ethereum USDT uses USDT icon
   'ckUSDT': 'USDT', // Use USDT icon for chain key USDT
-  'USDC(SOL)': 'USDC', // Solana USDC uses USDC icon
-  'USDC(ETH)': 'USDC', // Ethereum USDC uses USDC icon  
-  'USDT(ETH)': 'USDT', // Ethereum USDT uses USDT icon
+  'USDCs': 'USDC', // Solana USDC uses USDC icon
 };
 
 export function CryptoIcon({ 
@@ -46,5 +44,5 @@ export function CryptoIcon({
 
 // Your app's supported tokens:
 // BTC, ckBTC, ETH, ckETH, SOL, ckSOL, ICP
-// USDC, ckUSDC, USDT, ckUSDT, USDC(SOL), USDC(ETH), USDT(ETH)
+// USDC, ckUSDC, USDT, ckUSDT, USDCs
 // Usage: <CryptoIcon symbol="ckBTC" size="lg" className="text-warning-400" />
