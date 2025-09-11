@@ -21,6 +21,7 @@ export interface DepositModalProps {
   onClose: () => void;
   selectedAsset: string;
   onDepositComplete: (asset: string, amount: number) => void;
+  onContinue?: () => void; // Optional callback for Continue button
 }
 
 interface WalletOption {
@@ -117,7 +118,8 @@ const DepositModal: React.FC<DepositModalProps> = ({
   isOpen, 
   onClose, 
   selectedAsset, 
-  onDepositComplete 
+  onDepositComplete,
+  onContinue
 }) => {
   const [currentStep, setCurrentStep] = useState<DepositStep>(DepositStep.AmountInput);
   const [depositAmount, setDepositAmount] = useState<string>('');
@@ -162,6 +164,11 @@ const DepositModal: React.FC<DepositModalProps> = ({
     setDepositAmount('');
     setSelectedWallet('');
     setProcessingMessage('');
+    
+    // Call onContinue callback if provided (for resetting Add Assets component)
+    if (onContinue) {
+      onContinue();
+    }
     
     onClose();
   };

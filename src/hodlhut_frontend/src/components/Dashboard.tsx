@@ -251,6 +251,98 @@ const PORTFOLIO_SCENARIOS = {
   }
 };
 
+// Unified Deposit Assets Configuration
+const DEPOSIT_ASSETS_CONFIG = {
+  "Cross-Chain Deposits": [
+    { 
+      asset: "BTC", 
+      label: "Bitcoin", 
+      description: "Native BTC → ckBTC",
+      walletType: "Bitcoin Wallet",
+      backendNote: "Bitcoin wallet interface + Bitcoin RPC canister"
+    },
+    { 
+      asset: "ETH", 
+      label: "Ethereum", 
+      description: "Native ETH → ckETH",
+      walletType: "Ethereum Wallet",
+      backendNote: "Ethereum wallet interface + Ethereum RPC canister"
+    },
+    { 
+      asset: "SOL", 
+      label: "Solana", 
+      description: "Native SOL → ckSOL",
+      walletType: "Solana Wallet",
+      backendNote: "Solana wallet interface + Solana RPC canister"
+    },
+    { 
+      asset: "USDC", 
+      label: "USDC (Ethereum)", 
+      description: "ERC-20 USDC → ckUSDC",
+      walletType: "Ethereum Wallet",
+      backendNote: "Ethereum wallet interface + Ethereum RPC canister (ERC-20 USDC)"
+    },
+    { 
+      asset: "USDT", 
+      label: "USDT (Ethereum)", 
+      description: "ERC-20 USDT → ckUSDT",
+      walletType: "Ethereum Wallet",
+      backendNote: "Ethereum wallet interface + Ethereum RPC canister (ERC-20 USDT)"
+    },
+    { 
+      asset: "USDCs", 
+      label: "USDC (Solana)", 
+      description: "SPL USDC → ckUSDC",
+      walletType: "Solana Wallet",
+      backendNote: "Solana wallet interface + Solana RPC canister (SPL USDC)"
+    }
+  ],
+  "ICP Ecosystem": [
+    { 
+      asset: "ckBTC", 
+      label: "ckBTC", 
+      description: "Chain Key Bitcoin",
+      walletType: "ICP Wallet",
+      backendNote: "ICP wallet interface (Plug, etc.) + ICRC-1 token integration"
+    },
+    { 
+      asset: "ckETH", 
+      label: "ckETH", 
+      description: "Chain Key Ethereum",
+      walletType: "ICP Wallet",
+      backendNote: "ICP wallet interface (Plug, etc.) + ICRC-1 token integration"
+    },
+    { 
+      asset: "ckSOL", 
+      label: "ckSOL", 
+      description: "Chain Key Solana",
+      walletType: "ICP Wallet",
+      backendNote: "ICP wallet interface (Plug, etc.) + ICRC-1 token integration"
+    },
+    { 
+      asset: "ckUSDC", 
+      label: "ckUSDC", 
+      description: "Chain Key USDC",
+      walletType: "ICP Wallet",
+      backendNote: "ICP wallet interface (Plug, etc.) + ICRC-1 token integration"
+    },
+    { 
+      asset: "ckUSDT", 
+      label: "ckUSDT", 
+      description: "Chain Key USDT",
+      walletType: "ICP Wallet",
+      backendNote: "ICP wallet interface (Plug, etc.) + ICRC-1 token integration"
+    },
+    { 
+      asset: "ICP", 
+      label: "ICP", 
+      description: "Internet Computer",
+      walletType: "ICP Wallet",
+      backendNote: "ICP wallet interface (Plug, etc.) + native ICP integration"
+    }
+  ]
+};
+
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -293,6 +385,9 @@ const Dashboard: React.FC = () => {
   
   // Mobile Navigation State
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // Unified Deposit Interface State
+  const [selectedDepositAssetUnified, setSelectedDepositAssetUnified] = useState('');
 
   // Save portfolio expansion preference to localStorage
   useEffect(() => {
@@ -940,141 +1035,192 @@ const Dashboard: React.FC = () => {
     </div>
   );
 
-  const renderAddAssetsSection = () => (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="text-center mb-16">
-        <h2 className="text-4xl font-bold text-text-primary mb-6" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Add Assets to Your Portfolio</h2>
-      </div>
+  const renderAddAssetsSection = () => {
+    // Generate dropdown options from asset configuration
+    const generateDropdownOptions = () => {
+      const options: Array<{value: string, label: string, category: string}> = [];
       
-      {/* Chain Fusion Deposits */}
-      <div className="mb-20">
-        <div className="text-center mb-12">
-          <h3 className="text-3xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Chain Fusion Deposits</h3>
-          <p className="text-xl text-text-secondary">Deposit native assets from their L1 chains</p>
-        </div>
-        
-        <div className="grid-assets">
-          {/* BACKEND NOTE: Bitcoin wallet interface + Bitcoin RPC canister */}
-          <div className="asset-card-compact" onClick={() => startDeposit('BTC')}>
-            <div className="mb-3 flex justify-center items-center h-5">
-              <AssetIcon asset="BTC" size={20} />
-            </div>
-            <div className="text-base font-semibold text-text-primary mb-1">Bitcoin</div>
-            <div className="text-xs text-text-muted">Native BTC → ckBTC</div>
-          </div>
-          
-          {/* BACKEND NOTE: Ethereum wallet interface + Ethereum RPC canister */}
-          <div className="asset-card-compact" onClick={() => startDeposit('ETH')}>
-            <div className="mb-3 flex justify-center items-center h-5">
-              <AssetIcon asset="ETH" size={20} />
-            </div>
-            <div className="text-base font-semibold text-text-primary mb-1">Ethereum</div>
-            <div className="text-xs text-text-muted">Native ETH → ckETH</div>
-          </div>
-          
-          {/* BACKEND NOTE: Solana wallet interface + Solana RPC canister */}
-          <div className="asset-card-compact" onClick={() => startDeposit('SOL')}>
-            <div className="mb-3 flex justify-center items-center h-5">
-              <AssetIcon asset="SOL" size={20} />
-            </div>
-            <div className="text-base font-semibold text-text-primary mb-1">Solana</div>
-            <div className="text-xs text-text-muted">Native SOL → ckSOL</div>
-          </div>
-          
-          {/* BACKEND NOTE: Ethereum wallet interface + Ethereum RPC canister (ERC-20 USDC) */}
-          <div className="asset-card-compact" onClick={() => startDeposit('USDC')}>
-            <div className="mb-3 flex justify-center items-center h-5">
-              <AssetIcon asset="USDC" size={20} />
-            </div>
-            <div className="text-base font-semibold text-text-primary mb-1">USDC</div>
-            <div className="text-xs text-text-muted">Ethereum USDC → ckUSDC</div>
-          </div>
-          
-          {/* BACKEND NOTE: Ethereum wallet interface + Ethereum RPC canister (ERC-20 USDT) */}
-          <div className="asset-card-compact" onClick={() => startDeposit('USDT')}>
-            <div className="mb-3 flex justify-center items-center h-5">
-              <AssetIcon asset="USDT" size={20} />
-            </div>
-            <div className="text-base font-semibold text-text-primary mb-1">USDT</div>
-            <div className="text-xs text-text-muted">Ethereum USDT → ckUSDT</div>
-          </div>
-          
-          {/* BACKEND NOTE: Solana wallet interface + Solana RPC canister (SPL USDC) */}
-          <div className="asset-card-compact" onClick={() => startDeposit('USDCs')}>
-            <div className="mb-3 flex justify-center items-center h-5">
-              <AssetIcon asset="USDCs" size={20} />
-            </div>
-            <div className="text-base font-semibold text-text-primary mb-1">USDCs</div>
-            <div className="text-xs text-text-muted">Solana USDC → ckUSDC</div>
-          </div>
-        </div>
-      </div>
+      Object.entries(DEPOSIT_ASSETS_CONFIG).forEach(([category, assets]) => {
+        assets.forEach(asset => {
+          options.push({
+            value: asset.asset,
+            label: asset.label,
+            category: category
+          });
+        });
+      });
+      
+      return options;
+    };
 
-      {/* ICRC/ICP Assets */}
-      <div className="mb-20">
-        <div className="text-center mb-12">
-          <h3 className="text-3xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Add ICRC and ICP Assets</h3>
-          <p className="text-xl text-text-secondary">Deposit assets already on the Internet Computer Protocol</p>
+    // Find selected asset details
+    const getSelectedAssetDetails = () => {
+      if (!selectedDepositAssetUnified) return null;
+      
+      for (const [category, assets] of Object.entries(DEPOSIT_ASSETS_CONFIG)) {
+        const asset = assets.find(a => a.asset === selectedDepositAssetUnified);
+        if (asset) {
+          return { ...asset, category };
+        }
+      }
+      return null;
+    };
+
+    const selectedAssetDetails = getSelectedAssetDetails();
+
+    return (
+      <div className="w-full flex flex-col items-center px-4 py-8">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Add Assets to Your Portfolio</h2>
+          <p className="text-lg text-text-secondary">Choose an asset to deposit from L1 chains or ICP ecosystem</p>
         </div>
         
-        <div className="grid-assets">
-          <div className="asset-card-compact" onClick={() => startDeposit('ckBTC')}>
-            {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
-            <div className="mb-3 flex justify-center items-center h-5">
-              <AssetIcon asset="ckBTC" size={20} />
+        {/* Unified Deposit Interface */}
+        <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-surface-1 p-6">
+          {/* Asset Selection Dropdown */}
+          <div className="mb-6">
+            <label className="text-sm font-medium text-text-secondary mb-3 block">Select Asset to Deposit</label>
+            <CustomDropdown
+              className="w-full min-h-[50px]"
+              value={selectedDepositAssetUnified}
+              onChange={(value) => setSelectedDepositAssetUnified(value)}
+              placeholder="Choose an asset..."
+              options={generateDropdownOptions()}
+              portfolio={portfolio}
+            />
+            
+            {/* Balance Display */}
+            <div className="text-center mt-2">
+              <span className="text-sm text-text-muted">
+                {selectedDepositAssetUnified && portfolio[selectedDepositAssetUnified] ? (
+                  <>
+                    Balance: {formatAmount(portfolio[selectedDepositAssetUnified])} {selectedDepositAssetUnified}
+                    <span className="mx-2">•</span>
+                    <span className="text-success-400">
+                      ${(portfolio[selectedDepositAssetUnified] * (MASTER_ASSETS[selectedDepositAssetUnified]?.price || 0)).toLocaleString()}
+                    </span>
+                  </>
+                ) : selectedDepositAssetUnified ? (
+                  'Balance: 0'
+                ) : (
+                  'Select an asset to view balance'
+                )}
+              </span>
             </div>
-            <div className="text-base font-semibold text-text-primary mb-1">ckBTC</div>
-            <div className="text-xs text-text-muted">Chain Key Bitcoin</div>
+          </div>
+
+          {/* Asset Preview */}
+          {selectedAssetDetails && (
+            <div className="mb-6 p-4 bg-surface-2 border border-white/10 rounded-2xl">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 flex items-center justify-center bg-surface-3 rounded-xl">
+                  <AssetIcon asset={selectedAssetDetails.asset} size={24} />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-text-primary">{selectedAssetDetails.label}</h3>
+                  <p className="text-sm text-text-secondary">{selectedAssetDetails.description}</p>
+                </div>
+              </div>
+              
+              {/* Wallet Type Info */}
+              <div className="flex items-center justify-between p-3 bg-surface-1 rounded-lg border border-white/5">
+                <div className="flex items-center gap-2">
+                  <Wallet size={16} className="text-primary-400" />
+                  <span className="text-sm font-medium text-text-secondary">Wallet Required:</span>
+                </div>
+                <span className="text-sm font-semibold text-primary-400">{selectedAssetDetails.walletType}</span>
+              </div>
+              
+              {/* Category Badge */}
+              <div className="flex justify-between items-center mt-3">
+                <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                  selectedAssetDetails.category === 'Cross-Chain Deposits' 
+                    ? 'bg-warning-400/15 text-warning-300 border border-warning-400/30'
+                    : 'bg-success-400/15 text-success-300 border border-success-400/30'
+                }`}>
+                  {selectedAssetDetails.category}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Connect Wallet Button */}
+          {selectedAssetDetails ? (
+            <button
+              className="w-full btn-primary min-h-[60px] text-base font-semibold flex items-center justify-center gap-3 transition-all duration-200 hover:scale-[1.02]"
+              onClick={() => {
+                // BACKEND NOTE: Preserve all wallet integration backend notes
+                console.log(`Backend integration: ${selectedAssetDetails.backendNote}`);
+                startDeposit(selectedAssetDetails.asset);
+              }}
+            >
+              <Wallet size={20} />
+              Connect {selectedAssetDetails.walletType}
+            </button>
+          ) : (
+            <div className="w-full min-h-[60px] flex items-center justify-center text-text-muted bg-surface-2 rounded-xl border border-white/5">
+              <div className="text-center">
+                <p className="text-sm font-medium">Select an asset above to continue</p>
+                <p className="text-xs mt-1">Connect your wallet to start depositing</p>
+              </div>
+            </div>
+          )}
+
+          {/* Help Text */}
+          <div className="mt-6 text-center">
+            <p className="text-xs text-text-muted">
+              Choose from {Object.values(DEPOSIT_ASSETS_CONFIG).flat().length} supported assets across Bitcoin, Ethereum, Solana, and ICP
+            </p>
+          </div>
+        </div>
+
+        {/* Quick Access Cards (Mobile Optimized) */}
+        <div className="w-full max-w-lg mt-8">
+          <div className="text-center mb-4">
+            <h3 className="text-lg font-semibold text-text-primary">Popular Assets</h3>
+            <p className="text-sm text-text-secondary">Quick access to commonly deposited assets</p>
           </div>
           
-          <div className="asset-card-compact" onClick={() => startDeposit('ckETH')}>
-            {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
-            <div className="mb-3 flex justify-center items-center h-5">
-              <AssetIcon asset="ckETH" size={20} />
-            </div>
-            <div className="text-base font-semibold text-text-primary mb-1">ckETH</div>
-            <div className="text-xs text-text-muted">Chain Key Ethereum</div>
-          </div>
-          
-          <div className="asset-card-compact" onClick={() => startDeposit('ckUSDC')}>
-            {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
-            <div className="mb-3 flex justify-center items-center h-5">
-              <AssetIcon asset="ckUSDC" size={20} />
-            </div>
-            <div className="text-base font-semibold text-text-primary mb-1">ckUSDC</div>
-            <div className="text-xs text-text-muted">Chain Key USDC</div>
-          </div>
-          
-          <div className="asset-card-compact" onClick={() => startDeposit('ckUSDT')}>
-            {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
-            <div className="mb-3 flex justify-center items-center h-5">
-              <AssetIcon asset="ckUSDT" size={20} />
-            </div>
-            <div className="text-base font-semibold text-text-primary mb-1">ckUSDT</div>
-            <div className="text-xs text-text-muted">Chain Key USDT</div>
-          </div>
-          
-          <div className="asset-card-compact" onClick={() => startDeposit('ckSOL')}>
-            {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
-            <div className="mb-3 flex justify-center items-center h-5">
-              <AssetIcon asset="ckSOL" size={20} />
-            </div>
-            <div className="text-base font-semibold text-text-primary mb-1">ckSOL</div>
-            <div className="text-xs text-text-muted">Chain Key Solana</div>
-          </div>
-          
-          <div className="asset-card-compact" onClick={() => startDeposit('ICP')}>
-            {/* Backend: ICP wallet interface (Plug, etc.) + native ICP integration */}
-            <div className="mb-3 flex justify-center items-center h-5">
-              <AssetIcon asset="ICP" size={20} />
-            </div>
-            <div className="text-base font-semibold text-text-primary mb-1">ICP</div>
-            <div className="text-xs text-text-muted">Internet Computer</div>
+          <div className="grid grid-cols-2 gap-3">
+            {['BTC', 'ETH', 'ckBTC', 'ICP'].map(asset => {
+              const assetDetails = Object.values(DEPOSIT_ASSETS_CONFIG)
+                .flat()
+                .find(a => a.asset === asset);
+              
+              if (!assetDetails) return null;
+              
+              const hasBalance = portfolio[asset] && portfolio[asset] > 0;
+              const balance = portfolio[asset] || 0;
+              const balanceUSD = balance * (MASTER_ASSETS[asset]?.price || 0);
+              
+              return (
+                <button
+                  key={asset}
+                  className={`p-4 border border-white/10 rounded-xl hover:bg-surface-3 transition-all duration-200 text-left ${
+                    hasBalance ? 'bg-surface-2' : 'bg-surface-1'
+                  }`}
+                  onClick={() => setSelectedDepositAssetUnified(asset)}
+                >
+                  <div className="flex items-center gap-3">
+                    <AssetIcon asset={asset} size={20} />
+                    <div className="flex-1">
+                      <div className="text-sm font-semibold text-text-primary">{assetDetails.label}</div>
+                      <div className="text-xs text-text-muted">{assetDetails.walletType}</div>
+                      {hasBalance && (
+                        <div className="text-xs text-success-400 mt-1">
+                          {formatAmount(balance)} • ${balanceUSD.toLocaleString()}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderSwapAssetsSection = () => (
     <div className="w-full flex flex-col items-center px-4 py-8">
@@ -1966,6 +2112,12 @@ const Dashboard: React.FC = () => {
     console.log(`✅ Deposit completed: ${amount} ${asset}`);
   };
 
+  // Reset Add Assets component to initial state
+  const resetAddAssetsComponent = () => {
+    setSelectedDepositAssetUnified('');
+    console.log('🔄 Add Assets component reset to initial state');
+  };
+
   // Smart decimal formatting - remove decimals for whole numbers >= 1
 
   const renderActiveSection = () => {
@@ -2006,6 +2158,7 @@ const Dashboard: React.FC = () => {
         onClose={closeDepositModal}
         selectedAsset={selectedDepositAsset}
         onDepositComplete={handleDepositComplete}
+        onContinue={resetAddAssetsComponent}
       />
 
       {/* Smart Solutions Approval Modal */}
