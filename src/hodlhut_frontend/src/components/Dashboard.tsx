@@ -118,7 +118,8 @@ const CustomDropdown: React.FC<{
   placeholder: string;
   className?: string;
   portfolio?: Portfolio;
-}> = ({ options, value, onChange, placeholder, className, portfolio = {} }) => {
+  showBalances?: (asset: string) => boolean; // Function to determine if balance should be shown
+}> = ({ options, value, onChange, placeholder, className, portfolio = {}, showBalances }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = React.useRef<HTMLDivElement>(null);
@@ -175,6 +176,7 @@ const CustomDropdown: React.FC<{
             const balance = portfolio[option.value] || 0;
             const hasBalance = balance > 0;
             const balanceUSD = balance * (MASTER_ASSETS[option.value]?.price || 0);
+            const shouldShowBalance = showBalances ? showBalances(option.value) : true; // Default to showing balances
             
             return (
               <div
@@ -192,14 +194,16 @@ const CustomDropdown: React.FC<{
                   <AssetIcon asset={option.value} size={20} />
                   <span className="dropdown-asset-name">{option.label}</span>
                 </div>
-                <div className="dropdown-option-right">
-                  <div className="dropdown-balance-amount">
-                    {hasBalance ? formatAmount(balance) : '0'}
+                {shouldShowBalance && (
+                  <div className="dropdown-option-right">
+                    <div className="dropdown-balance-amount">
+                      {hasBalance ? formatAmount(balance) : '0'}
+                    </div>
+                    <div className="dropdown-balance-usd">
+                      ${balanceUSD.toLocaleString()}
+                    </div>
                   </div>
-                  <div className="dropdown-balance-usd">
-                    ${balanceUSD.toLocaleString()}
-                  </div>
-                </div>
+                )}
               </div>
             );
           })}
@@ -1087,24 +1091,45 @@ const Dashboard: React.FC = () => {
               placeholder="Choose an asset..."
               options={generateDropdownOptions()}
               portfolio={portfolio}
+              showBalances={(asset: string) => {
+                // Only show balances for ICP Ecosystem assets
+                const icpEcosystemAssets = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+                return icpEcosystemAssets.includes(asset);
+              }}
             />
             
-            {/* Balance Display */}
+            {/* Balance Display - Only show for ICP Ecosystem assets */}
             <div className="text-center mt-2">
               <span className="text-sm text-text-muted">
-                {selectedDepositAssetUnified && portfolio[selectedDepositAssetUnified] ? (
-                  <>
-                    Balance: {formatAmount(portfolio[selectedDepositAssetUnified])} {selectedDepositAssetUnified}
-                    <span className="mx-2">•</span>
-                    <span className="text-success-400">
-                      ${(portfolio[selectedDepositAssetUnified] * (MASTER_ASSETS[selectedDepositAssetUnified]?.price || 0)).toLocaleString()}
-                    </span>
-                  </>
-                ) : selectedDepositAssetUnified ? (
-                  'Balance: 0'
-                ) : (
-                  'Select an asset to view balance'
-                )}
+                {(() => {
+                  if (!selectedDepositAssetUnified) {
+                    return 'Select an asset to view balance';
+                  }
+                  
+                  // Check if selected asset is from ICP Ecosystem (has balances in portfolio)
+                  const icpEcosystemAssets = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+                  const isIcpEcosystemAsset = icpEcosystemAssets.includes(selectedDepositAssetUnified);
+                  
+                  if (isIcpEcosystemAsset) {
+                    const balance = portfolio[selectedDepositAssetUnified] || 0;
+                    if (balance > 0) {
+                      return (
+                        <>
+                          Balance: {formatAmount(balance)} {selectedDepositAssetUnified}
+                          <span className="mx-2">•</span>
+                          <span className="text-success-400">
+                            ${(balance * (MASTER_ASSETS[selectedDepositAssetUnified]?.price || 0)).toLocaleString()}
+                          </span>
+                        </>
+                      );
+                    } else {
+                      return `Balance: 0 ${selectedDepositAssetUnified}`;
+                    }
+                  } else {
+                    // For L1 assets (BTC, ETH, SOL, etc.), show deposit flow message
+                    return 'Deposit to receive chain-key tokens in your portfolio';
+                  }
+                })()}
               </span>
             </div>
           </div>
@@ -1189,7 +1214,10 @@ const Dashboard: React.FC = () => {
               
               if (!assetDetails) return null;
               
-              const hasBalance = portfolio[asset] && portfolio[asset] > 0;
+              // Only show balances for ICP Ecosystem assets
+              const icpEcosystemAssets = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+              const isIcpEcosystemAsset = icpEcosystemAssets.includes(asset);
+              const hasBalance = isIcpEcosystemAsset && portfolio[asset] && portfolio[asset] > 0;
               const balance = portfolio[asset] || 0;
               const balanceUSD = balance * (MASTER_ASSETS[asset]?.price || 0);
               
