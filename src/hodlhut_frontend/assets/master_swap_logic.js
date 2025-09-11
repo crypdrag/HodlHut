@@ -40,7 +40,7 @@ export function calculateSwapRoute(fromAsset, toAsset) {
             bridgeAsset = toAsset === 'ETH' ? 'ckETH' : 'ckUSDC';
             chainsInvolved.push('Ethereum');
         }
-        else if (['SOL', 'USDC(SOL)'].includes(toAsset)) {
+        else if (['SOL', 'USDCs'].includes(toAsset)) {
             bridgeAsset = toAsset === 'SOL' ? 'ckSOL' : 'ckUSDC';
             chainsInvolved.push('Solana');
         }
@@ -77,9 +77,7 @@ export function needsDEXSelection(fromAsset, toAsset) {
         ['ckUSDC', 'USDC'], ['USDC', 'ckUSDC'],
         ['ckUSDT', 'USDT'], ['USDT', 'ckUSDT'],
         ['ckSOL', 'SOL'], ['SOL', 'ckSOL'],
-        ['ckUSDC', 'USDC(SOL)'], ['USDC(SOL)', 'ckUSDC'],
-        ['ckUSDC', 'USDC(ETH)'], ['USDC(ETH)', 'ckUSDC'],
-        ['ckUSDT', 'USDT(ETH)'], ['USDT(ETH)', 'ckUSDT']
+        ['ckUSDC', 'USDCs'], ['USDCs', 'ckUSDC']
     ];
     const isDirect = minterPairs.some(pair => (pair[0] === fromAsset && pair[1] === toAsset) ||
         (pair[1] === fromAsset && pair[0] === toAsset));
@@ -93,7 +91,7 @@ export function needsDEXSelection(fromAsset, toAsset) {
  */
 export function calculateExchangeRate(fromAsset, toAsset) {
     // SPECIAL CASE: Stablecoin to stablecoin conversions are always 1:1
-    const stablecoins = ['ckUSDC', 'ckUSDT', 'USDC(ETH)', 'USDT(ETH)', 'USDC(SOL)', 'USDC', 'USDT'];
+    const stablecoins = ['ckUSDC', 'ckUSDT', 'USDC', 'USDT', 'USDCs'];
     
     console.log('🔄 EXCHANGE RATE CALC:', { fromAsset, toAsset, fromIsStable: stablecoins.includes(fromAsset), toIsStable: stablecoins.includes(toAsset) });
     
@@ -176,7 +174,7 @@ export function calculateBaseSwapRate(fromAsset, toAsset, amount) {
     const baseRate = calculateExchangeRate(fromAsset, toAsset);
     
     // SPECIAL CASE: No price impact for stablecoin Chain Fusion operations
-    const stablecoins = ['ckUSDC', 'ckUSDT', 'USDC(ETH)', 'USDT(ETH)', 'USDC(SOL)', 'USDC', 'USDT'];
+    const stablecoins = ['ckUSDC', 'ckUSDT', 'USDC', 'USDT', 'USDCs'];
     const isStablecoinOperation = stablecoins.includes(fromAsset) && stablecoins.includes(toAsset);
     
     const priceImpact = isStablecoinOperation ? 0 : calculatePriceImpact(fromAsset, toAsset, amount);
@@ -254,8 +252,8 @@ export function calculateFeeRequirements(fromAsset, toAsset, amount, portfolio, 
 function calculateL1GasFee(toAsset, portfolio) {
     console.log('🔍 ETH Gas Fee Debug:', { toAsset });
     
-    // Ethereum gas fees - FIXED: Include USDC(ETH), USDT(ETH) 
-    if (['ETH', 'USDC(ETH)', 'USDT(ETH)'].includes(toAsset)) {
+    // Ethereum gas fees - FIXED: Include USDC, USDT 
+    if (['ETH', 'USDC', 'USDT'].includes(toAsset)) {
         const ethGasAmount = 0.003;
         const ethGasUSD = ethGasAmount * ASSET_PRICES['ckETH'];
         console.log('🔍 ETH Gas Fee Calculation:', {
@@ -275,7 +273,7 @@ function calculateL1GasFee(toAsset, portfolio) {
         };
     }
     // Solana fees
-    if (['SOL', 'USDC(SOL)'].includes(toAsset)) {
+    if (['SOL', 'USDCs'].includes(toAsset)) {
         const solFeeAmount = 0.001;
         const solFeeUSD = solFeeAmount * ASSET_PRICES['ckSOL'];
         return {

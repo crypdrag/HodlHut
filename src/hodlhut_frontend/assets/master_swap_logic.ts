@@ -132,10 +132,10 @@ export function calculateSwapRoute(fromAsset: string, toAsset: string): SwapRout
     if (toAsset === 'BTC') {
       bridgeAsset = 'ckBTC';
       chainsInvolved.push('Bitcoin');
-    } else if (['ETH', 'USDC', 'USDT', 'USDC(ETH)', 'USDT(ETH)'].includes(toAsset)) {
+    } else if (['ETH', 'USDC', 'USDT'].includes(toAsset)) {
       bridgeAsset = toAsset === 'ETH' ? 'ckETH' : 'ckUSDC';
       chainsInvolved.push('Ethereum');
-    } else if (['SOL', 'USDC(SOL)'].includes(toAsset)) {
+    } else if (['SOL', 'USDCs'].includes(toAsset)) {
       bridgeAsset = toAsset === 'SOL' ? 'ckSOL' : 'ckUSDC';
       chainsInvolved.push('Solana');
     }
@@ -176,9 +176,7 @@ export function needsDEXSelection(fromAsset: string, toAsset: string): boolean {
     ['ckUSDC', 'USDC'], ['USDC', 'ckUSDC'],
     ['ckUSDT', 'USDT'], ['USDT', 'ckUSDT'],
     ['ckSOL', 'SOL'], ['SOL', 'ckSOL'],
-    ['ckUSDC', 'USDC(SOL)'], ['USDC(SOL)', 'ckUSDC'],
-    ['ckUSDC', 'USDC(ETH)'], ['USDC(ETH)', 'ckUSDC'],
-    ['ckUSDT', 'USDT(ETH)'], ['USDT(ETH)', 'ckUSDT']
+    ['ckUSDC', 'USDCs'], ['USDCs', 'ckUSDC']
   ];
   
   const isDirect = minterPairs.some(pair => 
@@ -198,7 +196,7 @@ export function needsDEXSelection(fromAsset: string, toAsset: string): boolean {
  */
 export function calculateExchangeRate(fromAsset: string, toAsset: string): number {
   // SPECIAL CASE: Stablecoin to stablecoin conversions are always 1:1
-  const stablecoins = ['ckUSDC', 'ckUSDT', 'USDC(ETH)', 'USDT(ETH)', 'USDC(SOL)', 'USDC', 'USDT'];
+  const stablecoins = ['ckUSDC', 'ckUSDT', 'USDC', 'USDT', 'USDCs'];
   
   if (stablecoins.includes(fromAsset) && stablecoins.includes(toAsset)) {
     return 1.0; // 1:1 exchange rate for all USD-pegged stablecoins
@@ -288,7 +286,7 @@ export function calculateBaseSwapRate(fromAsset: string, toAsset: string, amount
   const baseRate = calculateExchangeRate(fromAsset, toAsset);
   
   // SPECIAL CASE: No price impact for stablecoin Chain Fusion operations
-  const stablecoins = ['ckUSDC', 'ckUSDT', 'USDC(ETH)', 'USDT(ETH)', 'USDC(SOL)', 'USDC', 'USDT'];
+  const stablecoins = ['ckUSDC', 'ckUSDT', 'USDC', 'USDT', 'USDCs'];
   const isStablecoinOperation = stablecoins.includes(fromAsset) && stablecoins.includes(toAsset);
   
   const priceImpact = isStablecoinOperation ? 0 : calculatePriceImpact(fromAsset, toAsset, amount);
@@ -381,12 +379,12 @@ export function calculateFeeRequirements(
 // Helper function to determine if withdrawal supports fee deduction from amount
 function isNativeL1Asset(toAsset: string): boolean {
   // Native Layer 1 assets where fees are deducted from withdrawal amount
-  return ['BTC', 'ETH', 'SOL', 'USDC(SOL)'].includes(toAsset);
+  return ['BTC', 'ETH', 'SOL', 'USDCs'].includes(toAsset);
 }
 
 function calculateL1GasFee(toAsset: string, portfolio: Portfolio): FeeRequirement | null {
   // UNIVERSAL RULE: ERC-20 tokens on Ethereum require separate ETH gas
-  if (['USDC(ETH)', 'USDT(ETH)'].includes(toAsset)) {
+  if (['USDC', 'USDT'].includes(toAsset)) {
     const ethGasAmount = 0.003;
     const ethGasUSD = ethGasAmount * ASSET_PRICES['ckETH'];
     
@@ -423,7 +421,7 @@ function calculateL1GasFee(toAsset: string, portfolio: Portfolio): FeeRequiremen
       feeAmount = 0.003;
       feeToken = 'ckETH';
       description = 'Ethereum Gas Fee (deducted from final amount)';
-    } else if (['SOL', 'USDC(SOL)'].includes(toAsset)) {
+    } else if (['SOL', 'USDCs'].includes(toAsset)) {
       feeAmount = 0.001;
       feeToken = 'ckSOL';
       description = 'Solana Network Fee (deducted from final amount)';
