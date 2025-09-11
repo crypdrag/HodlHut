@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import DepositModal from './DepositModal';
 import { MASTER_ASSETS, Portfolio } from '../../assets/master_asset_data';
 import { 
@@ -36,7 +37,10 @@ import {
   Wallet,        // Wallet connections
   Circle,        // Generic icons
   Link,          // Connections/links
-  Lock           // Security/authentication
+  Lock,          // Security/authentication
+  Menu,          // Hamburger menu
+  X,             // Close menu
+  Home           // Home icon
 } from 'lucide-react';
 // Tailwind CSS classes now handle all styling
 
@@ -250,6 +254,7 @@ const PORTFOLIO_SCENARIOS = {
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout } = useAuth();
   
   // Check if navigation state specifies an active section and user flow
   const initialSection = (location.state as any)?.activeSection || 'addAssets';
@@ -285,6 +290,9 @@ const Dashboard: React.FC = () => {
   const [smartSolutions, setSmartSolutions] = useState<EnhancedSmartSolution[]>([]);
   const [selectedSolution, setSelectedSolution] = useState<number | null>(null);
   const [showAllSolutions, setShowAllSolutions] = useState(true);
+  
+  // Mobile Navigation State
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Save portfolio expansion preference to localStorage
   useEffect(() => {
@@ -726,63 +734,208 @@ const Dashboard: React.FC = () => {
     return 1.0;
   };
 
-  const handleBackToHome = () => {
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      // Navigate to home and reload page to clear all connections
+      navigate('/');
+      window.location.reload();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
-  const renderStatusBar = () => (
-    <div className="bg-surface-2/90 p-3 rounded-xl mb-6 border border-white/10">
-      <div className="flex justify-between items-center flex-wrap gap-4 text-sm text-text-secondary">
-        {userFlow === 'returningUser' ? (
-          // Returning user: Show Portfolio + Connected status
-          <>
-            <div className="flex items-center text-success-400"><PieChart className="inline w-4 h-4 mr-1" /> Portfolio: ${calculatePortfolioValue().toLocaleString()}</div>
-            <div className="flex items-center text-yellow-400"><span className="w-2 h-2 rounded-full bg-yellow-400 mr-2"></span> Connected Live Onchain (Demo Mode)</div>
-          </>
-        ) : (
-          // New user: Show Activation countdown + Connected status  
-          <>
-            <div className="flex items-center text-warning-400"><Clock className="inline w-4 h-4 mr-1" /> Add Assets to activate your Sovereign Hut: {formatTime(timeRemaining)}</div>
-            <div className="flex items-center text-yellow-400"><span className="w-2 h-2 rounded-full bg-yellow-400 mr-2"></span> Connected Live Onchain (Demo Mode)</div>
-          </>
+  const renderIntegratedHeader = () => (
+    <div className="bg-surface-2/90 border border-white/10 rounded-xl mb-3 md:mb-6">
+      {/* Mobile Integrated Header */}
+      <div className="md:hidden">
+        <div className="flex items-center justify-between p-3">
+          {/* Left: Hamburger Menu */}
+          <button
+            className="btn-primary min-h-[44px] px-3"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle navigation menu"
+          >
+            {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+          </button>
+          
+          {/* Center: Status Info */}
+          <div className="flex-1 mx-3 text-center">
+            {userFlow === 'returningUser' ? (
+              <div className="text-success-400 text-sm font-medium">
+                <PieChart className="inline w-4 h-4 mr-1" />
+                ${calculatePortfolioValue().toLocaleString()}
+              </div>
+            ) : (
+              <div className="text-warning-400 text-xs font-medium">
+                <Clock className="inline w-4 h-4 mr-1" />
+                Activate: {formatTime(timeRemaining)}
+              </div>
+            )}
+          </div>
+          
+          {/* Right: Connection Status */}
+          <div className="flex items-center text-yellow-400 text-xs">
+            <span className="w-2 h-2 rounded-full bg-yellow-400 mr-1"></span>
+            Live
+          </div>
+        </div>
+        
+        {/* Mobile Menu Overlay */}
+        {mobileMenuOpen && (
+          <div className="fixed inset-0 z-50 bg-overlay-1" onClick={() => setMobileMenuOpen(false)}>
+            <div 
+              className="fixed top-0 left-0 h-full w-80 max-w-[85vw] bg-surface-1 shadow-2xl transform transition-transform duration-300 ease-in-out"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Mobile Menu Header */}
+              <div className="flex items-center justify-between p-6 border-b border-white/10">
+                <h2 className="text-lg font-bold text-text-primary">My Hut</h2>
+                <button
+                  className="btn-secondary p-2"
+                  onClick={() => setMobileMenuOpen(false)}
+                  aria-label="Close menu"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              
+              {/* Mobile Menu Items */}
+              <nav className="p-6 space-y-4">
+                <button
+                  className={`w-full text-left p-4 rounded-xl flex items-center gap-3 transition-all duration-200 ${
+                    activeSection === 'addAssets' 
+                      ? 'bg-primary-600/15 border border-primary-500 text-primary-400' 
+                      : 'bg-surface-2 hover:bg-surface-3 text-text-primary border border-white/10'
+                  }`}
+                  onClick={() => {
+                    setActiveSection('addAssets');
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <Plus size={20} />
+                  <span className="font-medium">Add Assets</span>
+                </button>
+                
+                <button
+                  className={`w-full text-left p-4 rounded-xl flex items-center gap-3 transition-all duration-200 ${
+                    activeSection === 'swapAssets'
+                      ? 'bg-warning-400/15 border border-warning-400 text-warning-300'
+                      : 'bg-surface-2 hover:bg-surface-3 text-text-primary border border-white/10'
+                  }`}
+                  onClick={() => {
+                    setActiveSection('swapAssets');
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <ArrowLeftRight size={20} />
+                  <span className="font-medium">Swap Assets</span>
+                </button>
+                
+                <button
+                  className={`w-full text-left p-4 rounded-xl flex items-center gap-3 transition-all duration-200 ${
+                    activeSection === 'myGarden'
+                      ? 'bg-success-600/15 border border-success-500 text-success-400'
+                      : 'bg-surface-2 hover:bg-surface-3 text-text-primary border border-white/10'
+                  }`}
+                  onClick={() => {
+                    setActiveSection('myGarden');
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <div className="w-5 h-5 flex items-center justify-center">🌱</div>
+                  <span className="font-medium">My Garden</span>
+                </button>
+                
+                <button
+                  className={`w-full text-left p-4 rounded-xl flex items-center gap-3 transition-all duration-200 ${
+                    activeSection === 'transactionHistory'
+                      ? 'bg-error-600/15 border border-error-500 text-error-400'
+                      : 'bg-surface-2 hover:bg-surface-3 text-text-primary border border-white/10'
+                  }`}
+                  onClick={() => {
+                    setActiveSection('transactionHistory');
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <BarChart3 size={20} />
+                  <span className="font-medium">History</span>
+                </button>
+                
+                <button
+                  className="w-full text-left p-4 rounded-xl flex items-center gap-3 transition-all duration-200 bg-surface-2 hover:bg-surface-3 text-text-primary border border-white/10"
+                  onClick={() => {
+                    handleLogout();
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <Lock size={20} />
+                  <span className="font-medium">LogOut</span>
+                </button>
+              </nav>
+            </div>
+          </div>
         )}
+      </div>
+
+      {/* Desktop Status Bar - Hidden on Mobile */}
+      <div className="hidden md:block">
+        <div className="flex justify-between items-center flex-wrap gap-4 text-sm text-text-secondary p-3">
+          {userFlow === 'returningUser' ? (
+            // Returning user: Show Portfolio + Connected status
+            <>
+              <div className="flex items-center text-success-400"><PieChart className="inline w-4 h-4 mr-1" /> Portfolio: ${calculatePortfolioValue().toLocaleString()}</div>
+              <div className="flex items-center text-yellow-400"><span className="w-2 h-2 rounded-full bg-yellow-400 mr-2"></span> Connected Live Onchain (Demo Mode)</div>
+            </>
+          ) : (
+            // New user: Show Activation countdown + Connected status  
+            <>
+              <div className="flex items-center text-warning-400"><Clock className="inline w-4 h-4 mr-1" /> Add Assets to activate your Sovereign Hut: {formatTime(timeRemaining)}</div>
+              <div className="flex items-center text-yellow-400"><span className="w-2 h-2 rounded-full bg-yellow-400 mr-2"></span> Connected Live Onchain (Demo Mode)</div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
 
   const renderNavigation = () => (
-    <div className="mb-16">
-      <div className="flex gap-3 justify-center flex-wrap">
-        <button
-          className={activeSection === 'addAssets' ? 'btn-primary' : 'btn-secondary'}
-          onClick={() => setActiveSection('addAssets')}
-        >
-          <Plus className="w-5 h-5" /> Add Assets
-        </button>
-        <button
-          className={activeSection === 'swapAssets' ? 'btn-bitcoin' : 'btn-secondary'}
-          onClick={() => setActiveSection('swapAssets')}
-        >
-          <ArrowLeftRight size={20} />Swap Assets
-        </button>
-        <button
-          className={activeSection === 'myGarden' ? 'btn-success' : 'btn-secondary'}
-          onClick={() => setActiveSection('myGarden')}
-        >
-          🌱 My Garden
-        </button>
-        <button
-          className={activeSection === 'transactionHistory' ? 'btn-error' : 'btn-secondary'}
-          onClick={() => setActiveSection('transactionHistory')}
-        >
-          History
-        </button>
-        <button
-          className="btn-secondary"
-          onClick={handleBackToHome}
-        >
-          Home
-        </button>
+    <div className="mb-8 md:mb-16">
+      {/* Desktop Navigation - Hidden on Mobile */}
+      <div className="hidden md:block">
+        <div className="flex gap-3 justify-center flex-wrap">
+          <button
+            className={activeSection === 'addAssets' ? 'btn-primary' : 'btn-secondary'}
+            onClick={() => setActiveSection('addAssets')}
+          >
+            <Plus className="w-5 h-5" /> Add Assets
+          </button>
+          <button
+            className={activeSection === 'swapAssets' ? 'btn-bitcoin' : 'btn-secondary'}
+            onClick={() => setActiveSection('swapAssets')}
+          >
+            <ArrowLeftRight size={20} />Swap Assets
+          </button>
+          <button
+            className={activeSection === 'myGarden' ? 'btn-success' : 'btn-secondary'}
+            onClick={() => setActiveSection('myGarden')}
+          >
+            🌱 My Garden
+          </button>
+          <button
+            className={activeSection === 'transactionHistory' ? 'btn-error' : 'btn-secondary'}
+            onClick={() => setActiveSection('transactionHistory')}
+          >
+            History
+          </button>
+          <button
+            className="btn-secondary"
+            onClick={handleLogout}
+          >
+            <Lock size={20} />
+            LogOut
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -925,7 +1078,7 @@ const Dashboard: React.FC = () => {
 
   const renderSwapAssetsSection = () => (
     <div className="w-full flex flex-col items-center px-4 py-8">
-      <div className="text-center mb-8">
+      <div className="text-center mb-4 md:mb-8">
         <div className="text-3xl font-bold text-text-primary mb-2" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Swap Assets Crosschain</div>
         <p className="text-text-secondary">Swap assets within ICP or out to Bitcoin, Ethereum, and Solana</p>
       </div>
@@ -1727,7 +1880,7 @@ const Dashboard: React.FC = () => {
     const assetsWithBalance = fromAssets.filter(asset => portfolio[asset] && portfolio[asset] > 0);
     
     return (
-      <div className="mb-8 rounded-2xl border border-white/10 bg-surface-1 overflow-hidden transition-all duration-200 hover:bg-surface-2/50">
+      <div className="mb-4 md:mb-8 rounded-2xl border border-white/10 bg-surface-1 overflow-hidden transition-all duration-200 hover:bg-surface-2/50">
         {/* Collapsible Portfolio Compact Row */}
         <div 
           className="portfolio-compact-header"
@@ -1833,18 +1986,14 @@ const Dashboard: React.FC = () => {
   return (
     <div className="bg-bg text-text-primary min-h-screen">
       <div className="container-app">
-        {renderStatusBar()}
+        {renderIntegratedHeader()}
         
-        <div className="py-24 text-center">
-          <h1 className="text-5xl font-bold text-text-primary mb-8" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>My Hut</h1>
-          <p className="text-xl text-text-secondary mb-12">Deposit, Swap, Stake, Play, & Score!</p>
-        </div>
         {renderNavigation()}
         
         {/* Portfolio Overview - Now above main content */}
         {renderPortfolioOverview()}
         
-        <div className="main-content pt-8">
+        <div className="main-content pt-4 md:pt-8">
           <div className="content-area">
             {renderActiveSection()}
           </div>
