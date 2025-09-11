@@ -64,12 +64,10 @@ const ASSET_ICONS: { [key: string]: string } = {
   'SOL': SOLIcon,
   'ckUSDC': ckUSDCIcon,
   'USDC': USDCIcon,
-  'USDC(ETH)': USDCIcon,
   'ckUSDT': ckUSDTIcon,
   'USDT': USDTIcon,
-  'USDT(ETH)': USDTIcon,
   'ICP': ICPIcon,
-  'USDC(SOL)': USDCSOLIcon
+  'USDCs': USDCSOLIcon
 };
 
 // Helper component for asset icons
@@ -849,11 +847,11 @@ const Dashboard: React.FC = () => {
           </div>
           
           {/* BACKEND NOTE: Solana wallet interface + Solana RPC canister (SPL USDC) */}
-          <div className="asset-card-compact" onClick={() => startDeposit('USDC(SOL)')}>
+          <div className="asset-card-compact" onClick={() => startDeposit('USDCs')}>
             <div className="mb-3 flex justify-center items-center h-5">
-              <AssetIcon asset="USDC(SOL)" size={20} />
+              <AssetIcon asset="USDCs" size={20} />
             </div>
-            <div className="text-base font-semibold text-text-primary mb-1">USDC (SOL)</div>
+            <div className="text-base font-semibold text-text-primary mb-1">USDCs</div>
             <div className="text-xs text-text-muted">Solana USDC → ckUSDC</div>
           </div>
         </div>
@@ -1081,9 +1079,9 @@ const Dashboard: React.FC = () => {
                 { value: 'BTC', label: 'Bitcoin' },
                 { value: 'ETH', label: 'Ethereum' },
                 { value: 'SOL', label: 'Solana' },
-                { value: 'USDC(ETH)', label: 'USDC (ETH)' },
-                { value: 'USDT(ETH)', label: 'USDT (ETH)' },
-                { value: 'USDC(SOL)', label: 'USDC (SOL)' }
+                { value: 'USDC', label: 'USDC' },
+                { value: 'USDT', label: 'USDT' },
+                { value: 'USDCs', label: 'USDCs' }
               ].filter(option => option.value !== fromAsset)}
             />
           </div>
@@ -1626,7 +1624,7 @@ const Dashboard: React.FC = () => {
         id: 1,
         type: 'Chain Fusion',
         from: 'ckBTC',
-        to: 'USDC(ETH)',
+        to: 'USDC',
         amount: '0.05',
         value: '$4,875.12',
         fee: '$9.60',
