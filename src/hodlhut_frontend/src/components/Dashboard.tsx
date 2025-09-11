@@ -88,6 +88,21 @@ const AssetIcon: React.FC<{ asset: string; size?: number }> = ({ asset, size = 1
   );
 };
 
+// Utility function for formatting amounts
+const formatAmount = (amount: number): string => {
+  if (amount >= 1) {
+    // If it's a whole number, show no decimals
+    if (amount % 1 === 0) {
+      return amount.toString();
+    }
+    // If it has decimals but >= 1, show up to 6 decimals but remove trailing zeros
+    return amount.toFixed(6).replace(/\.?0+$/, '');
+  } else {
+    // For amounts < 1, show up to 6 decimals but remove trailing zeros
+    return amount.toFixed(6).replace(/\.?0+$/, '');
+  }
+};
+
 // Custom dropdown component with SVG icons
 interface DropdownOption {
   value: string;
@@ -100,7 +115,8 @@ const CustomDropdown: React.FC<{
   onChange: (value: string) => void;
   placeholder: string;
   className?: string;
-}> = ({ options, value, onChange, placeholder, className }) => {
+  portfolio?: Portfolio;
+}> = ({ options, value, onChange, placeholder, className, portfolio = {} }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = React.useRef<HTMLDivElement>(null);
@@ -133,7 +149,7 @@ const CustomDropdown: React.FC<{
         {selectedOption ? (
           <>
             <AssetIcon asset={selectedOption.value} size={20} />
-            <span>{selectedOption.label}</span>
+            <span className="ml-2">{selectedOption.label}</span>
           </>
         ) : (
           <span className="text-primary-600">{placeholder}</span>
@@ -153,20 +169,38 @@ const CustomDropdown: React.FC<{
             className="dropdown-search w-full"
             onClick={(e) => e.stopPropagation()}
           />
-          {filteredOptions.map(option => (
-            <div
-              key={option.value}
-              className={`dropdown-option ${value === option.value ? 'selected' : ''}`}
-              onClick={() => {
-                onChange(option.value);
-                setIsOpen(false);
-                setSearchTerm('');
-              }}
-            >
-              <AssetIcon asset={option.value} size={20} />
-              <span>{option.label}</span>
-            </div>
-          ))}
+          {filteredOptions.map(option => {
+            const balance = portfolio[option.value] || 0;
+            const hasBalance = balance > 0;
+            const balanceUSD = balance * (MASTER_ASSETS[option.value]?.price || 0);
+            
+            return (
+              <div
+                key={option.value}
+                className={`dropdown-option-enhanced ${
+                  value === option.value ? 'selected' : ''
+                } ${hasBalance ? 'has-balance' : 'zero-balance'}`}
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                  setSearchTerm('');
+                }}
+              >
+                <div className="dropdown-option-left">
+                  <AssetIcon asset={option.value} size={20} />
+                  <span className="dropdown-asset-name">{option.label}</span>
+                </div>
+                <div className="dropdown-option-right">
+                  <div className="dropdown-balance-amount">
+                    {hasBalance ? formatAmount(balance) : '0'}
+                  </div>
+                  <div className="dropdown-balance-usd">
+                    ${balanceUSD.toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -918,6 +952,7 @@ const Dashboard: React.FC = () => {
                 setSwapAmount('');
               }}
               placeholder="Select asset"
+              portfolio={portfolio}
               options={(() => {
                 // Only show assets available in the FROM dropdown that have a balance > 0
                 const fromAssets = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
@@ -925,7 +960,7 @@ const Dashboard: React.FC = () => {
                 
                 return assetsWithBalance.map(asset => ({
                   value: asset,
-                  label: `${asset} (${formatAmount(portfolio[asset])})`
+                  label: asset
                 }));
               })()}
             />
@@ -970,7 +1005,7 @@ const Dashboard: React.FC = () => {
             if (fromAsset && toAsset && isFromCkAsset && isToCkAsset && !userOwnsToAsset) {
               return (
                 <button 
-                  className="text-xs px-2 py-1 rounded-lg bg-primary-600 hover:bg-primary-500 text-on-primary transition-colors"
+                  className="text-xs px-2 py-1 rounded-lg bg-primary-600 hover:bg-primary-500 text-on-primary transition-colors flex items-center gap-1"
                   onClick={() => setActiveSection('addAssets')}
                   title={`Add ${toAsset} to enable reverse swap`}
                 >
@@ -984,7 +1019,7 @@ const Dashboard: React.FC = () => {
             if (fromAsset && toAsset && !isToCkAsset) {
               return (
                 <button 
-                  className="p-2 rounded-full bg-surface-3/50 border border-white/5 transition-all duration-200 opacity-50 cursor-not-allowed"
+                  className="p-2 rounded-full bg-surface-3/50 border border-white/5 transition-all duration-200 opacity-50 cursor-default"
                   disabled
                   title="Cannot reverse to cross-chain assets"
                 >
@@ -996,7 +1031,7 @@ const Dashboard: React.FC = () => {
             // Default: Show disabled reverse button when no assets selected
             return (
               <button 
-                className="p-2 rounded-full bg-surface-3/50 border border-white/5 transition-all duration-200 opacity-50 cursor-not-allowed"
+                className="p-2 rounded-full bg-surface-3/50 border border-white/5 transition-all duration-200 opacity-50 cursor-default"
                 disabled
                 title="Select assets to enable reverse swap"
               >
@@ -1035,6 +1070,7 @@ const Dashboard: React.FC = () => {
               value={toAsset}
               onChange={setToAsset}
               placeholder="Select asset"
+              portfolio={portfolio}
               options={[
                 { value: 'ckBTC', label: 'ckBTC' },
                 { value: 'ckETH', label: 'ckETH' },
@@ -1780,19 +1816,6 @@ const Dashboard: React.FC = () => {
   };
 
   // Smart decimal formatting - remove decimals for whole numbers >= 1
-  const formatAmount = (amount: number): string => {
-    if (amount >= 1) {
-      // If it's a whole number, show no decimals
-      if (amount % 1 === 0) {
-        return amount.toString();
-      }
-      // If it has decimals but >= 1, show up to 6 decimals but remove trailing zeros
-      return amount.toFixed(6).replace(/\.?0+$/, '');
-    } else {
-      // For amounts < 1, show up to 6 decimals but remove trailing zeros
-      return amount.toFixed(6).replace(/\.?0+$/, '');
-    }
-  };
 
   const renderActiveSection = () => {
     switch (activeSection) {
