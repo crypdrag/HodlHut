@@ -138,7 +138,7 @@ const HomePage: React.FC = () => {
             ) : (
               <>
                 <button 
-                  className={`btn-bitcoin ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`btn-bitcoin ${isLoading ? 'opacity-50 cursor-wait' : ''}`}
                   onClick={handleGetHut}
                   disabled={isLoading}
                 >
@@ -146,7 +146,7 @@ const HomePage: React.FC = () => {
                   {isLoading ? 'Connecting...' : 'Get Hut'}
                 </button>
                 <button 
-                  className={`btn-success ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`btn-success ${isLoading ? 'opacity-50 cursor-wait' : ''}`}
                   onClick={handleMyHuts}
                   disabled={isLoading}
                 >
