@@ -992,7 +992,7 @@ const Dashboard: React.FC = () => {
                     const temp = fromAsset;
                     setFromAsset(toAsset);
                     setToAsset(temp);
-                    setSwapAmount('');
+                    // Don't clear swapAmount to keep What's Happening visible
                   }}
                   title="Reverse swap direction"
                 >
