@@ -55,7 +55,7 @@ const WALLET_OPTIONS: Record<string, WalletOption[]> = {
     { id: 'solflare', name: 'Solflare Wallet', icon: <Sun className="w-4 h-4 text-yellow-500" /> },
     { id: 'backpack', name: 'Backpack Wallet', icon: <Square className="w-4 h-4 text-gray-600" /> }
   ],
-  'USDC(SOL)': [
+  'USDCs': [
     { id: 'phantom', name: 'Phantom Wallet', icon: <Wallet className="w-4 h-4 text-purple-500" /> },
     { id: 'solflare', name: 'Solflare Wallet', icon: <Sun className="w-4 h-4 text-yellow-500" /> },
     { id: 'backpack', name: 'Backpack Wallet', icon: <Square className="w-4 h-4 text-gray-600" /> }
@@ -228,7 +228,7 @@ const DepositModal: React.FC<DepositModalProps> = ({
         'ckUSDT is in your Hut!'
       ];
       handleEthereumDeposit(messages, finalAsset, amount);
-    } else if (['SOL', 'USDC(SOL)'].includes(selectedAsset)) {
+    } else if (['SOL', 'USDCs'].includes(selectedAsset)) {
       if (selectedAsset === 'SOL') {
         finalAsset = 'ckSOL';
         messages = [
@@ -237,11 +237,11 @@ const DepositModal: React.FC<DepositModalProps> = ({
           'Converting to ckSOL...',
           'ckSOL is in your Hut!'
         ];
-      } else { // USDC(SOL)
+      } else { // USDCs
         finalAsset = 'ckUSDC';
         messages = [
-          'Sending USDC (SOL) to ICP...',
-          'USDC (SOL) Received!',
+          'Sending USDCs to ICP...',
+          'USDCs Received!',
           'Converting to ckUSDC...',
           'ckUSDC is in your Hut!'
         ];
@@ -439,7 +439,7 @@ const DepositModal: React.FC<DepositModalProps> = ({
         {(['ETH', 'USDC', 'USDT'].includes(selectedAsset) && processingMessage === '') && (
           <EthereumConfirmationAnimation />
         )}
-        {(['SOL', 'USDC(SOL)'].includes(selectedAsset) && processingMessage === '') && (
+        {(['SOL', 'USDCs'].includes(selectedAsset) && processingMessage === '') && (
           <SolanaConfirmationAnimation />
         )}
       </div>
