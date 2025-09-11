@@ -13,7 +13,7 @@ const ASSET_ICONS = {
     'USDT': './assets/images/ckUSDT.svg',
     'ckSOL': './assets/images/ckSOL.svg',
     'SOL': './assets/images/SOL.svg',
-    'USDC(SOL)': './assets/images/ckUSDC.svg',
+    'USDCs': './assets/images/ckUSDC.svg',
     'ICP': './assets/images/ICP.svg'
 };
 // Bracket type configurations

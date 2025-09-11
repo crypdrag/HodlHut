@@ -3,7 +3,7 @@
 // ===============================================
 // 🛡️ SAFE BACKUP: Contains ALL assets from original + new work
 // Compatible with: Original Dapp, Old .ts files, NEW modules
-// ✅ Includes: ckSOL, SOL, USDC(SOL) (NEW additions)
+// ✅ Includes: ckSOL, SOL, USDCs (NEW additions)
 // ===============================================
 // COMPLETE ASSET REGISTRY (Original + New + ckSOL)
 // ===============================================
@@ -131,32 +131,8 @@ export const MASTER_ASSETS = {
         canDeposit: true,
         canWithdraw: false
     },
-    'USDC(ETH)': {
-        symbol: 'USDC(ETH)',
-        name: 'USDC (Ethereum)',
-        icon: './assets/images/ckUSDC.svg',
-        price: 1.00,
-        chain: 'Ethereum',
-        type: 'native',
-        category: 'stablecoin',
-        isL1: true,
-        canDeposit: true,
-        canWithdraw: true
-    },
-    'USDT(ETH)': {
-        symbol: 'USDT(ETH)',
-        name: 'USDT (Ethereum)',
-        icon: './assets/images/ckUSDT.svg',
-        price: 1.00,
-        chain: 'Ethereum',
-        type: 'native',
-        category: 'stablecoin',
-        isL1: true,
-        canDeposit: true,
-        canWithdraw: true
-    },
-    'USDC(SOL)': {
-        symbol: 'USDC(SOL)',
+    'USDCs': {
+        symbol: 'USDCs',
         name: 'USDC (Solana)',
         icon: './assets/images/ckUSDC.svg',
         price: 1.00,
@@ -206,7 +182,7 @@ export const ALL_SWAP_DESTINATIONS = Object.keys(MASTER_ASSETS);
 // L1 withdrawal destinations (native assets on their chains)
 export const L1_WITHDRAWAL_ASSETS = Object.keys(MASTER_ASSETS).filter(symbol => MASTER_ASSETS[symbol].isL1);
 // Chain Fusion deposit sources (L1 assets that can be deposited via Chain Fusion)
-export const CHAIN_FUSION_SOURCES = ['BTC', 'ETH', 'USDC(ETH)', 'USDT(ETH)', 'SOL', 'USDC(SOL)'];
+export const CHAIN_FUSION_SOURCES = ['BTC', 'ETH', 'USDC', 'USDT', 'SOL', 'USDCs'];
 // ICRC/ICP native assets (can be deposited directly on ICP)
 export const ICRC_ICP_ASSETS = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ckSOL', 'ICP'];
 // Stablecoins (for special handling)
@@ -269,7 +245,7 @@ export function getCkTokenForL1(l1Asset) {
         'USDC': 'ckUSDC',
         'USDT': 'ckUSDT',
         'SOL': 'ckSOL',
-        'USDC(SOL)': 'ckUSDC' // Solana USDC converts to ckUSDC
+        'USDCs': 'ckUSDC' // Solana USDC converts to ckUSDC
     };
     return ckTokenMap[l1Asset] || null;
 }
