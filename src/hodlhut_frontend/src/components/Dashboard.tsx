@@ -450,6 +450,7 @@ const Dashboard: React.FC = () => {
   // My Garden Claim Yield State
   const [claimedAssets, setClaimedAssets] = useState<Set<string>>(new Set());
   const [sparklingAssets, setSparklingAssets] = useState<Set<string>>(new Set());
+  const [statsExpanded, setStatsExpanded] = useState(false);
   
   // Ethereum Wallet Options for Transaction
   const ETH_WALLET_OPTIONS = [
@@ -1808,137 +1809,237 @@ const Dashboard: React.FC = () => {
       return multipliers[plantedCount] || 1.0;
     };
 
-    const renderPlantField = (asset: string) => {
+    const getNextMultiplier = () => {
+      const plantedCount = assetsWithBalance.filter(asset => plantedAmounts[asset] > 0).length;
+      const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
+      return multipliers[plantedCount + 1] || 2.5;
+    };
+
+    const getDiversityProgress = () => {
+      const plantedCount = assetsWithBalance.filter(asset => plantedAmounts[asset] > 0).length;
+      const totalAssets = assetsWithBalance.length;
+      return (plantedCount / totalAssets) * 100;
+    };
+
+    const renderStakingCard = (asset: string) => {
       const planted = plantedAmounts[asset] || 0;
       const available = portfolio[asset] || 0;
       const isPlanted = planted > 0;
       const assetPrice = MASTER_ASSETS[asset]?.price || 0;
       const weeklyYield = planted * assetPrice * 0.05;
+      const nextMultiplierBoost = isPlanted ? 0 : 0.25; // Boost for staking new asset
 
       return (
-        <div key={asset} className={`rounded-xl p-6 text-center transition-all duration-300 ${
-          isPlanted 
-            ? 'bg-success-600/20 border border-success-400/30 hover:bg-success-600/30' 
-            : 'bg-surface-2 border border-white/10 hover:bg-surface-3'
-        }`}>
-          <div className="flex justify-center mb-4">
-            <AssetIcon asset={asset} size={48} />
+        <div key={asset} className={`staking-asset-card ${isPlanted ? 'staked' : 'unstaked'}`}>
+          <div className="staking-asset-card-header">
+            <div className="staking-asset-icon">
+              <AssetIcon asset={asset} size={48} />
+            </div>
+            <div className="staking-asset-name">{asset}</div>
+            <div className={`staking-asset-status ${isPlanted ? 'staked' : 'unstaked'}`}>
+              {isPlanted ? `${formatAmount(planted)} Staked` : 'Available to Stake'}
+            </div>
           </div>
-          
-          <div className="text-lg font-bold text-text-primary mb-2">
-            {asset}
+
+          <div className="staking-asset-card-body">
+            <div className="staking-asset-details">
+              {isPlanted ? (
+                <div className="staking-asset-yield">
+                  🌱 Growing • Yield: ${weeklyYield.toFixed(2)}/week
+                </div>
+              ) : (
+                <>
+                  <div className="staking-asset-available">
+                    Available: {formatAmount(available)} {asset}
+                  </div>
+                  {nextMultiplierBoost > 0 && (
+                    <div className="staking-asset-multiplier-boost">
+                      +{nextMultiplierBoost}x Multiplier Boost
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
-          
-          <div className="text-sm font-semibold text-text-secondary mb-2">
-            {isPlanted ? `${formatAmount(planted)} ${asset}` : 'Ready to plant'}
-          </div>
-          
-          <div className="text-xs text-text-muted leading-relaxed mb-4">
+
+          <div className="staking-asset-card-footer">
             {isPlanted ? (
-              <>
-                🌱 Growing (45 days)
-                <br />Yield/Week: ${weeklyYield.toFixed(2)}
-              </>
+              <button 
+                className={`w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                  claimedAssets.has(asset)
+                    ? 'bg-surface-3 text-text-muted cursor-not-allowed'
+                    : sparklingAssets.has(asset)
+                    ? 'btn-success animate-pulse'
+                    : 'btn-success'
+                }`}
+                onClick={() => !claimedAssets.has(asset) && handleClaimYield(asset)}
+                disabled={claimedAssets.has(asset)}
+              >
+                {claimedAssets.has(asset) ? 'Claimed ✓' : 'Claim Yield'}
+              </button>
             ) : (
-              <>
-                Plant {asset} to boost diversity
-                <br />Available: {formatAmount(available)} {asset}
-              </>
+              <button 
+                className="w-full btn-primary py-3"
+                onClick={() => alert(`🌱 Stake ${asset} feature coming soon!`)}
+              >
+                Stake {asset} 🌱
+              </button>
             )}
           </div>
-          
-          {isPlanted ? (
-            <button 
-              className={`w-full px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                claimedAssets.has(asset)
-                  ? 'bg-surface-3 text-text-muted cursor-not-allowed'
-                  : sparklingAssets.has(asset)
-                  ? 'bg-success-600 hover:bg-success-500 text-on-success animate-pulse'
-                  : 'bg-success-600 hover:bg-success-500 text-on-success'
-              }`}
-              onClick={() => !claimedAssets.has(asset) && handleClaimYield(asset)}
-              disabled={claimedAssets.has(asset)}
-            >
-              {claimedAssets.has(asset) ? 'Claimed ✓' : 'Claim Yield'}
-            </button>
-          ) : (
-            <button 
-              className="w-full px-4 py-2 rounded-xl text-sm font-semibold bg-primary-600 hover:bg-primary-500 text-on-primary transition-all duration-200"
-              onClick={() => alert(`🌱 Plant ${asset} feature coming soon!`)}
-            >
-              Plant {asset} 🌱
-            </button>
-          )}
         </div>
       );
     };
 
     return (
-      <div className="rounded-2xl border border-white/10 bg-surface-1 p-6">
-        {/* Garden Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-text-primary mb-4">🌱 My Garden 🌱</h1>
-          <p className="text-text-secondary mb-4">Hodl Longevity & Asset Diversity Claimable Rewards</p>
-          <div className="inline-flex items-center gap-2 rounded-full bg-success-600/15 text-success-400 px-4 py-2 text-sm font-semibold">
-            🌿 Sprout Gardener
+      <div className="space-y-0">
+        {/* Diversity Multiplier Indicator - Sticky */}
+        <div className="diversity-multiplier-bar">
+          <div className="diversity-multiplier-content">
+            <div className="diversity-multiplier-left">
+              <div className="diversity-multiplier-icon">
+                🌱
+              </div>
+              <div className="diversity-multiplier-text">
+                <div className="diversity-multiplier-current">
+                  {calculateDiversityMultiplier()}x Active
+                </div>
+                <div className="diversity-multiplier-label">
+                  Diversity Multiplier
+                </div>
+              </div>
+            </div>
+            <div className="diversity-multiplier-right">
+              <div className="diversity-multiplier-next">
+                Next: {getNextMultiplier()}x
+              </div>
+              <div className="diversity-progress">
+                <div 
+                  className="diversity-progress-fill" 
+                  style={{ width: `${getDiversityProgress()}%` }}
+                />
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Current Yield Stats Title */}
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-text-primary">
-            Your Current Yield Stats
-          </h2>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-surface-2 rounded-xl p-4 text-center">
-            <div className="flex justify-center mb-3">
-              <DollarSign className="w-6 h-6 text-primary-400" />
-            </div>
-            <div className="text-2xl font-bold text-text-primary mb-1">${calculateTotalYield().toFixed(0)}</div>
-            <div className="text-text-secondary text-sm font-medium mb-2">Total Garden Yield</div>
-            <div className="text-text-muted text-xs">This week: +${(calculateTotalYield() * 0.1).toFixed(0)}</div>
-          </div>
-          
-          <div className="bg-surface-2 rounded-xl p-4 text-center">
-            <div className="flex justify-center mb-3">
-              <Clock className="w-6 h-6 text-warning-400" />
-            </div>
-            <div className="text-2xl font-bold text-text-primary mb-1">42</div>
-            <div className="text-text-secondary text-sm font-medium mb-2">Average Hodl Days</div>
-            <div className="text-text-muted text-xs">Longest: 127 days</div>
-          </div>
-          
-          <div className="bg-surface-2 rounded-xl p-4 text-center">
-            <div className="flex justify-center mb-3">
-              <Target className="w-6 h-6 text-success-400" />
-            </div>
-            <div className="text-2xl font-bold text-text-primary mb-1">{assetsWithBalance.filter(asset => plantedAmounts[asset] > 0).length}/6</div>
-            <div className="text-text-secondary text-sm font-medium mb-2">Asset Diversity</div>
-            <div className="text-text-muted text-xs">{calculateDiversityMultiplier()}x multiplier active</div>
-          </div>
-          
-          <div className="bg-surface-2 rounded-xl p-4 text-center">
-            <div className="flex justify-center mb-3">
-              <Trophy className="w-6 h-6 text-warning-500" />
-            </div>
-            <div className="text-2xl font-bold text-text-primary mb-1">{calculateDiversityMultiplier()}x</div>
-            <div className="text-text-secondary text-sm font-medium mb-2">Total Multiplier</div>
-            <div className="text-text-muted text-xs">Next level: 15 days</div>
-          </div>
-        </div>
-
-        {/* Garden Fields */}
-        <div>
+        {/* Garden Content Container */}
+        <div className="rounded-2xl border border-white/10 bg-surface-1 p-4 md:p-6">
+          {/* Garden Header */}
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-text-primary mb-2">🪴 Your Biodiversity</h2>
-            <p className="text-text-secondary">Plant assets to start earning yield • Greater diversity = Higher rewards</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-text-primary mb-3">🌱 My Garden 🌱</h1>
+            <p className="text-text-secondary mb-3">Hodl Longevity & Asset Diversity Rewards</p>
+            <div className="inline-flex items-center gap-2 rounded-full bg-success-600/15 text-success-400 px-4 py-2 text-sm font-semibold">
+              🌿 Sprout Gardener
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {assetsWithBalance.map(asset => renderPlantField(asset))}
+          {/* Quick Actions */}
+          <div className="garden-quick-actions">
+            <div className="garden-quick-action stake-all" onClick={() => alert('Stake All Available Assets coming soon!')}>
+              <div className="garden-quick-action-content">
+                <div className="garden-quick-action-icon">
+                  🚀
+                </div>
+                <div className="garden-quick-action-text">
+                  <div className="garden-quick-action-title">Stake All Available</div>
+                  <div className="garden-quick-action-subtitle">Maximize your diversity multiplier</div>
+                </div>
+              </div>
+            </div>
+            <div className="garden-quick-action claim-all" onClick={() => alert('Claim All Yields coming soon!')}>
+              <div className="garden-quick-action-content">
+                <div className="garden-quick-action-icon">
+                  💰
+                </div>
+                <div className="garden-quick-action-text">
+                  <div className="garden-quick-action-title">Claim All Yields</div>
+                  <div className="garden-quick-action-subtitle">Harvest your weekly rewards</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Yield Stats - Collapsible */}
+          <div className="yield-stats-collapse">
+            <div className="yield-stats-header" onClick={() => setStatsExpanded(!statsExpanded)}>
+              <div className="yield-stats-title">
+                Yield Stats
+              </div>
+              <div className="yield-stats-summary">
+                <div className="yield-stats-total">
+                  ${calculateTotalYield().toFixed(0)}
+                </div>
+                <div className="yield-stats-change">
+                  +${(calculateTotalYield() * 0.1).toFixed(0)} this week
+                </div>
+              </div>
+              <div className={`yield-stats-expand-icon ${statsExpanded ? 'expanded' : ''}`}>
+                ▼
+              </div>
+            </div>
+            <div className={`yield-stats-content ${statsExpanded ? 'expanded' : 'collapsed'}`}>
+              <div className="yield-stats-grid">
+                <div className="yield-stat-item">
+                  <div className="yield-stat-icon">
+                    <DollarSign className="w-6 h-6 text-primary-400" />
+                  </div>
+                  <div className="yield-stat-value">${calculateTotalYield().toFixed(0)}</div>
+                  <div className="yield-stat-label">Total Garden Yield</div>
+                  <div className="yield-stat-detail">This week: +${(calculateTotalYield() * 0.1).toFixed(0)}</div>
+                </div>
+                
+                <div className="yield-stat-item">
+                  <div className="yield-stat-icon">
+                    <Clock className="w-6 h-6 text-warning-400" />
+                  </div>
+                  <div className="yield-stat-value">42</div>
+                  <div className="yield-stat-label">Average Hodl Days</div>
+                  <div className="yield-stat-detail">Longest: 127 days</div>
+                </div>
+                
+                <div className="yield-stat-item">
+                  <div className="yield-stat-icon">
+                    <Target className="w-6 h-6 text-success-400" />
+                  </div>
+                  <div className="yield-stat-value">{assetsWithBalance.filter(asset => plantedAmounts[asset] > 0).length}/6</div>
+                  <div className="yield-stat-label">Asset Diversity</div>
+                  <div className="yield-stat-detail">{calculateDiversityMultiplier()}x multiplier active</div>
+                </div>
+                
+                <div className="yield-stat-item">
+                  <div className="yield-stat-icon">
+                    <Trophy className="w-6 h-6 text-warning-500" />
+                  </div>
+                  <div className="yield-stat-value">{calculateDiversityMultiplier()}x</div>
+                  <div className="yield-stat-label">Total Multiplier</div>
+                  <div className="yield-stat-detail">Next level: 15 days</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Staking Assets */}
+          <div>
+            <div className="text-center mb-6">
+              <h2 className="text-xl md:text-2xl font-bold text-text-primary mb-2">🪴 Your Assets</h2>
+              <p className="text-text-secondary text-sm md:text-base">Stake assets to earn yield • Greater diversity = Higher rewards</p>
+            </div>
+
+            <div className="staking-grid-mobile staking-grid-tablet staking-grid-desktop">
+              {assetsWithBalance.map(asset => renderStakingCard(asset))}
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Thumb Zone - Only visible on mobile */}
+        <div className="garden-thumb-zone">
+          <div className="garden-thumb-actions">
+            <button className="garden-thumb-button-primary" onClick={() => alert('Claim All Yields coming soon!')}>
+              💰 Claim All
+            </button>
+            <button className="garden-thumb-button-secondary" onClick={() => alert('Stake All Available coming soon!')}>
+              🚀 Stake All
+            </button>
           </div>
         </div>
       </div>
