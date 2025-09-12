@@ -1326,3 +1326,321 @@ section.relative button.bg-primary-600:hover {
     @apply text-xl; /* Bigger tap target for expand/collapse */
   }
 }
+
+/* ----------------------------
+   My Garden Components - Phase 1
+   ---------------------------- */
+
+/* Diversity Multiplier Indicator - Sticky component */
+.diversity-multiplier-bar {
+  @apply sticky top-0 z-40 bg-surface-1/95 backdrop-blur border-b border-success-400/20;
+  @apply p-4 mb-6 rounded-b-2xl;
+  /* Gradient background for visual appeal */
+  background: linear-gradient(135deg, 
+    var(--color-success-600) / 0.05,
+    var(--color-success-400) / 0.1,
+    var(--color-primary-600) / 0.05
+  );
+}
+
+.diversity-multiplier-content {
+  @apply flex items-center justify-between max-w-screen-md mx-auto;
+}
+
+.diversity-multiplier-left {
+  @apply flex items-center gap-3;
+}
+
+.diversity-multiplier-icon {
+  @apply w-10 h-10 rounded-full bg-success-600/20 flex items-center justify-center;
+  @apply text-success-400 text-xl;
+}
+
+.diversity-multiplier-text {
+  @apply flex flex-col;
+}
+
+.diversity-multiplier-current {
+  @apply text-lg font-bold text-success-400;
+}
+
+.diversity-multiplier-label {
+  @apply text-xs text-text-muted uppercase tracking-wide;
+}
+
+.diversity-multiplier-right {
+  @apply flex items-center gap-2 text-right;
+}
+
+.diversity-multiplier-next {
+  @apply text-sm text-warning-400 font-medium;
+}
+
+.diversity-progress {
+  @apply w-24 h-2 bg-surface-3 rounded-full overflow-hidden;
+}
+
+.diversity-progress-fill {
+  @apply h-full bg-gradient-to-r from-success-500 to-warning-400 transition-all duration-500;
+}
+
+/* Mobile-optimized Staking Card Layout */
+.staking-grid-mobile {
+  @apply grid grid-cols-1 gap-4;
+}
+
+.staking-grid-tablet {
+  @apply md:grid-cols-2 gap-6;
+}
+
+.staking-grid-desktop {
+  @apply lg:grid-cols-3 gap-6;
+}
+
+/* Staking Asset Cards - Mobile-first design */
+.staking-asset-card {
+  @apply rounded-xl border transition-all duration-300 overflow-hidden;
+  @apply cursor-pointer hover:scale-[1.02] active:scale-[0.98];
+}
+
+.staking-asset-card.unstaked {
+  @apply border-white/10 bg-surface-1 hover:bg-surface-2;
+  @apply hover:border-primary-400/30;
+}
+
+.staking-asset-card.staked {
+  @apply border-success-400/30 bg-success-600/5;
+  @apply hover:bg-success-600/10 hover:border-success-400/50;
+}
+
+.staking-asset-card-header {
+  @apply p-4 pb-2 text-center;
+}
+
+.staking-asset-icon {
+  @apply w-12 h-12 mx-auto mb-3;
+}
+
+.staking-asset-name {
+  @apply text-lg font-bold text-text-primary mb-1;
+}
+
+.staking-asset-status {
+  @apply text-sm font-medium mb-2;
+}
+
+.staking-asset-status.unstaked {
+  @apply text-primary-400;
+}
+
+.staking-asset-status.staked {
+  @apply text-success-400;
+}
+
+.staking-asset-card-body {
+  @apply p-4 pt-2;
+}
+
+.staking-asset-details {
+  @apply text-center mb-4 text-sm;
+}
+
+.staking-asset-available {
+  @apply text-text-secondary;
+}
+
+.staking-asset-yield {
+  @apply text-success-400 font-medium;
+}
+
+.staking-asset-multiplier-boost {
+  @apply inline-flex items-center gap-1 px-3 py-1 rounded-full;
+  @apply bg-warning-400/15 text-warning-300 text-xs font-medium mb-3;
+}
+
+.staking-asset-card-footer {
+  @apply p-4 pt-0;
+}
+
+/* Garden Thumb Zone - Primary actions in lower 2/3 */
+.garden-thumb-zone {
+  @apply fixed bottom-0 left-0 right-0 z-30;
+  @apply bg-surface-1/95 backdrop-blur border-t border-white/10;
+  @apply p-4;
+  /* Only show on mobile */
+  @apply md:hidden;
+  /* Safe area for mobile devices */
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+}
+
+.garden-thumb-actions {
+  @apply flex gap-3 max-w-screen-md mx-auto;
+}
+
+.garden-thumb-button-primary {
+  @apply flex-1 bg-success-600 hover:bg-success-500 text-on-success;
+  @apply text-center py-3 text-sm font-semibold rounded-xl;
+  @apply transition-colors min-h-[48px];
+}
+
+.garden-thumb-button-secondary {
+  @apply flex-1 bg-primary-600 hover:bg-primary-500 text-on-primary;
+  @apply text-center py-3 text-sm font-semibold rounded-xl;
+  @apply transition-colors min-h-[48px];
+}
+
+/* Yield Stats Collapse - Progressive disclosure */
+.yield-stats-collapse {
+  @apply rounded-2xl border border-white/10 bg-surface-1 overflow-hidden;
+  @apply mb-6;
+}
+
+.yield-stats-header {
+  @apply p-4 cursor-pointer;
+  @apply flex items-center justify-between transition-all duration-200;
+  @apply hover:bg-surface-2/50;
+}
+
+.yield-stats-title {
+  @apply text-lg font-semibold text-text-primary;
+}
+
+.yield-stats-summary {
+  @apply text-right;
+}
+
+.yield-stats-total {
+  @apply text-lg font-bold text-success-400;
+}
+
+.yield-stats-change {
+  @apply text-sm text-text-muted;
+}
+
+.yield-stats-expand-icon {
+  @apply ml-4 transition-transform duration-300 text-text-muted text-xl cursor-pointer;
+}
+
+.yield-stats-expand-icon.expanded {
+  @apply rotate-180;
+}
+
+.yield-stats-content {
+  @apply overflow-hidden transition-all duration-500 ease-in-out;
+  transition: max-height 500ms cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 300ms cubic-bezier(0.4, 0, 0.2, 1),
+              padding 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.yield-stats-content.collapsed {
+  @apply max-h-0 opacity-0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.yield-stats-content.expanded {
+  @apply max-h-[400px] opacity-100;
+  padding: 0 1rem 1rem;
+}
+
+.yield-stats-grid {
+  @apply grid grid-cols-2 md:grid-cols-4 gap-4;
+}
+
+.yield-stat-item {
+  @apply bg-surface-2 rounded-xl p-4 text-center;
+}
+
+.yield-stat-icon {
+  @apply w-6 h-6 mx-auto mb-2;
+}
+
+.yield-stat-value {
+  @apply text-xl font-bold text-text-primary mb-1;
+}
+
+.yield-stat-label {
+  @apply text-text-secondary text-sm font-medium mb-1;
+}
+
+.yield-stat-detail {
+  @apply text-text-muted text-xs;
+}
+
+/* Quick Action Section */
+.garden-quick-actions {
+  @apply flex flex-col gap-3 mb-6;
+  @apply md:flex-row md:gap-4;
+}
+
+.garden-quick-action {
+  @apply flex-1 p-4 rounded-xl border transition-all duration-200;
+  @apply cursor-pointer hover:scale-[1.02] active:scale-[0.98];
+}
+
+.garden-quick-action.stake-all {
+  @apply border-primary-400/30 bg-primary-600/10;
+  @apply hover:bg-primary-600/20 hover:border-primary-400/50;
+}
+
+.garden-quick-action.claim-all {
+  @apply border-success-400/30 bg-success-600/10;
+  @apply hover:bg-success-600/20 hover:border-success-400/50;
+}
+
+.garden-quick-action-content {
+  @apply flex items-center gap-3;
+}
+
+.garden-quick-action-icon {
+  @apply w-8 h-8 rounded-full flex items-center justify-center;
+}
+
+.garden-quick-action.stake-all .garden-quick-action-icon {
+  @apply bg-primary-600/20 text-primary-400;
+}
+
+.garden-quick-action.claim-all .garden-quick-action-icon {
+  @apply bg-success-600/20 text-success-400;
+}
+
+.garden-quick-action-text {
+  @apply flex-1;
+}
+
+.garden-quick-action-title {
+  @apply font-semibold text-text-primary text-sm;
+}
+
+.garden-quick-action-subtitle {
+  @apply text-xs text-text-muted;
+}
+
+/* Responsive adjustments for mobile */
+@media (pointer: coarse) {
+  .diversity-multiplier-bar {
+    @apply p-5; /* Larger touch target */
+  }
+  
+  .staking-asset-card {
+    @apply p-1; /* Adjust padding for larger touch targets */
+  }
+  
+  .staking-asset-card-header,
+  .staking-asset-card-body,
+  .staking-asset-card-footer {
+    @apply p-5; /* Larger touch areas */
+  }
+  
+  .yield-stats-header {
+    @apply p-5; /* Larger touch target */
+  }
+  
+  .yield-stats-expand-icon {
+    @apply text-2xl; /* Bigger tap target */
+  }
+  
+  .garden-quick-action {
+    @apply p-5; /* Larger touch target */
+  }
+}
