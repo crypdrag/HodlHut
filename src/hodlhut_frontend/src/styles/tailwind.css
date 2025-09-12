@@ -1403,6 +1403,19 @@ section.relative button.bg-primary-600:hover {
   @apply cursor-pointer hover:scale-[1.02] active:scale-[0.98];
 }
 
+/* Add bottom padding to My Garden to account for mobile thumb zone */
+.staking-grid-mobile {
+  @apply grid grid-cols-1 gap-4;
+  /* Add bottom padding on mobile to prevent overlap with thumb zone */
+  padding-bottom: 80px;
+}
+
+@media (pointer: coarse) and (max-width: 767px) {
+  .staking-grid-mobile {
+    padding-bottom: 120px; /* More space on actual mobile devices */
+  }
+}
+
 .staking-asset-card.unstaked {
   @apply border-white/10 bg-surface-1 hover:bg-surface-2;
   @apply hover:border-primary-400/30;
@@ -1467,10 +1480,17 @@ section.relative button.bg-primary-600:hover {
   @apply fixed bottom-0 left-0 right-0 z-30;
   @apply bg-surface-1/95 backdrop-blur border-t border-white/10;
   @apply p-4;
-  /* Only show on mobile */
-  @apply md:hidden;
+  /* Hide by default */
+  display: none;
   /* Safe area for mobile devices */
   padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+}
+
+/* Only show on actual mobile devices (touch + small screen) */
+@media (pointer: coarse) and (max-width: 767px) {
+  .garden-thumb-zone {
+    display: block;
+  }
 }
 
 .garden-thumb-actions {

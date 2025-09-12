@@ -451,6 +451,18 @@ const Dashboard: React.FC = () => {
   const [claimedAssets, setClaimedAssets] = useState<Set<string>>(new Set());
   const [sparklingAssets, setSparklingAssets] = useState<Set<string>>(new Set());
   const [statsExpanded, setStatsExpanded] = useState(false);
+
+  // Phase 2: Real Staking State Management
+  const [stakedAmounts, setStakedAmounts] = useState<Record<string, number>>({});
+  const [stakingHistory, setStakingHistory] = useState<Record<string, Array<{
+    amount: number;
+    timestamp: number;
+    type: 'stake' | 'unstake' | 'claim';
+    txHash?: string;
+  }>>>({});
+  const [pendingStaking, setPendingStaking] = useState<Set<string>>(new Set());
+  const [selectedStakingAsset, setSelectedStakingAsset] = useState<string | null>(null);
+  const [stakingModalOpen, setStakingModalOpen] = useState(false);
   
   // Ethereum Wallet Options for Transaction
   const ETH_WALLET_OPTIONS = [
@@ -499,6 +511,81 @@ const Dashboard: React.FC = () => {
         return newSet;
       });
     }, 2000); // 2 second sparkling animation
+  };
+
+  // Phase 2: Real Staking Functions
+  const handleStakeAsset = (asset: string, amount: number) => {
+    // Add to pending state
+    setPendingStaking(prev => new Set([...prev, asset]));
+    
+    // Simulate staking transaction
+    setTimeout(() => {
+      // Update staked amounts
+      setStakedAmounts(prev => ({
+        ...prev,
+        [asset]: (prev[asset] || 0) + amount
+      }));
+      
+      // Add to staking history
+      setStakingHistory(prev => ({
+        ...prev,
+        [asset]: [
+          ...(prev[asset] || []),
+          {
+            amount,
+            timestamp: Date.now(),
+            type: 'stake' as const,
+            txHash: `0x${Math.random().toString(16).substring(2, 10)}`
+          }
+        ]
+      }));
+      
+      // Remove from pending
+      setPendingStaking(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(asset);
+        return newSet;
+      });
+      
+      // Close modal
+      setStakingModalOpen(false);
+      setSelectedStakingAsset(null);
+    }, 2000);
+  };
+
+  const handleUnstakeAsset = (asset: string, amount: number) => {
+    setPendingStaking(prev => new Set([...prev, asset]));
+    
+    setTimeout(() => {
+      setStakedAmounts(prev => ({
+        ...prev,
+        [asset]: Math.max(0, (prev[asset] || 0) - amount)
+      }));
+      
+      setStakingHistory(prev => ({
+        ...prev,
+        [asset]: [
+          ...(prev[asset] || []),
+          {
+            amount,
+            timestamp: Date.now(),
+            type: 'unstake' as const,
+            txHash: `0x${Math.random().toString(16).substring(2, 10)}`
+          }
+        ]
+      }));
+      
+      setPendingStaking(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(asset);
+        return newSet;
+      });
+    }, 2000);
+  };
+
+  const openStakingModal = (asset: string) => {
+    setSelectedStakingAsset(asset);
+    setStakingModalOpen(true);
   };
   
   // Enhanced DEX Options with Real Stats - FIXED STATS
@@ -1782,70 +1869,73 @@ const Dashboard: React.FC = () => {
     // Use same asset filtering as Portfolio Overview - only swappable assets with balance > 0
     const fromAssets = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
     const assetsWithBalance = fromAssets.filter(asset => portfolio[asset] && portfolio[asset] > 0);
-    
-    // Mock planted amounts for demo (in real app, this would be separate state)
-    const plantedAmounts: Record<string, number> = {
-      'ckBTC': portfolio.ckBTC * 0.6, // 60% planted
-      'ckETH': portfolio.ckETH * 0.8, // 80% planted  
-      'ckUSDC': portfolio.ckUSDC * 0.5, // 50% planted
-      'ckUSDT': portfolio.ckUSDT * 0.7, // 70% planted
-      'ckSOL': portfolio.ckSOL * 0.3, // 30% planted
-      'ICP': portfolio.ICP * 0.9 // 90% planted
-    };
 
     const calculateTotalYield = () => {
       let totalYield = 0;
       assetsWithBalance.forEach(asset => {
-        const planted = plantedAmounts[asset] || 0;
+        const staked = stakedAmounts[asset] || 0;
         const assetPrice = MASTER_ASSETS[asset]?.price || 0;
-        totalYield += planted * assetPrice * 0.05; // 5% weekly yield
+        const diversityMultiplier = calculateDiversityMultiplier();
+        totalYield += staked * assetPrice * 0.05 * diversityMultiplier; // 5% weekly yield with multiplier
       });
       return totalYield;
     };
 
     const calculateDiversityMultiplier = () => {
-      const plantedCount = assetsWithBalance.filter(asset => plantedAmounts[asset] > 0).length;
+      const stakedCount = assetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
       const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
-      return multipliers[plantedCount] || 1.0;
+      return multipliers[stakedCount] || 1.0;
     };
 
     const getNextMultiplier = () => {
-      const plantedCount = assetsWithBalance.filter(asset => plantedAmounts[asset] > 0).length;
+      const stakedCount = assetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
       const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
-      return multipliers[plantedCount + 1] || 2.5;
+      return multipliers[stakedCount + 1] || 2.5;
     };
 
     const getDiversityProgress = () => {
-      const plantedCount = assetsWithBalance.filter(asset => plantedAmounts[asset] > 0).length;
+      const stakedCount = assetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
       const totalAssets = assetsWithBalance.length;
-      return (plantedCount / totalAssets) * 100;
+      return (stakedCount / totalAssets) * 100;
     };
 
     const renderStakingCard = (asset: string) => {
-      const planted = plantedAmounts[asset] || 0;
+      const staked = stakedAmounts[asset] || 0;
       const available = portfolio[asset] || 0;
-      const isPlanted = planted > 0;
+      const isStaked = staked > 0;
+      const isPending = pendingStaking.has(asset);
       const assetPrice = MASTER_ASSETS[asset]?.price || 0;
-      const weeklyYield = planted * assetPrice * 0.05;
-      const nextMultiplierBoost = isPlanted ? 0 : 0.25; // Boost for staking new asset
+      const diversityMultiplier = calculateDiversityMultiplier();
+      const weeklyYield = staked * assetPrice * 0.05 * diversityMultiplier;
+      const nextMultiplierBoost = isStaked ? 0 : 0.25; // Boost for staking new asset
 
       return (
-        <div key={asset} className={`staking-asset-card ${isPlanted ? 'staked' : 'unstaked'}`}>
+        <div key={asset} className={`staking-asset-card ${isStaked ? 'staked' : 'unstaked'}`}>
           <div className="staking-asset-card-header">
             <div className="staking-asset-icon">
               <AssetIcon asset={asset} size={48} />
             </div>
             <div className="staking-asset-name">{asset}</div>
-            <div className={`staking-asset-status ${isPlanted ? 'staked' : 'unstaked'}`}>
-              {isPlanted ? `${formatAmount(planted)} Staked` : 'Available to Stake'}
+            <div className={`staking-asset-status ${isStaked ? 'staked' : 'unstaked'}`}>
+              {isPending ? (
+                'Processing...'
+              ) : isStaked ? (
+                `${formatAmount(staked)} Staked`
+              ) : (
+                'Available to Stake'
+              )}
             </div>
           </div>
 
           <div className="staking-asset-card-body">
             <div className="staking-asset-details">
-              {isPlanted ? (
+              {isStaked ? (
                 <div className="staking-asset-yield">
                   🌱 Growing • Yield: ${weeklyYield.toFixed(2)}/week
+                  <br />
+                  <small className="text-text-muted">
+                    Base rate: ${(staked * assetPrice * 0.05).toFixed(2)} × {diversityMultiplier}x multiplier
+                  </small>
                 </div>
               ) : (
                 <>
@@ -1863,26 +1953,36 @@ const Dashboard: React.FC = () => {
           </div>
 
           <div className="staking-asset-card-footer">
-            {isPlanted ? (
-              <button 
-                className={`w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                  claimedAssets.has(asset)
-                    ? 'bg-surface-3 text-text-muted cursor-not-allowed'
-                    : sparklingAssets.has(asset)
-                    ? 'btn-success animate-pulse'
-                    : 'btn-success'
-                }`}
-                onClick={() => !claimedAssets.has(asset) && handleClaimYield(asset)}
-                disabled={claimedAssets.has(asset)}
-              >
-                {claimedAssets.has(asset) ? 'Claimed ✓' : 'Claim Yield'}
-              </button>
+            {isStaked ? (
+              <div className="flex gap-2">
+                <button 
+                  className={`flex-1 px-3 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                    claimedAssets.has(asset)
+                      ? 'bg-surface-3 text-text-muted cursor-not-allowed'
+                      : sparklingAssets.has(asset)
+                      ? 'btn-success animate-pulse'
+                      : 'btn-success'
+                  }`}
+                  onClick={() => !claimedAssets.has(asset) && handleClaimYield(asset)}
+                  disabled={claimedAssets.has(asset) || isPending}
+                >
+                  {claimedAssets.has(asset) ? 'Claimed ✓' : 'Claim'}
+                </button>
+                <button 
+                  className="flex-1 btn-secondary py-3 text-sm"
+                  onClick={() => openStakingModal(asset)}
+                  disabled={isPending}
+                >
+                  {isPending ? 'Processing...' : 'Manage'}
+                </button>
+              </div>
             ) : (
               <button 
                 className="w-full btn-primary py-3"
-                onClick={() => alert(`🌱 Stake ${asset} feature coming soon!`)}
+                onClick={() => openStakingModal(asset)}
+                disabled={isPending}
               >
-                Stake {asset} 🌱
+                {isPending ? 'Processing...' : `Stake ${asset} 🌱`}
               </button>
             )}
           </div>
@@ -2001,7 +2101,7 @@ const Dashboard: React.FC = () => {
                   <div className="yield-stat-icon">
                     <Target className="w-6 h-6 text-success-400" />
                   </div>
-                  <div className="yield-stat-value">{assetsWithBalance.filter(asset => plantedAmounts[asset] > 0).length}/6</div>
+                  <div className="yield-stat-value">{assetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length}/6</div>
                   <div className="yield-stat-label">Asset Diversity</div>
                   <div className="yield-stat-detail">{calculateDiversityMultiplier()}x multiplier active</div>
                 </div>
@@ -2607,6 +2707,194 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Staking Modal */}
+      {stakingModalOpen && selectedStakingAsset && (
+        <div className="fixed inset-0 bg-overlay-1 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface-1 rounded-3xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto border border-white/10">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-text-primary m-0" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>
+                Stake {selectedStakingAsset}
+              </h2>
+              <button 
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-2 text-text-secondary hover:bg-surface-3 transition-colors"
+                onClick={() => {
+                  setStakingModalOpen(false);
+                  setSelectedStakingAsset(null);
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            {/* Asset Info */}
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-surface-2 rounded-full">
+                <AssetIcon asset={selectedStakingAsset} size={40} />
+              </div>
+              <div className="text-sm text-text-secondary mb-2">
+                Available Balance
+              </div>
+              <div className="text-2xl font-bold text-text-primary">
+                {formatAmount(portfolio[selectedStakingAsset] || 0)} {selectedStakingAsset}
+              </div>
+              <div className="text-sm text-text-muted">
+                ~${formatAmount((portfolio[selectedStakingAsset] || 0) * (MASTER_ASSETS[selectedStakingAsset]?.price || 0))}
+              </div>
+            </div>
+            
+            {/* Staking Amount Input */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-text-secondary mb-2">
+                Amount to Stake
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  placeholder="0.0"
+                  className="w-full px-4 py-3 bg-surface-2 border border-white/10 rounded-xl text-text-primary focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+                  id="stakingAmountInput"
+                  step="any"
+                  min="0"
+                  max={portfolio[selectedStakingAsset] || 0}
+                />
+                <button 
+                  className="absolute right-3 top-1/2 -translate-y-1/2 px-3 py-1 text-xs font-medium bg-primary-600 hover:bg-primary-500 text-on-primary rounded-lg transition-colors"
+                  onClick={() => {
+                    const input = document.getElementById('stakingAmountInput') as HTMLInputElement;
+                    if (input) {
+                      input.value = (portfolio[selectedStakingAsset] || 0).toString();
+                    }
+                  }}
+                >
+                  MAX
+                </button>
+              </div>
+            </div>
+            
+            {/* Quick Amount Buttons */}
+            <div className="grid grid-cols-4 gap-2 mb-6">
+              {[0.25, 0.5, 0.75, 1].map((percentage) => (
+                <button
+                  key={percentage}
+                  className="px-3 py-2 text-xs font-medium bg-surface-2 hover:bg-surface-3 text-text-secondary hover:text-text-primary border border-white/10 rounded-lg transition-all"
+                  onClick={() => {
+                    const input = document.getElementById('stakingAmountInput') as HTMLInputElement;
+                    if (input) {
+                      const amount = (portfolio[selectedStakingAsset] || 0) * percentage;
+                      input.value = amount.toString();
+                    }
+                  }}
+                >
+                  {percentage === 1 ? '100%' : `${Math.round(percentage * 100)}%`}
+                </button>
+              ))}
+            </div>
+            
+            {/* Staking Benefits */}
+            {(() => {
+              // Calculate diversity multiplier for modal context
+              const modalAssetsList = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+              const modalAssetsWithBalance = modalAssetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
+              const modalCalculateDiversityMultiplier = () => {
+                const stakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
+                const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
+                return multipliers[stakedCount] || 1.0;
+              };
+              const currentMultiplier = modalCalculateDiversityMultiplier();
+              
+              return (
+                <div className="bg-surface-2 border border-white/10 rounded-xl p-4 mb-6">
+                  <h3 className="text-sm font-medium text-text-primary mb-3">Staking Benefits</h3>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-text-secondary">Base APY</span>
+                      <span className="text-success-400 font-medium">8.5%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-text-secondary">Current Diversity Multiplier</span>
+                      <span className="text-warning-400 font-medium">{currentMultiplier.toFixed(2)}x</span>
+                    </div>
+                    <div className="flex justify-between border-t border-white/10 pt-2">
+                      <span className="text-text-primary font-medium">Effective APY</span>
+                      <span className="text-success-400 font-bold">
+                        {(8.5 * currentMultiplier).toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+            
+            {/* Diversity Boost Notice */}
+            {(() => {
+              const modalAssetsList = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+              const modalAssetsWithBalance = modalAssetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
+              const modalCalculateDiversityMultiplier = () => {
+                const stakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
+                const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
+                return multipliers[stakedCount] || 1.0;
+              };
+              
+              const currentStakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
+              const willHaveStaked = stakedAmounts[selectedStakingAsset] > 0;
+              const newStakedCount = willHaveStaked ? currentStakedCount : currentStakedCount + 1;
+              const currentMultiplier = modalCalculateDiversityMultiplier();
+              const newMultiplier = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2][newStakedCount] || 1.0;
+              
+              if (newMultiplier > currentMultiplier) {
+                return (
+                  <div className="bg-warning-400/15 border border-warning-400/30 rounded-xl p-4 mb-6">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Star className="w-4 h-4 text-warning-400" />
+                      <span className="text-sm font-medium text-warning-300">Diversity Bonus!</span>
+                    </div>
+                    <p className="text-xs text-warning-200">
+                      This will be your first stake in {selectedStakingAsset}, boosting your diversity multiplier from {currentMultiplier.toFixed(2)}x to {newMultiplier.toFixed(2)}x!
+                    </p>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+            
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <button 
+                className="flex-1 btn-secondary py-3"
+                onClick={() => {
+                  setStakingModalOpen(false);
+                  setSelectedStakingAsset(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                className="flex-1 btn-primary py-3"
+                onClick={() => {
+                  const input = document.getElementById('stakingAmountInput') as HTMLInputElement;
+                  const amount = parseFloat(input?.value || '0');
+                  
+                  if (amount <= 0) {
+                    alert('Please enter a valid amount');
+                    return;
+                  }
+                  
+                  if (amount > (portfolio[selectedStakingAsset] || 0)) {
+                    alert('Insufficient balance');
+                    return;
+                  }
+                  
+                  handleStakeAsset(selectedStakingAsset, amount);
+                }}
+              >
+                <Rocket className="w-4 h-4 mr-2" />
+                Stake {selectedStakingAsset}
+              </button>
+            </div>
           </div>
         </div>
       )}
