@@ -1664,3 +1664,164 @@ section.relative button.bg-primary-600:hover {
     @apply p-5; /* Larger touch target */
   }
 }
+
+/* ===== ASSET DETAIL EXPANSION STYLES ===== */
+
+.staking-asset-expand-btn {
+  @apply p-2 rounded-full bg-surface-3/50 border border-white/5;
+  @apply hover:bg-surface-3/80 transition-all duration-200;
+  @apply text-text-muted hover:text-text-primary;
+}
+
+.staking-asset-card.expanded {
+  @apply ring-1 ring-primary-600/30;
+}
+
+.staking-asset-details-expanded {
+  @apply mt-4 space-y-4;
+  animation: expandDown 0.3s ease-out;
+}
+
+@keyframes expandDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+    transform: translateY(0);
+  }
+}
+
+.detail-section-divider {
+  @apply w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent my-4;
+}
+
+.detail-section {
+  @apply space-y-3;
+}
+
+.detail-section-title {
+  @apply flex items-center gap-2 font-semibold text-sm text-text-primary;
+  @apply pb-2 border-b border-white/5;
+}
+
+/* Performance Metrics Grid */
+.detail-grid {
+  @apply grid grid-cols-2 gap-3;
+}
+
+.detail-item {
+  @apply flex flex-col;
+}
+
+.detail-label {
+  @apply text-xs text-text-muted;
+}
+
+.detail-value {
+  @apply text-sm font-semibold text-text-primary;
+}
+
+/* Yield Breakdown */
+.detail-breakdown {
+  @apply space-y-2;
+}
+
+.breakdown-item {
+  @apply flex items-center justify-between;
+}
+
+.breakdown-left {
+  @apply flex-1;
+}
+
+.breakdown-label {
+  @apply text-sm text-text-primary;
+}
+
+.breakdown-sublabel {
+  @apply text-xs text-text-muted block;
+}
+
+.breakdown-value {
+  @apply text-sm font-mono text-text-primary;
+}
+
+.breakdown-divider {
+  @apply h-px bg-white/10 my-2;
+}
+
+.breakdown-total {
+  @apply pt-2 border-t border-white/10;
+}
+
+.breakdown-total .breakdown-label {
+  @apply font-semibold;
+}
+
+/* History List */
+.history-list {
+  @apply space-y-3;
+}
+
+.history-item {
+  @apply flex items-center justify-between;
+}
+
+.history-left {
+  @apply flex items-center gap-3 flex-1;
+}
+
+.history-icon {
+  @apply w-6 h-6 rounded-full flex items-center justify-center;
+}
+
+.history-icon.success {
+  @apply bg-success-600/20 text-success-400;
+}
+
+.history-icon.claim {
+  @apply bg-warning-600/20 text-warning-400;
+}
+
+.history-content {
+  @apply flex-1;
+}
+
+.history-action {
+  @apply text-sm font-medium text-text-primary;
+}
+
+.history-date {
+  @apply text-xs text-text-muted;
+}
+
+.history-amount {
+  @apply text-sm font-mono text-text-secondary;
+}
+
+/* Mobile responsive adjustments for expandable details */
+@media (pointer: coarse) {
+  .staking-asset-expand-btn {
+    @apply p-3; /* Larger touch target */
+  }
+  
+  .detail-grid {
+    @apply grid-cols-1 gap-4; /* Stack on mobile */
+  }
+  
+  .detail-item {
+    @apply p-3 bg-surface-3/30 rounded-lg; /* Better mobile cards */
+  }
+  
+  .breakdown-item {
+    @apply p-3 bg-surface-3/30 rounded-lg; /* Better mobile cards */
+  }
+  
+  .history-item {
+    @apply p-3 bg-surface-3/30 rounded-lg; /* Better mobile cards */
+  }
+}

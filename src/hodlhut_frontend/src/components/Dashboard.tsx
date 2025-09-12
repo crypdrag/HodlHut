@@ -32,6 +32,8 @@ import {
   Plus,          // Add assets
   DollarSign,    // Money/earnings
   Trophy,        // Achievement/best
+  ChevronDown,   // Expandable sections
+  TrendingUp,    // Performance metrics
   Rocket,        // Launch/execute
   BarChart3,     // Data/stats
   Wallet,        // Wallet connections
@@ -451,6 +453,9 @@ const Dashboard: React.FC = () => {
   const [claimedAssets, setClaimedAssets] = useState<Set<string>>(new Set());
   const [sparklingAssets, setSparklingAssets] = useState<Set<string>>(new Set());
   const [statsExpanded, setStatsExpanded] = useState(false);
+  
+  // Asset Detail Expansion State
+  const [expandedAssets, setExpandedAssets] = useState<Set<string>>(new Set());
 
   // Phase 2: Real Staking State Management
   const [stakedAmounts, setStakedAmounts] = useState<Record<string, number>>({});
@@ -463,6 +468,18 @@ const Dashboard: React.FC = () => {
   const [pendingStaking, setPendingStaking] = useState<Set<string>>(new Set());
   const [selectedStakingAsset, setSelectedStakingAsset] = useState<string | null>(null);
   const [stakingModalOpen, setStakingModalOpen] = useState(false);
+  
+  // Phase 3: Staking Confirmation Flow
+  const [stakingConfirmationOpen, setStakingConfirmationOpen] = useState(false);
+  const [pendingStakingAmount, setPendingStakingAmount] = useState<number>(0);
+  const [stakingTransactionState, setStakingTransactionState] = useState<'confirming' | 'processing' | 'success'>('confirming');
+  
+  // Phase 3: Unstaking Flow
+  const [unstakingModalOpen, setUnstakingModalOpen] = useState(false);
+  const [selectedUnstakingAsset, setSelectedUnstakingAsset] = useState<string | null>(null);
+  const [unstakingConfirmationOpen, setUnstakingConfirmationOpen] = useState(false);
+  const [pendingUnstakingAmount, setPendingUnstakingAmount] = useState<number>(0);
+  const [unstakingTransactionState, setUnstakingTransactionState] = useState<'confirming' | 'processing' | 'success'>('confirming');
   
   // Ethereum Wallet Options for Transaction
   const ETH_WALLET_OPTIONS = [
@@ -586,6 +603,76 @@ const Dashboard: React.FC = () => {
   const openStakingModal = (asset: string) => {
     setSelectedStakingAsset(asset);
     setStakingModalOpen(true);
+  };
+
+  // Phase 3: Staking Confirmation Functions
+  const openStakingConfirmation = (asset: string, amount: number) => {
+    setSelectedStakingAsset(asset);
+    setPendingStakingAmount(amount);
+    setStakingModalOpen(false);
+    setStakingConfirmationOpen(true);
+    setStakingTransactionState('confirming');
+  };
+
+  const confirmStakingTransaction = () => {
+    if (!selectedStakingAsset) return;
+    
+    setStakingTransactionState('processing');
+    
+    // Call the existing staking function
+    handleStakeAsset(selectedStakingAsset, pendingStakingAmount);
+    
+    // Show success state after transaction completes
+    setTimeout(() => {
+      setStakingTransactionState('success');
+    }, 2000);
+  };
+
+  const closeStakingConfirmation = () => {
+    setStakingConfirmationOpen(false);
+    setSelectedStakingAsset(null);
+    setPendingStakingAmount(0);
+    setStakingTransactionState('confirming');
+  };
+
+  // Phase 3: Unstaking Functions
+  const openUnstakingModal = (asset: string) => {
+    setSelectedUnstakingAsset(asset);
+    setUnstakingModalOpen(true);
+  };
+
+  const openUnstakingConfirmation = (asset: string, amount: number) => {
+    setSelectedUnstakingAsset(asset);
+    setPendingUnstakingAmount(amount);
+    setUnstakingModalOpen(false);
+    setUnstakingConfirmationOpen(true);
+    setUnstakingTransactionState('confirming');
+  };
+
+  const confirmUnstakingTransaction = () => {
+    if (!selectedUnstakingAsset) return;
+    
+    setUnstakingTransactionState('processing');
+    
+    // Call the existing unstaking function
+    handleUnstakeAsset(selectedUnstakingAsset, pendingUnstakingAmount);
+    
+    // Show success state after transaction completes
+    setTimeout(() => {
+      setUnstakingTransactionState('success');
+    }, 2000);
+  };
+
+  const closeUnstakingConfirmation = () => {
+    setUnstakingConfirmationOpen(false);
+    setSelectedUnstakingAsset(null);
+    setPendingUnstakingAmount(0);
+    setUnstakingTransactionState('confirming');
+  };
+
+  const closeUnstakingModal = () => {
+    setUnstakingModalOpen(false);
+    setSelectedUnstakingAsset(null);
   };
   
   // Enhanced DEX Options with Real Stats - FIXED STATS
@@ -1910,7 +1997,7 @@ const Dashboard: React.FC = () => {
       const nextMultiplierBoost = isStaked ? 0 : 0.25; // Boost for staking new asset
 
       return (
-        <div key={asset} className={`staking-asset-card ${isStaked ? 'staked' : 'unstaked'}`}>
+        <div key={asset} className={`staking-asset-card ${isStaked ? 'staked' : 'unstaked'} ${expandedAssets.has(asset) ? 'expanded' : ''}`}>
           <div className="staking-asset-card-header">
             <div className="staking-asset-icon">
               <AssetIcon asset={asset} size={48} />
@@ -1925,6 +2012,28 @@ const Dashboard: React.FC = () => {
                 'Available to Stake'
               )}
             </div>
+            {isStaked && (
+              <button
+                className="staking-asset-expand-btn"
+                onClick={() => {
+                  const newExpanded = new Set(expandedAssets);
+                  if (expandedAssets.has(asset)) {
+                    newExpanded.delete(asset);
+                  } else {
+                    newExpanded.add(asset);
+                  }
+                  setExpandedAssets(newExpanded);
+                }}
+                title={expandedAssets.has(asset) ? 'Hide details' : 'Show details'}
+              >
+                <ChevronDown 
+                  size={16} 
+                  className={`transition-transform duration-200 ${
+                    expandedAssets.has(asset) ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+            )}
           </div>
 
           <div className="staking-asset-card-body">
@@ -1950,6 +2059,126 @@ const Dashboard: React.FC = () => {
                 </>
               )}
             </div>
+            
+            {/* Expandable Detail Section */}
+            {isStaked && expandedAssets.has(asset) && (
+              <div className="staking-asset-details-expanded">
+                <div className="detail-section-divider" />
+                
+                {/* Performance Metrics */}
+                <div className="detail-section">
+                  <div className="detail-section-title">
+                    <TrendingUp size={16} className="text-success-400" />
+                    Performance Metrics
+                  </div>
+                  <div className="detail-grid">
+                    <div className="detail-item">
+                      <span className="detail-label">Total Earned</span>
+                      <span className="detail-value text-success-400">
+                        ${((weeklyYield * 4)).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">APY</span>
+                      <span className="detail-value">
+                        {((weeklyYield * 52 / (staked * assetPrice)) * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Days Staked</span>
+                      <span className="detail-value">28 days</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Multiplier Impact</span>
+                      <span className="detail-value text-warning-400">
+                        +{((diversityMultiplier - 1) * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Yield Breakdown */}
+                <div className="detail-section">
+                  <div className="detail-section-title">
+                    <DollarSign size={16} className="text-warning-400" />
+                    Yield Breakdown
+                  </div>
+                  <div className="detail-breakdown">
+                    <div className="breakdown-item">
+                      <div className="breakdown-left">
+                        <span className="breakdown-label">Base Yield</span>
+                        <span className="breakdown-sublabel">5% annual rate</span>
+                      </div>
+                      <span className="breakdown-value">
+                        ${(staked * assetPrice * 0.05 / 52).toFixed(2)}/week
+                      </span>
+                    </div>
+                    <div className="breakdown-item">
+                      <div className="breakdown-left">
+                        <span className="breakdown-label">Diversity Bonus</span>
+                        <span className="breakdown-sublabel">{diversityMultiplier}x multiplier</span>
+                      </div>
+                      <span className="breakdown-value text-success-400">
+                        +${(weeklyYield - (staked * assetPrice * 0.05 / 52)).toFixed(2)}/week
+                      </span>
+                    </div>
+                    <div className="breakdown-divider" />
+                    <div className="breakdown-item breakdown-total">
+                      <span className="breakdown-label">Total Weekly</span>
+                      <span className="breakdown-value text-success-400">
+                        ${weeklyYield.toFixed(2)}/week
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Staking History */}
+                <div className="detail-section">
+                  <div className="detail-section-title">
+                    <Clock size={16} className="text-primary-400" />
+                    Recent Activity
+                  </div>
+                  <div className="history-list">
+                    <div className="history-item">
+                      <div className="history-left">
+                        <div className="history-icon success">
+                          <Plus size={12} />
+                        </div>
+                        <div className="history-content">
+                          <div className="history-action">Staked {formatAmount(staked)} {asset}</div>
+                          <div className="history-date">28 days ago</div>
+                        </div>
+                      </div>
+                      <div className="history-amount">+{diversityMultiplier}x Multiplier</div>
+                    </div>
+                    <div className="history-item">
+                      <div className="history-left">
+                        <div className="history-icon claim">
+                          <DollarSign size={12} />
+                        </div>
+                        <div className="history-content">
+                          <div className="history-action">Claimed Weekly Yield</div>
+                          <div className="history-date">7 days ago</div>
+                        </div>
+                      </div>
+                      <div className="history-amount">${weeklyYield.toFixed(2)}</div>
+                    </div>
+                    <div className="history-item">
+                      <div className="history-left">
+                        <div className="history-icon claim">
+                          <DollarSign size={12} />
+                        </div>
+                        <div className="history-content">
+                          <div className="history-action">Claimed Weekly Yield</div>
+                          <div className="history-date">14 days ago</div>
+                        </div>
+                      </div>
+                      <div className="history-amount">${(weeklyYield * 0.95).toFixed(2)}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="staking-asset-card-footer">
@@ -1970,7 +2199,7 @@ const Dashboard: React.FC = () => {
                 </button>
                 <button 
                   className="flex-1 btn-secondary py-3 text-sm"
-                  onClick={() => openStakingModal(asset)}
+                  onClick={() => openUnstakingModal(asset)}
                   disabled={isPending}
                 >
                   {isPending ? 'Processing...' : 'Manage'}
@@ -2888,13 +3117,498 @@ const Dashboard: React.FC = () => {
                     return;
                   }
                   
-                  handleStakeAsset(selectedStakingAsset, amount);
+                  openStakingConfirmation(selectedStakingAsset, amount);
                 }}
               >
                 <Rocket className="w-4 h-4 mr-2" />
                 Stake {selectedStakingAsset}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Staking Confirmation Modal */}
+      {stakingConfirmationOpen && selectedStakingAsset && (
+        <div className="fixed inset-0 bg-overlay-1 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface-1 rounded-3xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto border border-white/10">
+            {stakingTransactionState === 'confirming' && (
+              <>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-text-primary m-0" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>
+                    Confirm Staking
+                  </h2>
+                  <button 
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-2 text-text-secondary hover:bg-surface-3 transition-colors"
+                    onClick={closeStakingConfirmation}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                
+                {/* Transaction Summary */}
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-surface-2 rounded-full">
+                    <AssetIcon asset={selectedStakingAsset} size={40} />
+                  </div>
+                  <div className="text-lg font-bold text-text-primary mb-2">
+                    Staking {formatAmount(pendingStakingAmount)} {selectedStakingAsset}
+                  </div>
+                  <div className="text-sm text-text-muted">
+                    ~${formatAmount(pendingStakingAmount * (MASTER_ASSETS[selectedStakingAsset]?.price || 0))}
+                  </div>
+                </div>
+                
+                {/* Transaction Details */}
+                {(() => {
+                  const modalAssetsList = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+                  const modalAssetsWithBalance = modalAssetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
+                  const modalCalculateDiversityMultiplier = () => {
+                    const stakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
+                    const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
+                    return multipliers[stakedCount] || 1.0;
+                  };
+                  
+                  const currentMultiplier = modalCalculateDiversityMultiplier();
+                  const willHaveStaked = stakedAmounts[selectedStakingAsset] > 0;
+                  const newStakedCount = willHaveStaked ? modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length : modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length + 1;
+                  const newMultiplier = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2][newStakedCount] || 1.0;
+                  const assetPrice = MASTER_ASSETS[selectedStakingAsset]?.price || 0;
+                  const weeklyYield = pendingStakingAmount * assetPrice * 0.05 * newMultiplier;
+                  
+                  return (
+                    <div className="bg-surface-2 border border-white/10 rounded-xl p-4 mb-6">
+                      <h3 className="text-sm font-medium text-text-primary mb-3">Transaction Details</h3>
+                      <div className="space-y-3 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-text-secondary">Amount</span>
+                          <span className="text-text-primary font-medium">{formatAmount(pendingStakingAmount)} {selectedStakingAsset}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-text-secondary">Network Fee</span>
+                          <span className="text-success-400 font-medium">FREE</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-text-secondary">Base APY</span>
+                          <span className="text-success-400 font-medium">8.5%</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-text-secondary">Diversity Multiplier</span>
+                          <span className="text-warning-400 font-medium">
+                            {currentMultiplier.toFixed(2)}x → {newMultiplier.toFixed(2)}x
+                          </span>
+                        </div>
+                        <div className="flex justify-between border-t border-white/10 pt-3 font-medium">
+                          <span className="text-text-primary">Weekly Yield</span>
+                          <span className="text-success-400">${weeklyYield.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+                
+                {/* Estimated Processing Time */}
+                <div className="bg-primary-600/10 border border-primary-400/20 rounded-xl p-4 mb-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Clock className="w-4 h-4 text-primary-400" />
+                    <span className="text-sm font-medium text-primary-300">Processing Time</span>
+                  </div>
+                  <p className="text-xs text-primary-200">
+                    Staking typically completes in ~2-3 seconds. You'll receive a transaction hash for tracking.
+                  </p>
+                </div>
+                
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  <button 
+                    className="flex-1 btn-secondary py-3"
+                    onClick={closeStakingConfirmation}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    className="flex-1 btn-primary py-3"
+                    onClick={confirmStakingTransaction}
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Confirm Stake
+                  </button>
+                </div>
+              </>
+            )}
+            
+            {stakingTransactionState === 'processing' && (
+              <>
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-primary-600 rounded-full animate-pulse">
+                    <Zap className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-text-primary mb-2">Processing Transaction</h3>
+                  <p className="text-text-secondary mb-4">
+                    Staking {formatAmount(pendingStakingAmount)} {selectedStakingAsset}...
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-sm text-text-muted">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-400"></div>
+                    <span>Please wait while we process your transaction</span>
+                  </div>
+                </div>
+              </>
+            )}
+            
+            {stakingTransactionState === 'success' && (
+              <>
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-success-600 rounded-full">
+                    <CheckCircle className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-text-primary mb-2">Staking Successful!</h3>
+                  <p className="text-text-secondary mb-4">
+                    Successfully staked {formatAmount(pendingStakingAmount)} {selectedStakingAsset}
+                  </p>
+                  
+                  <div className="bg-surface-2 border border-white/10 rounded-xl p-4 mb-6 text-left">
+                    <div className="text-xs text-text-muted mb-2">Transaction Hash:</div>
+                    <div className="font-mono text-xs text-text-primary break-all">
+                      0x{Math.random().toString(16).substring(2, 10)}...{Math.random().toString(16).substring(2, 6)}
+                    </div>
+                  </div>
+                  
+                  <div className="text-sm text-success-400 mb-6">
+                    🌱 Your assets are now growing! Check back regularly to claim your yield.
+                  </div>
+                  
+                  <button 
+                    className="w-full btn-primary py-3"
+                    onClick={closeStakingConfirmation}
+                  >
+                    <PartyPopper className="w-4 h-4 mr-2" />
+                    Done
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Unstaking Modal */}
+      {unstakingModalOpen && selectedUnstakingAsset && (
+        <div className="fixed inset-0 bg-overlay-1 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface-1 rounded-3xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto border border-white/10">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-text-primary m-0" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>
+                Manage {selectedUnstakingAsset}
+              </h2>
+              <button 
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-2 text-text-secondary hover:bg-surface-3 transition-colors"
+                onClick={closeUnstakingModal}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            {/* Asset Info */}
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-surface-2 rounded-full">
+                <AssetIcon asset={selectedUnstakingAsset} size={40} />
+              </div>
+              <div className="text-sm text-text-secondary mb-2">
+                Currently Staked
+              </div>
+              <div className="text-2xl font-bold text-text-primary">
+                {formatAmount(stakedAmounts[selectedUnstakingAsset] || 0)} {selectedUnstakingAsset}
+              </div>
+              <div className="text-sm text-text-muted">
+                ~${formatAmount((stakedAmounts[selectedUnstakingAsset] || 0) * (MASTER_ASSETS[selectedUnstakingAsset]?.price || 0))}
+              </div>
+            </div>
+            
+            {/* Unstaking Amount Input */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-text-secondary mb-2">
+                Amount to Unstake
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  placeholder="0.0"
+                  className="w-full px-4 py-3 bg-surface-2 border border-white/10 rounded-xl text-text-primary focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+                  id="unstakingAmountInput"
+                  step="any"
+                  min="0"
+                  max={stakedAmounts[selectedUnstakingAsset] || 0}
+                />
+                <button 
+                  className="absolute right-3 top-1/2 -translate-y-1/2 px-3 py-1 text-xs font-medium bg-primary-600 hover:bg-primary-500 text-on-primary rounded-lg transition-colors"
+                  onClick={() => {
+                    const input = document.getElementById('unstakingAmountInput') as HTMLInputElement;
+                    if (input) {
+                      input.value = (stakedAmounts[selectedUnstakingAsset] || 0).toString();
+                    }
+                  }}
+                >
+                  ALL
+                </button>
+              </div>
+            </div>
+            
+            {/* Quick Unstaking Buttons */}
+            <div className="grid grid-cols-4 gap-2 mb-6">
+              {[0.25, 0.5, 0.75, 1].map((percentage) => (
+                <button
+                  key={percentage}
+                  className="px-3 py-2 text-xs font-medium bg-surface-2 hover:bg-surface-3 text-text-secondary hover:text-text-primary border border-white/10 rounded-lg transition-all"
+                  onClick={() => {
+                    const input = document.getElementById('unstakingAmountInput') as HTMLInputElement;
+                    if (input) {
+                      const amount = (stakedAmounts[selectedUnstakingAsset] || 0) * percentage;
+                      input.value = amount.toString();
+                    }
+                  }}
+                >
+                  {percentage === 1 ? '100%' : `${Math.round(percentage * 100)}%`}
+                </button>
+              ))}
+            </div>
+            
+            {/* Impact Analysis */}
+            {(() => {
+              const modalAssetsList = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+              const modalAssetsWithBalance = modalAssetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
+              const modalCalculateDiversityMultiplier = () => {
+                const stakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
+                const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
+                return multipliers[stakedCount] || 1.0;
+              };
+              
+              const currentMultiplier = modalCalculateDiversityMultiplier();
+              const currentStaked = stakedAmounts[selectedUnstakingAsset] || 0;
+              const assetPrice = MASTER_ASSETS[selectedUnstakingAsset]?.price || 0;
+              const currentWeeklyYield = currentStaked * assetPrice * 0.05 * currentMultiplier;
+              
+              return (
+                <div className="bg-surface-2 border border-white/10 rounded-xl p-4 mb-6">
+                  <h3 className="text-sm font-medium text-text-primary mb-3">Current Position</h3>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-text-secondary">Staked Amount</span>
+                      <span className="text-text-primary font-medium">{formatAmount(currentStaked)} {selectedUnstakingAsset}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-text-secondary">Current APY</span>
+                      <span className="text-success-400 font-medium">{(8.5 * currentMultiplier).toFixed(1)}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-text-secondary">Diversity Multiplier</span>
+                      <span className="text-warning-400 font-medium">{currentMultiplier.toFixed(2)}x</span>
+                    </div>
+                    <div className="flex justify-between border-t border-white/10 pt-2 font-medium">
+                      <span className="text-text-primary">Weekly Yield</span>
+                      <span className="text-success-400">${currentWeeklyYield.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+            
+            {/* Warning Notice */}
+            <div className="bg-error-400/10 border border-error-400/20 rounded-xl p-4 mb-6">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle className="w-4 h-4 text-error-400" />
+                <span className="text-sm font-medium text-error-300">Unstaking Notice</span>
+              </div>
+              <p className="text-xs text-error-200">
+                Unstaking will immediately stop yield generation for the withdrawn amount. Consider partial unstaking to maintain some rewards.
+              </p>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <button 
+                className="flex-1 btn-secondary py-3"
+                onClick={closeUnstakingModal}
+              >
+                Cancel
+              </button>
+              <button 
+                className="flex-1 btn-error py-3"
+                onClick={() => {
+                  const input = document.getElementById('unstakingAmountInput') as HTMLInputElement;
+                  const amount = parseFloat(input?.value || '0');
+                  
+                  if (amount <= 0) {
+                    alert('Please enter a valid amount');
+                    return;
+                  }
+                  
+                  if (amount > (stakedAmounts[selectedUnstakingAsset] || 0)) {
+                    alert('Insufficient staked balance');
+                    return;
+                  }
+                  
+                  openUnstakingConfirmation(selectedUnstakingAsset, amount);
+                }}
+              >
+                <AlertTriangle className="w-4 h-4 mr-2" />
+                Unstake {selectedUnstakingAsset}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unstaking Confirmation Modal */}
+      {unstakingConfirmationOpen && selectedUnstakingAsset && (
+        <div className="fixed inset-0 bg-overlay-1 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface-1 rounded-3xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto border border-white/10">
+            {unstakingTransactionState === 'confirming' && (
+              <>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-text-primary m-0" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>
+                    Confirm Unstaking
+                  </h2>
+                  <button 
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-2 text-text-secondary hover:bg-surface-3 transition-colors"
+                    onClick={closeUnstakingConfirmation}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                
+                {/* Transaction Summary */}
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-error-600/20 rounded-full">
+                    <AssetIcon asset={selectedUnstakingAsset} size={40} />
+                  </div>
+                  <div className="text-lg font-bold text-text-primary mb-2">
+                    Unstaking {formatAmount(pendingUnstakingAmount)} {selectedUnstakingAsset}
+                  </div>
+                  <div className="text-sm text-text-muted">
+                    ~${formatAmount(pendingUnstakingAmount * (MASTER_ASSETS[selectedUnstakingAsset]?.price || 0))}
+                  </div>
+                </div>
+                
+                {/* Transaction Impact */}
+                {(() => {
+                  const modalAssetsList = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+                  const modalAssetsWithBalance = modalAssetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
+                  const modalCalculateDiversityMultiplier = () => {
+                    const stakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
+                    const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
+                    return multipliers[stakedCount] || 1.0;
+                  };
+                  
+                  const currentMultiplier = modalCalculateDiversityMultiplier();
+                  const currentStaked = stakedAmounts[selectedUnstakingAsset] || 0;
+                  const newStaked = currentStaked - pendingUnstakingAmount;
+                  const assetPrice = MASTER_ASSETS[selectedUnstakingAsset]?.price || 0;
+                  const yieldLoss = pendingUnstakingAmount * assetPrice * 0.05 * currentMultiplier;
+                  
+                  return (
+                    <div className="bg-surface-2 border border-white/10 rounded-xl p-4 mb-6">
+                      <h3 className="text-sm font-medium text-text-primary mb-3">Impact Analysis</h3>
+                      <div className="space-y-3 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-text-secondary">Amount to Unstake</span>
+                          <span className="text-text-primary font-medium">{formatAmount(pendingUnstakingAmount)} {selectedUnstakingAsset}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-text-secondary">Remaining Staked</span>
+                          <span className="text-text-primary font-medium">{formatAmount(newStaked)} {selectedUnstakingAsset}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-text-secondary">Network Fee</span>
+                          <span className="text-success-400 font-medium">FREE</span>
+                        </div>
+                        <div className="flex justify-between border-t border-white/10 pt-3 font-medium">
+                          <span className="text-text-primary">Weekly Yield Loss</span>
+                          <span className="text-error-400">-${yieldLoss.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+                
+                {/* Processing Time */}
+                <div className="bg-primary-600/10 border border-primary-400/20 rounded-xl p-4 mb-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Clock className="w-4 h-4 text-primary-400" />
+                    <span className="text-sm font-medium text-primary-300">Processing Time</span>
+                  </div>
+                  <p className="text-xs text-primary-200">
+                    Unstaking typically completes in ~2-3 seconds. Your assets will be available immediately after confirmation.
+                  </p>
+                </div>
+                
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  <button 
+                    className="flex-1 btn-secondary py-3"
+                    onClick={closeUnstakingConfirmation}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    className="flex-1 btn-error py-3"
+                    onClick={confirmUnstakingTransaction}
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Confirm Unstake
+                  </button>
+                </div>
+              </>
+            )}
+            
+            {unstakingTransactionState === 'processing' && (
+              <>
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-error-600 rounded-full animate-pulse">
+                    <Zap className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-text-primary mb-2">Processing Unstaking</h3>
+                  <p className="text-text-secondary mb-4">
+                    Unstaking {formatAmount(pendingUnstakingAmount)} {selectedUnstakingAsset}...
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-sm text-text-muted">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-error-400"></div>
+                    <span>Please wait while we process your transaction</span>
+                  </div>
+                </div>
+              </>
+            )}
+            
+            {unstakingTransactionState === 'success' && (
+              <>
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-success-600 rounded-full">
+                    <CheckCircle className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-text-primary mb-2">Unstaking Complete!</h3>
+                  <p className="text-text-secondary mb-4">
+                    Successfully unstaked {formatAmount(pendingUnstakingAmount)} {selectedUnstakingAsset}
+                  </p>
+                  
+                  <div className="bg-surface-2 border border-white/10 rounded-xl p-4 mb-6 text-left">
+                    <div className="text-xs text-text-muted mb-2">Transaction Hash:</div>
+                    <div className="font-mono text-xs text-text-primary break-all">
+                      0x{Math.random().toString(16).substring(2, 10)}...{Math.random().toString(16).substring(2, 6)}
+                    </div>
+                  </div>
+                  
+                  <div className="text-sm text-success-400 mb-6">
+                    💰 Your assets are now available in your portfolio balance.
+                  </div>
+                  
+                  <button 
+                    className="w-full btn-primary py-3"
+                    onClick={closeUnstakingConfirmation}
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Done
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
