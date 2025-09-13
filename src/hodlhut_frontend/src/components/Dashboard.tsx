@@ -1262,35 +1262,7 @@ const Dashboard: React.FC = () => {
             {/* Balance Display - Only show for ICP Ecosystem assets */}
             <div className="text-center mt-2">
               <span className="text-sm text-text-muted">
-                {(() => {
-                  if (!selectedDepositAssetUnified) {
-                    return 'Select an asset to view balance';
-                  }
-                  
-                  // Check if selected asset is from ICP Ecosystem (has balances in portfolio)
-                  const icpEcosystemAssets = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
-                  const isIcpEcosystemAsset = icpEcosystemAssets.includes(selectedDepositAssetUnified);
-                  
-                  if (isIcpEcosystemAsset) {
-                    const balance = portfolio[selectedDepositAssetUnified] || 0;
-                    if (balance > 0) {
-                      return (
-                        <>
-                          Balance: {formatAmount(balance)} {selectedDepositAssetUnified}
-                          <span className="mx-2">•</span>
-                          <span className="text-success-400">
-                            ${(balance * (MASTER_ASSETS[selectedDepositAssetUnified]?.price || 0)).toLocaleString()}
-                          </span>
-                        </>
-                      );
-                    } else {
-                      return `Balance: 0 ${selectedDepositAssetUnified}`;
-                    }
-                  } else {
-                    // For L1 assets (BTC, ETH, SOL, etc.), show deposit flow message
-                    return 'Deposit to receive chain-key tokens in your portfolio';
-                  }
-                })()}
+                {renderBalanceDisplay()}
               </span>
             </div>
           </div>
@@ -1438,16 +1410,7 @@ const Dashboard: React.FC = () => {
               }}
               placeholder="Select asset"
               portfolio={portfolio}
-              options={(() => {
-                // Only show assets available in the FROM dropdown that have a balance > 0
-                const fromAssets = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
-                const assetsWithBalance = fromAssets.filter(asset => portfolio[asset] && portfolio[asset] > 0);
-                
-                return assetsWithBalance.map(asset => ({
-                  value: asset,
-                  label: asset
-                }));
-              })()}
+              options={getSwapFromAssetOptions()}
             />
           </div>
           
@@ -2557,6 +2520,49 @@ const Dashboard: React.FC = () => {
   // Reset Add Assets component to initial state
   const resetAddAssetsComponent = () => {
     setSelectedDepositAssetUnified('');
+  };
+
+  // Balance display logic for deposit assets
+  const renderBalanceDisplay = () => {
+    if (!selectedDepositAssetUnified) {
+      return 'Select an asset to view balance';
+    }
+    
+    // Check if selected asset is from ICP Ecosystem (has balances in portfolio)
+    const icpEcosystemAssets = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+    const isIcpEcosystemAsset = icpEcosystemAssets.includes(selectedDepositAssetUnified);
+    
+    if (isIcpEcosystemAsset) {
+      const balance = portfolio[selectedDepositAssetUnified] || 0;
+      if (balance > 0) {
+        return (
+          <>
+            Balance: {formatAmount(balance)} {selectedDepositAssetUnified}
+            <span className="mx-2">•</span>
+            <span className="text-success-400">
+              ${(balance * (MASTER_ASSETS[selectedDepositAssetUnified]?.price || 0)).toLocaleString()}
+            </span>
+          </>
+        );
+      } else {
+        return `Balance: 0 ${selectedDepositAssetUnified}`;
+      }
+    } else {
+      // For L1 assets (BTC, ETH, SOL, etc.), show deposit flow message
+      return 'Deposit to receive chain-key tokens in your portfolio';
+    }
+  };
+
+  // Generate swap FROM asset options based on portfolio balances
+  const getSwapFromAssetOptions = () => {
+    // Only show assets available in the FROM dropdown that have a balance > 0
+    const fromAssets = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+    const assetsWithBalance = fromAssets.filter(asset => portfolio[asset] && portfolio[asset] > 0);
+    
+    return assetsWithBalance.map(asset => ({
+      value: asset,
+      label: asset
+    }));
   };
 
   // Smart decimal formatting - remove decimals for whole numbers >= 1
