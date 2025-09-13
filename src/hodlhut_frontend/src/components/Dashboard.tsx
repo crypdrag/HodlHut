@@ -1424,69 +1424,7 @@ const Dashboard: React.FC = () => {
         {/* Swap Arrow and MAX Button */}
         <div className="flex justify-between items-center py-6">
           <div className="flex-1"></div>
-          {(() => {
-            // Asset categorization logic
-            const ckAssetsAndICP = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
-            const isFromCkAsset = ckAssetsAndICP.includes(fromAsset);
-            const isToCkAsset = ckAssetsAndICP.includes(toAsset);
-            const userOwnsToAsset = portfolio[toAsset] && portfolio[toAsset] > 0;
-            
-            // Case 1: Both are ckAssets/ICP AND user owns both - Show active reverse button
-            if (fromAsset && toAsset && isFromCkAsset && isToCkAsset && userOwnsToAsset) {
-              return (
-                <button 
-                  className="text-xs px-2 py-1 rounded-lg bg-primary-600 hover:bg-primary-500 text-on-primary transition-colors"
-                  onClick={() => {
-                    const temp = fromAsset;
-                    setFromAsset(toAsset);
-                    setToAsset(temp);
-                    // Don't clear swapAmount to keep What's Happening visible
-                  }}
-                  title="Reverse swap direction"
-                >
-                  <ArrowLeftRight size={14} className="rotate-90" />
-                </button>
-              );
-            }
-            
-            // Case 2: Both are ckAssets/ICP BUT user doesn't own TO asset - Show "Add Assets" button
-            if (fromAsset && toAsset && isFromCkAsset && isToCkAsset && !userOwnsToAsset) {
-              return (
-                <button 
-                  className="text-xs px-2 py-1 rounded-lg bg-primary-600 hover:bg-primary-500 text-on-primary transition-colors flex items-center gap-1"
-                  onClick={() => setActiveSection('addAssets')}
-                  title={`Add ${toAsset} to enable reverse swap`}
-                >
-                  <Plus size={12} />
-                  Add Assets
-                </button>
-              );
-            }
-            
-            // Case 3: TO asset is L1/cross-chain - Show disabled reverse button  
-            if (fromAsset && toAsset && !isToCkAsset) {
-              return (
-                <button 
-                  className="p-2 rounded-full bg-surface-3/50 border border-white/5 transition-all duration-200 opacity-50 cursor-default"
-                  disabled
-                  title="Cannot reverse to cross-chain assets"
-                >
-                  <ArrowLeftRight size={12} className="text-text-muted rotate-90" />
-                </button>
-              );
-            }
-            
-            // Default: Show disabled reverse button when no assets selected
-            return (
-              <button 
-                className="p-2 rounded-full bg-surface-3/50 border border-white/5 transition-all duration-200 opacity-50 cursor-default"
-                disabled
-                title="Select assets to enable reverse swap"
-              >
-                <ArrowLeftRight size={12} className="text-text-muted rotate-90" />
-              </button>
-            );
-          })()}
+          {renderSwapActionButton()}
           <div className="flex-1 flex justify-end">
             <button 
               className={`text-xs px-2 py-1 rounded-lg bg-primary-600 hover:bg-primary-500 text-on-primary transition-colors ${(!fromAsset || !portfolio[fromAsset]) ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -1538,13 +1476,7 @@ const Dashboard: React.FC = () => {
           
           <div className="text-center">
             <span className="text-sm text-text-muted">
-              {(() => {
-                // Show dynamic "You'll receive" message based on swap analysis
-                if (fromAsset && toAsset && swapAmount && swapAnalysis?.outputAmount) {
-                  return `You'll receive: ${toAsset} ${formatAmount(swapAnalysis.outputAmount)}`;
-                }
-                return "You'll receive:";
-              })()}
+              {getSwapReceiveMessage()}
             </span>
           </div>
         </div>
@@ -1781,52 +1713,7 @@ const Dashboard: React.FC = () => {
           </div>
 
           {/* Dynamic contextual footer message */}
-          {(() => {
-            if (selectedSolution !== null && !showAllSolutions) {
-              return (
-                <div className="contextual-message">
-                  <PartyPopper className="inline w-4 h-4 mr-1" /> <strong>Perfect!</strong> You've chosen your fee payment method. Click "Execute & Continue Swap" above to proceed.
-                </div>
-              );
-            }
-            
-            const hasRecommended = smartSolutions.some(s => s.badge === 'RECOMMENDED');
-            const hasRequiredSteps = smartSolutions.some(s => s.badge === 'REQUIRED STEP');
-            const hasAlternatives = smartSolutions.some(s => s.badge === 'ALTERNATIVE');
-            
-            if (!showAllSolutions && smartSolutions.length > 0) {
-              // Showing only first solution
-              const firstSolution = smartSolutions[0];
-              if (firstSolution.badge === 'RECOMMENDED') {
-                return (
-                  <div className="solution-message">
-                    ✅ <strong>Best Option Found!</strong> This is the easiest way to handle your fee payment. Approve it or see alternatives.
-                  </div>
-                );
-              }
-            }
-            
-            if (hasRecommended) {
-              return (
-                <div className="solution-message">
-                  ✅ <strong>Great news!</strong> We found easy solutions for your fee payments. The recommended option is usually the best choice.
-                </div>
-              );
-            } else if (hasRequiredSteps) {
-              return (
-                <div className="warning-message">
-                  <AlertTriangle className="inline w-4 h-4 mr-1" /> <strong>Manual Steps Required:</strong> You'll need to complete some DEX swaps first to get the required fee tokens.
-                </div>
-              );
-            } else if (hasAlternatives) {
-              return (
-                <div className="warning-message">
-                  <Lightbulb className="inline w-4 h-4 mr-1" /> <strong>Alternative Options:</strong> Here are different ways to handle fee payments based on your portfolio.
-                </div>
-              );
-            }
-            return null;
-          })()}
+          {renderSmartSolutionsFooter()}
         </div>
       )}
 
@@ -2563,6 +2450,128 @@ const Dashboard: React.FC = () => {
       value: asset,
       label: asset
     }));
+  };
+
+  // Render swap action button based on asset types and user portfolio
+  const renderSwapActionButton = () => {
+    // Asset categorization logic
+    const ckAssetsAndICP = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+    const isFromCkAsset = ckAssetsAndICP.includes(fromAsset);
+    const isToCkAsset = ckAssetsAndICP.includes(toAsset);
+    const userOwnsToAsset = portfolio[toAsset] && portfolio[toAsset] > 0;
+    
+    // Case 1: Both are ckAssets/ICP AND user owns both - Show active reverse button
+    if (fromAsset && toAsset && isFromCkAsset && isToCkAsset && userOwnsToAsset) {
+      return (
+        <button 
+          className="text-xs px-2 py-1 rounded-lg bg-primary-600 hover:bg-primary-500 text-on-primary transition-colors"
+          onClick={() => {
+            const temp = fromAsset;
+            setFromAsset(toAsset);
+            setToAsset(temp);
+            // Don't clear swapAmount to keep What's Happening visible
+          }}
+          title="Reverse swap direction"
+        >
+          <ArrowLeftRight size={14} className="rotate-90" />
+        </button>
+      );
+    }
+    
+    // Case 2: Both are ckAssets/ICP BUT user doesn't own TO asset - Show "Add Assets" button
+    if (fromAsset && toAsset && isFromCkAsset && isToCkAsset && !userOwnsToAsset) {
+      return (
+        <button 
+          className="text-xs px-2 py-1 rounded-lg bg-primary-600 hover:bg-primary-500 text-on-primary transition-colors flex items-center gap-1"
+          onClick={() => setActiveSection('addAssets')}
+          title={`Add ${toAsset} to enable reverse swap`}
+        >
+          <Plus size={12} />
+          Add Assets
+        </button>
+      );
+    }
+    
+    // Case 3: TO asset is L1/cross-chain - Show disabled reverse button  
+    if (fromAsset && toAsset && !isToCkAsset) {
+      return (
+        <button 
+          className="p-2 rounded-full bg-surface-3/50 border border-white/5 transition-all duration-200 opacity-50 cursor-default"
+          disabled
+          title="Cannot reverse to cross-chain assets"
+        >
+          <ArrowLeftRight size={12} className="text-text-muted rotate-90" />
+        </button>
+      );
+    }
+    
+    // Default: Show disabled reverse button when no assets selected
+    return (
+      <button 
+        className="p-2 rounded-full bg-surface-3/50 border border-white/5 transition-all duration-200 opacity-50 cursor-default"
+        disabled
+        title="Select assets to enable reverse swap"
+      >
+        <ArrowLeftRight size={12} className="text-text-muted rotate-90" />
+      </button>
+    );
+  };
+
+  // Generate "You'll receive" message for swap interface
+  const getSwapReceiveMessage = () => {
+    // Show dynamic "You'll receive" message based on swap analysis
+    if (fromAsset && toAsset && swapAmount && swapAnalysis?.outputAmount) {
+      return `You'll receive: ${toAsset} ${formatAmount(swapAnalysis.outputAmount)}`;
+    }
+    return "You'll receive:";
+  };
+
+  // Render contextual footer message for smart solutions
+  const renderSmartSolutionsFooter = () => {
+    if (selectedSolution !== null && !showAllSolutions) {
+      return (
+        <div className="contextual-message">
+          <PartyPopper className="inline w-4 h-4 mr-1" /> <strong>Perfect!</strong> You've chosen your fee payment method. Click "Execute & Continue Swap" above to proceed.
+        </div>
+      );
+    }
+    
+    const hasRecommended = smartSolutions.some(s => s.badge === 'RECOMMENDED');
+    const hasRequiredSteps = smartSolutions.some(s => s.badge === 'REQUIRED STEP');
+    const hasAlternatives = smartSolutions.some(s => s.badge === 'ALTERNATIVE');
+    
+    if (!showAllSolutions && smartSolutions.length > 0) {
+      // Showing only first solution
+      const firstSolution = smartSolutions[0];
+      if (firstSolution.badge === 'RECOMMENDED') {
+        return (
+          <div className="solution-message">
+            ✅ <strong>Best Option Found!</strong> This is the easiest way to handle your fee payment. Approve it or see alternatives.
+          </div>
+        );
+      }
+    }
+    
+    if (hasRecommended) {
+      return (
+        <div className="solution-message">
+          ✅ <strong>Great news!</strong> We found easy solutions for your fee payments. The recommended option is usually the best choice.
+        </div>
+      );
+    } else if (hasRequiredSteps) {
+      return (
+        <div className="warning-message">
+          <AlertTriangle className="inline w-4 h-4 mr-1" /> <strong>Manual Steps Required:</strong> You'll need to complete some DEX swaps first to get the required fee tokens.
+        </div>
+      );
+    } else if (hasAlternatives) {
+      return (
+        <div className="warning-message">
+          <Lightbulb className="inline w-4 h-4 mr-1" /> <strong>Alternative Options:</strong> Here are different ways to handle fee payments based on your portfolio.
+        </div>
+      );
+    }
+    return null;
   };
 
   // Smart decimal formatting - remove decimals for whole numbers >= 1
