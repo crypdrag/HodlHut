@@ -2574,6 +2574,202 @@ const Dashboard: React.FC = () => {
     return null;
   };
 
+  // Render staking benefits display with diversity multiplier
+  const renderStakingBenefits = () => {
+    // Calculate diversity multiplier for modal context
+    const modalAssetsList = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+    const modalAssetsWithBalance = modalAssetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
+    const modalCalculateDiversityMultiplier = () => {
+      const stakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
+      const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
+      return multipliers[stakedCount] || 1.0;
+    };
+    const currentMultiplier = modalCalculateDiversityMultiplier();
+    
+    return (
+      <div className="bg-surface-2 border border-white/10 rounded-xl p-4 mb-6">
+        <h3 className="text-sm font-medium text-text-primary mb-3">Staking Benefits</h3>
+        <div className="space-y-2 text-xs">
+          <div className="flex justify-between">
+            <span className="text-text-secondary">Base APY</span>
+            <span className="text-success-400 font-medium">8.5%</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-text-secondary">Current Diversity Multiplier</span>
+            <span className="text-warning-400 font-medium">{currentMultiplier.toFixed(2)}x</span>
+          </div>
+          <div className="flex justify-between border-t border-white/10 pt-2">
+            <span className="text-text-primary font-medium">Effective APY</span>
+            <span className="text-success-400 font-bold">
+              {(8.5 * currentMultiplier).toFixed(1)}%
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Render diversity boost notice for staking modal
+  const renderDiversityBoostNotice = () => {
+    const modalAssetsList = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+    const modalAssetsWithBalance = modalAssetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
+    const modalCalculateDiversityMultiplier = () => {
+      const stakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
+      const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
+      return multipliers[stakedCount] || 1.0;
+    };
+    
+    const currentStakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
+    const willHaveStaked = stakedAmounts[selectedStakingAsset] > 0;
+    const newStakedCount = willHaveStaked ? currentStakedCount : currentStakedCount + 1;
+    const currentMultiplier = modalCalculateDiversityMultiplier();
+    const newMultiplier = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2][newStakedCount] || 1.0;
+    
+    if (newMultiplier > currentMultiplier) {
+      return (
+        <div className="bg-warning-400/15 border border-warning-400/30 rounded-xl p-4 mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <Star className="w-4 h-4 text-warning-400" />
+            <span className="text-sm font-medium text-warning-300">Diversity Bonus!</span>
+          </div>
+          <p className="text-xs text-warning-200">
+            This will be your first stake in {selectedStakingAsset}, boosting your diversity multiplier from {currentMultiplier.toFixed(2)}x to {newMultiplier.toFixed(2)}x!
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  // Render staking transaction details with diversity multiplier calculations
+  const renderStakingTransactionDetails = () => {
+    const modalAssetsList = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+    const modalAssetsWithBalance = modalAssetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
+    const modalCalculateDiversityMultiplier = () => {
+      const stakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
+      const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
+      return multipliers[stakedCount] || 1.0;
+    };
+    
+    const currentMultiplier = modalCalculateDiversityMultiplier();
+    const willHaveStaked = stakedAmounts[selectedStakingAsset] > 0;
+    const newStakedCount = willHaveStaked ? modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length : modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length + 1;
+    const newMultiplier = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2][newStakedCount] || 1.0;
+    const assetPrice = MASTER_ASSETS[selectedStakingAsset]?.price || 0;
+    const weeklyYield = pendingStakingAmount * assetPrice * 0.05 * newMultiplier;
+    
+    return (
+      <div className="bg-surface-2 border border-white/10 rounded-xl p-4 mb-6">
+        <h3 className="text-sm font-medium text-text-primary mb-3">Transaction Details</h3>
+        <div className="space-y-3 text-sm">
+          <div className="flex justify-between">
+            <span className="text-text-secondary">Amount</span>
+            <span className="text-text-primary font-medium">{formatAmount(pendingStakingAmount)} {selectedStakingAsset}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-text-secondary">Network Fee</span>
+            <span className="text-success-400 font-medium">FREE</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-text-secondary">Base APY</span>
+            <span className="text-success-400 font-medium">8.5%</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-text-secondary">Diversity Multiplier</span>
+            <span className="text-warning-400 font-medium">
+              {currentMultiplier.toFixed(2)}x → {newMultiplier.toFixed(2)}x
+            </span>
+          </div>
+          <div className="flex justify-between border-t border-white/10 pt-3 font-medium">
+            <span className="text-text-primary">Weekly Yield</span>
+            <span className="text-success-400">${weeklyYield.toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Render unstaking impact analysis showing current position and yield details
+  const renderUnstakingImpactAnalysis = () => {
+    const modalAssetsList = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+    const modalAssetsWithBalance = modalAssetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
+    const modalCalculateDiversityMultiplier = () => {
+      const stakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
+      const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
+      return multipliers[stakedCount] || 1.0;
+    };
+    
+    const currentMultiplier = modalCalculateDiversityMultiplier();
+    const currentStaked = stakedAmounts[selectedUnstakingAsset] || 0;
+    const assetPrice = MASTER_ASSETS[selectedUnstakingAsset]?.price || 0;
+    const currentWeeklyYield = currentStaked * assetPrice * 0.05 * currentMultiplier;
+    
+    return (
+      <div className="bg-surface-2 border border-white/10 rounded-xl p-4 mb-6">
+        <h3 className="text-sm font-medium text-text-primary mb-3">Current Position</h3>
+        <div className="space-y-2 text-xs">
+          <div className="flex justify-between">
+            <span className="text-text-secondary">Staked Amount</span>
+            <span className="text-text-primary font-medium">{formatAmount(currentStaked)} {selectedUnstakingAsset}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-text-secondary">Current APY</span>
+            <span className="text-success-400 font-medium">{(8.5 * currentMultiplier).toFixed(1)}%</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-text-secondary">Diversity Multiplier</span>
+            <span className="text-warning-400 font-medium">{currentMultiplier.toFixed(2)}x</span>
+          </div>
+          <div className="flex justify-between border-t border-white/10 pt-2 font-medium">
+            <span className="text-text-primary">Weekly Yield</span>
+            <span className="text-success-400">${currentWeeklyYield.toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Render unstaking transaction impact analysis with yield loss calculation
+  const renderUnstakingTransactionImpact = () => {
+    const modalAssetsList = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+    const modalAssetsWithBalance = modalAssetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
+    const modalCalculateDiversityMultiplier = () => {
+      const stakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
+      const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
+      return multipliers[stakedCount] || 1.0;
+    };
+    
+    const currentMultiplier = modalCalculateDiversityMultiplier();
+    const currentStaked = stakedAmounts[selectedUnstakingAsset] || 0;
+    const newStaked = currentStaked - pendingUnstakingAmount;
+    const assetPrice = MASTER_ASSETS[selectedUnstakingAsset]?.price || 0;
+    const yieldLoss = pendingUnstakingAmount * assetPrice * 0.05 * currentMultiplier;
+    
+    return (
+      <div className="bg-surface-2 border border-white/10 rounded-xl p-4 mb-6">
+        <h3 className="text-sm font-medium text-text-primary mb-3">Impact Analysis</h3>
+        <div className="space-y-3 text-sm">
+          <div className="flex justify-between">
+            <span className="text-text-secondary">Amount to Unstake</span>
+            <span className="text-text-primary font-medium">{formatAmount(pendingUnstakingAmount)} {selectedUnstakingAsset}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-text-secondary">Remaining Staked</span>
+            <span className="text-text-primary font-medium">{formatAmount(newStaked)} {selectedUnstakingAsset}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-text-secondary">Network Fee</span>
+            <span className="text-success-400 font-medium">FREE</span>
+          </div>
+          <div className="flex justify-between border-t border-white/10 pt-3 font-medium">
+            <span className="text-text-primary">Weekly Yield Loss</span>
+            <span className="text-error-400">-${yieldLoss.toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Smart decimal formatting - remove decimals for whole numbers >= 1
 
   const renderActiveSection = () => {
@@ -3022,71 +3218,10 @@ const Dashboard: React.FC = () => {
             </div>
             
             {/* Staking Benefits */}
-            {(() => {
-              // Calculate diversity multiplier for modal context
-              const modalAssetsList = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
-              const modalAssetsWithBalance = modalAssetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
-              const modalCalculateDiversityMultiplier = () => {
-                const stakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
-                const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
-                return multipliers[stakedCount] || 1.0;
-              };
-              const currentMultiplier = modalCalculateDiversityMultiplier();
-              
-              return (
-                <div className="bg-surface-2 border border-white/10 rounded-xl p-4 mb-6">
-                  <h3 className="text-sm font-medium text-text-primary mb-3">Staking Benefits</h3>
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-text-secondary">Base APY</span>
-                      <span className="text-success-400 font-medium">8.5%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-text-secondary">Current Diversity Multiplier</span>
-                      <span className="text-warning-400 font-medium">{currentMultiplier.toFixed(2)}x</span>
-                    </div>
-                    <div className="flex justify-between border-t border-white/10 pt-2">
-                      <span className="text-text-primary font-medium">Effective APY</span>
-                      <span className="text-success-400 font-bold">
-                        {(8.5 * currentMultiplier).toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
+            {renderStakingBenefits()}
             
             {/* Diversity Boost Notice */}
-            {(() => {
-              const modalAssetsList = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
-              const modalAssetsWithBalance = modalAssetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
-              const modalCalculateDiversityMultiplier = () => {
-                const stakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
-                const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
-                return multipliers[stakedCount] || 1.0;
-              };
-              
-              const currentStakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
-              const willHaveStaked = stakedAmounts[selectedStakingAsset] > 0;
-              const newStakedCount = willHaveStaked ? currentStakedCount : currentStakedCount + 1;
-              const currentMultiplier = modalCalculateDiversityMultiplier();
-              const newMultiplier = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2][newStakedCount] || 1.0;
-              
-              if (newMultiplier > currentMultiplier) {
-                return (
-                  <div className="bg-warning-400/15 border border-warning-400/30 rounded-xl p-4 mb-6">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Star className="w-4 h-4 text-warning-400" />
-                      <span className="text-sm font-medium text-warning-300">Diversity Bonus!</span>
-                    </div>
-                    <p className="text-xs text-warning-200">
-                      This will be your first stake in {selectedStakingAsset}, boosting your diversity multiplier from {currentMultiplier.toFixed(2)}x to {newMultiplier.toFixed(2)}x!
-                    </p>
-                  </div>
-                );
-              }
-              return null;
-            })()}
+            {renderDiversityBoostNotice()}
             
             {/* Action Buttons */}
             <div className="flex gap-3">
@@ -3158,52 +3293,7 @@ const Dashboard: React.FC = () => {
                 </div>
                 
                 {/* Transaction Details */}
-                {(() => {
-                  const modalAssetsList = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
-                  const modalAssetsWithBalance = modalAssetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
-                  const modalCalculateDiversityMultiplier = () => {
-                    const stakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
-                    const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
-                    return multipliers[stakedCount] || 1.0;
-                  };
-                  
-                  const currentMultiplier = modalCalculateDiversityMultiplier();
-                  const willHaveStaked = stakedAmounts[selectedStakingAsset] > 0;
-                  const newStakedCount = willHaveStaked ? modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length : modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length + 1;
-                  const newMultiplier = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2][newStakedCount] || 1.0;
-                  const assetPrice = MASTER_ASSETS[selectedStakingAsset]?.price || 0;
-                  const weeklyYield = pendingStakingAmount * assetPrice * 0.05 * newMultiplier;
-                  
-                  return (
-                    <div className="bg-surface-2 border border-white/10 rounded-xl p-4 mb-6">
-                      <h3 className="text-sm font-medium text-text-primary mb-3">Transaction Details</h3>
-                      <div className="space-y-3 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-text-secondary">Amount</span>
-                          <span className="text-text-primary font-medium">{formatAmount(pendingStakingAmount)} {selectedStakingAsset}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-text-secondary">Network Fee</span>
-                          <span className="text-success-400 font-medium">FREE</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-text-secondary">Base APY</span>
-                          <span className="text-success-400 font-medium">8.5%</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-text-secondary">Diversity Multiplier</span>
-                          <span className="text-warning-400 font-medium">
-                            {currentMultiplier.toFixed(2)}x → {newMultiplier.toFixed(2)}x
-                          </span>
-                        </div>
-                        <div className="flex justify-between border-t border-white/10 pt-3 font-medium">
-                          <span className="text-text-primary">Weekly Yield</span>
-                          <span className="text-success-400">${weeklyYield.toFixed(2)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
+                {renderStakingTransactionDetails()}
                 
                 {/* Estimated Processing Time */}
                 <div className="bg-primary-600/10 border border-primary-400/20 rounded-xl p-4 mb-6">
@@ -3370,44 +3460,7 @@ const Dashboard: React.FC = () => {
             </div>
             
             {/* Impact Analysis */}
-            {(() => {
-              const modalAssetsList = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
-              const modalAssetsWithBalance = modalAssetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
-              const modalCalculateDiversityMultiplier = () => {
-                const stakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
-                const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
-                return multipliers[stakedCount] || 1.0;
-              };
-              
-              const currentMultiplier = modalCalculateDiversityMultiplier();
-              const currentStaked = stakedAmounts[selectedUnstakingAsset] || 0;
-              const assetPrice = MASTER_ASSETS[selectedUnstakingAsset]?.price || 0;
-              const currentWeeklyYield = currentStaked * assetPrice * 0.05 * currentMultiplier;
-              
-              return (
-                <div className="bg-surface-2 border border-white/10 rounded-xl p-4 mb-6">
-                  <h3 className="text-sm font-medium text-text-primary mb-3">Current Position</h3>
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-text-secondary">Staked Amount</span>
-                      <span className="text-text-primary font-medium">{formatAmount(currentStaked)} {selectedUnstakingAsset}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-text-secondary">Current APY</span>
-                      <span className="text-success-400 font-medium">{(8.5 * currentMultiplier).toFixed(1)}%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-text-secondary">Diversity Multiplier</span>
-                      <span className="text-warning-400 font-medium">{currentMultiplier.toFixed(2)}x</span>
-                    </div>
-                    <div className="flex justify-between border-t border-white/10 pt-2 font-medium">
-                      <span className="text-text-primary">Weekly Yield</span>
-                      <span className="text-success-400">${currentWeeklyYield.toFixed(2)}</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
+            {renderUnstakingImpactAnalysis()}
             
             {/* Warning Notice */}
             <div className="bg-error-400/10 border border-error-400/20 rounded-xl p-4 mb-6">
@@ -3487,45 +3540,7 @@ const Dashboard: React.FC = () => {
                 </div>
                 
                 {/* Transaction Impact */}
-                {(() => {
-                  const modalAssetsList = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
-                  const modalAssetsWithBalance = modalAssetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
-                  const modalCalculateDiversityMultiplier = () => {
-                    const stakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
-                    const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
-                    return multipliers[stakedCount] || 1.0;
-                  };
-                  
-                  const currentMultiplier = modalCalculateDiversityMultiplier();
-                  const currentStaked = stakedAmounts[selectedUnstakingAsset] || 0;
-                  const newStaked = currentStaked - pendingUnstakingAmount;
-                  const assetPrice = MASTER_ASSETS[selectedUnstakingAsset]?.price || 0;
-                  const yieldLoss = pendingUnstakingAmount * assetPrice * 0.05 * currentMultiplier;
-                  
-                  return (
-                    <div className="bg-surface-2 border border-white/10 rounded-xl p-4 mb-6">
-                      <h3 className="text-sm font-medium text-text-primary mb-3">Impact Analysis</h3>
-                      <div className="space-y-3 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-text-secondary">Amount to Unstake</span>
-                          <span className="text-text-primary font-medium">{formatAmount(pendingUnstakingAmount)} {selectedUnstakingAsset}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-text-secondary">Remaining Staked</span>
-                          <span className="text-text-primary font-medium">{formatAmount(newStaked)} {selectedUnstakingAsset}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-text-secondary">Network Fee</span>
-                          <span className="text-success-400 font-medium">FREE</span>
-                        </div>
-                        <div className="flex justify-between border-t border-white/10 pt-3 font-medium">
-                          <span className="text-text-primary">Weekly Yield Loss</span>
-                          <span className="text-error-400">-${yieldLoss.toFixed(2)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
+                {renderUnstakingTransactionImpact()}
                 
                 {/* Processing Time */}
                 <div className="bg-primary-600/10 border border-primary-400/20 rounded-xl p-4 mb-6">
