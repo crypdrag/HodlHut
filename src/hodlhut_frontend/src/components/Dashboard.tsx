@@ -752,22 +752,17 @@ const Dashboard: React.FC = () => {
 
 
   const updateAdvancedSwapDetails = () => {
-    console.log('🔄 UPDATE ADVANCED SWAP DETAILS CALLED:', { fromAsset, toAsset, swapAmount });
     
     if (!fromAsset || !toAsset || !swapAmount || parseFloat(swapAmount) <= 0) {
-      console.log('⚠️ Early return - invalid parameters');
       return;
     }
 
     const amount = parseFloat(swapAmount);
     
     // STEP 1: Get basic swap analysis
-    console.log('🚀 CALLING analyzeCompleteSwap FROM DASHBOARD:', { fromAsset, toAsset, amount });
     const analysis = analyzeCompleteSwap(fromAsset, toAsset, amount, portfolio, selectedDEX || 'ICPSwap');
-    console.log('🚀 DASHBOARD RECEIVED ANALYSIS:', analysis);
     
     if (!analysis.success) {
-      console.warn('Swap analysis failed:', analysis.errors);
       setSwapAnalysis(null);
       setShowRouteDetails(false);
       setShowDEXSelection(false);
@@ -777,7 +772,6 @@ const Dashboard: React.FC = () => {
     
     // STEP 2: Apply universal fee rules
     const feeRules = getUniversalFeeRules(fromAsset, toAsset, amount, portfolio);
-    console.log('📊 DASHBOARD FEE RULES RESULT:', feeRules);
     
     setSwapAnalysis(analysis);
     
@@ -794,11 +788,6 @@ const Dashboard: React.FC = () => {
     }
     
     // STEP 5: Handle Smart Solutions using universal rules
-    console.log('📊 SMART SOLUTIONS CHECK:', { 
-      shouldShow: feeRules.shouldShowSmartSolutions, 
-      hasPrimarySolution: !!feeRules.primarySolution,
-      primarySolution: feeRules.primarySolution 
-    });
     
     if (feeRules.shouldShowSmartSolutions && feeRules.primarySolution) {
       const solution = feeRules.primarySolution;
@@ -838,7 +827,6 @@ const Dashboard: React.FC = () => {
   // Smart Solutions interaction handlers
   const handleApproveSolution = (solutionIndex: number) => {
     const solution = smartSolutions[solutionIndex];
-    console.log(`User approved solution: ${solution.title}`);
     
     // Show approval modal instead of alert
     setPendingApproval(solution);
@@ -899,7 +887,6 @@ const Dashboard: React.FC = () => {
     if (pendingApproval) {
       setSelectedSolution(smartSolutions.indexOf(pendingApproval));
       setShowAllSolutions(false);
-      console.log(`Solution executed: ${pendingApproval.title}`);
       
       // Here you would normally execute the actual solution logic
       // For now, we'll just close the modal and mark as approved
@@ -1015,7 +1002,6 @@ const Dashboard: React.FC = () => {
       navigate('/');
       window.location.reload();
     } catch (error) {
-      console.error('Logout failed:', error);
     }
   };
 
@@ -1350,7 +1336,6 @@ const Dashboard: React.FC = () => {
               className="w-full btn-primary min-h-[60px] text-base font-semibold flex items-center justify-center gap-3 transition-all duration-200 hover:scale-[1.02]"
               onClick={() => {
                 // BACKEND NOTE: Preserve all wallet integration backend notes
-                console.log(`Backend integration: ${selectedAssetDetails.backendNote}`);
                 startDeposit(selectedAssetDetails.asset);
               }}
             >
@@ -2567,13 +2552,11 @@ const Dashboard: React.FC = () => {
       [asset]: (prev[asset] || 0) + amount
     }));
     
-    console.log(`✅ Deposit completed: ${amount} ${asset}`);
   };
 
   // Reset Add Assets component to initial state
   const resetAddAssetsComponent = () => {
     setSelectedDepositAssetUnified('');
-    console.log('🔄 Add Assets component reset to initial state');
   };
 
   // Smart decimal formatting - remove decimals for whole numbers >= 1
