@@ -1236,7 +1236,7 @@ const Dashboard: React.FC = () => {
     return (
       <div className="w-full flex flex-col items-center px-4 py-8">
         <div className="text-center mb-8">
-          <h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Add Assets to Your Portfolio</h2>
+          <h2 className="heading-2 text-text-primary mb-4">Add Assets to Your Portfolio</h2>
           <p className="text-lg text-text-secondary">Choose an asset to deposit from L1 chains or ICP ecosystem</p>
         </div>
         
@@ -1385,7 +1385,7 @@ const Dashboard: React.FC = () => {
   const renderSwapAssetsSection = () => (
     <div className="w-full flex flex-col items-center px-4 py-8">
       <div className="text-center mb-4 md:mb-8">
-        <div className="text-3xl font-bold text-text-primary mb-2" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Swap Assets Crosschain</div>
+        <div className="heading-2 text-text-primary mb-2">Swap Assets Crosschain</div>
         <p className="text-text-secondary">Swap assets within ICP or out to Bitcoin, Ethereum, and Solana</p>
       </div>
       
@@ -3139,7 +3139,7 @@ const Dashboard: React.FC = () => {
         <div className="fixed inset-0 bg-overlay-1 flex items-center justify-center z-50 p-4">
           <div className="bg-surface-1 rounded-3xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto border border-white/10">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-text-primary m-0" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>
+              <h2 className="heading-3 text-text-primary m-0">
                 Stake {selectedStakingAsset}
               </h2>
               <button 
@@ -3268,7 +3268,7 @@ const Dashboard: React.FC = () => {
             {stakingTransactionState === 'confirming' && (
               <>
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold text-text-primary m-0" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>
+                  <h2 className="heading-3 text-text-primary m-0">
                     Confirm Staking
                   </h2>
                   <button 
@@ -3384,7 +3384,7 @@ const Dashboard: React.FC = () => {
         <div className="fixed inset-0 bg-overlay-1 flex items-center justify-center z-50 p-4">
           <div className="bg-surface-1 rounded-3xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto border border-white/10">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-text-primary m-0" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>
+              <h2 className="heading-3 text-text-primary m-0">
                 Manage {selectedUnstakingAsset}
               </h2>
               <button 
@@ -3515,7 +3515,7 @@ const Dashboard: React.FC = () => {
             {unstakingTransactionState === 'confirming' && (
               <>
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold text-text-primary m-0" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>
+                  <h2 className="heading-3 text-text-primary m-0">
                     Confirm Unstaking
                   </h2>
                   <button 
