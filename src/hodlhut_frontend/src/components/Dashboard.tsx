@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import DepositModal from './DepositModal';
 import SmartSolutionModal from './SmartSolutionModal';
 import AuthenticationModal, { AuthStep, TransactionStep } from './AuthenticationModal';
+import StakingModal from './StakingModal';
 import { MASTER_ASSETS, Portfolio } from '../../assets/master_asset_data';
 import { 
   analyzeCompleteSwap,
@@ -2843,131 +2844,17 @@ const Dashboard: React.FC = () => {
       />
 
       {/* Staking Modal */}
-      {stakingModalOpen && selectedStakingAsset && (
-        <div className="fixed inset-0 bg-overlay-1 flex items-center justify-center z-50 p-4">
-          <div className="bg-surface-1 rounded-3xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto border border-white/10">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="heading-3 text-text-primary m-0">
-                Stake {selectedStakingAsset}
-              </h2>
-              <button 
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-2 text-text-secondary hover:bg-surface-3 transition-colors"
-                onClick={() => {
-                  setStakingModalOpen(false);
-                  setSelectedStakingAsset(null);
-                }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-            
-            {/* Asset Info */}
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-surface-2 rounded-full">
-                <AssetIcon asset={selectedStakingAsset} size={40} />
-              </div>
-              <div className="text-sm text-text-secondary mb-2">
-                Available Balance
-              </div>
-              <div className="text-2xl font-bold text-text-primary">
-                {formatAmount(portfolio[selectedStakingAsset] || 0)} {selectedStakingAsset}
-              </div>
-              <div className="text-sm text-text-muted">
-                ~${formatAmount((portfolio[selectedStakingAsset] || 0) * (MASTER_ASSETS[selectedStakingAsset]?.price || 0))}
-              </div>
-            </div>
-            
-            {/* Staking Amount Input */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-text-secondary mb-2">
-                Amount to Stake
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  placeholder="0.0"
-                  className="w-full px-4 py-3 bg-surface-2 border border-white/10 rounded-xl text-text-primary focus:ring-2 focus:ring-primary-400 focus:border-transparent"
-                  id="stakingAmountInput"
-                  step="any"
-                  min="0"
-                  max={portfolio[selectedStakingAsset] || 0}
-                />
-                <button 
-                  className="absolute right-3 top-1/2 -translate-y-1/2 px-3 py-1 text-xs font-medium bg-primary-600 hover:bg-primary-500 text-on-primary rounded-lg transition-colors"
-                  onClick={() => {
-                    const input = document.getElementById('stakingAmountInput') as HTMLInputElement;
-                    if (input) {
-                      input.value = (portfolio[selectedStakingAsset] || 0).toString();
-                    }
-                  }}
-                >
-                  MAX
-                </button>
-              </div>
-            </div>
-            
-            {/* Quick Amount Buttons */}
-            <div className="grid grid-cols-4 gap-2 mb-6">
-              {[0.25, 0.5, 0.75, 1].map((percentage) => (
-                <button
-                  key={percentage}
-                  className="px-3 py-2 text-xs font-medium bg-surface-2 hover:bg-surface-3 text-text-secondary hover:text-text-primary border border-white/10 rounded-lg transition-all"
-                  onClick={() => {
-                    const input = document.getElementById('stakingAmountInput') as HTMLInputElement;
-                    if (input) {
-                      const amount = (portfolio[selectedStakingAsset] || 0) * percentage;
-                      input.value = amount.toString();
-                    }
-                  }}
-                >
-                  {percentage === 1 ? '100%' : `${Math.round(percentage * 100)}%`}
-                </button>
-              ))}
-            </div>
-            
-            {/* Staking Benefits */}
-            {renderStakingBenefits()}
-            
-            {/* Diversity Boost Notice */}
-            {renderDiversityBoostNotice()}
-            
-            {/* Action Buttons */}
-            <div className="flex gap-3">
-              <button 
-                className="flex-1 btn-secondary py-3"
-                onClick={() => {
-                  setStakingModalOpen(false);
-                  setSelectedStakingAsset(null);
-                }}
-              >
-                Cancel
-              </button>
-              <button 
-                className="flex-1 btn-primary py-3"
-                onClick={() => {
-                  const input = document.getElementById('stakingAmountInput') as HTMLInputElement;
-                  const amount = parseFloat(input?.value || '0');
-                  
-                  if (amount <= 0) {
-                    alert('Please enter a valid amount');
-                    return;
-                  }
-                  
-                  if (amount > (portfolio[selectedStakingAsset] || 0)) {
-                    alert('Insufficient balance');
-                    return;
-                  }
-                  
-                  openStakingConfirmation(selectedStakingAsset, amount);
-                }}
-              >
-                <Rocket className="w-4 h-4 mr-2" />
-                Stake {selectedStakingAsset}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <StakingModal
+        isOpen={stakingModalOpen}
+        selectedAsset={selectedStakingAsset}
+        portfolio={portfolio}
+        stakedAmounts={stakedAmounts}
+        onClose={() => {
+          setStakingModalOpen(false);
+          setSelectedStakingAsset(null);
+        }}
+        onStakingConfirmation={openStakingConfirmation}
+      />
 
       {/* Staking Confirmation Modal */}
       {stakingConfirmationOpen && selectedStakingAsset && (
