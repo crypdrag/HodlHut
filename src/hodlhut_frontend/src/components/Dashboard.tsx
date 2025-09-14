@@ -98,6 +98,11 @@ const AssetIcon: React.FC<{ asset: string; size?: number }> = ({ asset, size = 1
 
 // Utility function for formatting amounts
 const formatAmount = (amount: number): string => {
+  // Handle NaN, undefined, null, or invalid numbers
+  if (!amount || isNaN(amount) || amount === null || amount === undefined) {
+    return '0';
+  }
+
   if (amount >= 1) {
     // If it's a whole number, show no decimals
     if (amount % 1 === 0) {
@@ -607,15 +612,19 @@ const Dashboard: React.FC = () => {
   const openStakingModal = (asset: string) => {
     setSelectedStakingAsset(asset);
     setStakingModalOpen(true);
+    // Reset any previous transaction state
+    setStakingTransactionState('confirming');
+    setStakingConfirmationOpen(false);
   };
 
   // Phase 3: Staking Confirmation Functions
   const openStakingConfirmation = (asset: string, amount: number) => {
-    setSelectedStakingAsset(asset);
+    // Set the amount first, then other states
     setPendingStakingAmount(amount);
+    setSelectedStakingAsset(asset);
     setStakingModalOpen(false);
-    setStakingConfirmationOpen(true);
     setStakingTransactionState('confirming');
+    setStakingConfirmationOpen(true);
   };
 
   const confirmStakingTransaction = () => {
@@ -643,14 +652,18 @@ const Dashboard: React.FC = () => {
   const openUnstakingModal = (asset: string) => {
     setSelectedUnstakingAsset(asset);
     setUnstakingModalOpen(true);
+    // Reset any previous transaction state
+    setUnstakingTransactionState('confirming');
+    setUnstakingConfirmationOpen(false);
   };
 
   const openUnstakingConfirmation = (asset: string, amount: number) => {
-    setSelectedUnstakingAsset(asset);
+    // Set the amount first, then other states
     setPendingUnstakingAmount(amount);
+    setSelectedUnstakingAsset(asset);
     setUnstakingModalOpen(false);
-    setUnstakingConfirmationOpen(true);
     setUnstakingTransactionState('confirming');
+    setUnstakingConfirmationOpen(true);
   };
 
   const confirmUnstakingTransaction = () => {
@@ -677,6 +690,9 @@ const Dashboard: React.FC = () => {
   const closeUnstakingModal = () => {
     setUnstakingModalOpen(false);
     setSelectedUnstakingAsset(null);
+    // Reset transaction state when closing modal
+    setUnstakingTransactionState('confirming');
+    setUnstakingConfirmationOpen(false);
   };
   
   // Enhanced DEX Options with Real Stats - FIXED STATS
@@ -1802,20 +1818,20 @@ const Dashboard: React.FC = () => {
         const staked = stakedAmounts[asset] || 0;
         const assetPrice = MASTER_ASSETS[asset]?.price || 0;
         const diversityMultiplier = calculateDiversityMultiplier();
-        totalYield += staked * assetPrice * 0.05 * diversityMultiplier; // 5% weekly yield with multiplier
+        totalYield += staked * assetPrice * (3.0/100/52) * diversityMultiplier; // 3.0% annual yield with multiplier
       });
       return totalYield;
     };
 
     const calculateDiversityMultiplier = () => {
       const stakedCount = assetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
-      const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
+      const multipliers = [1.0, 1.5, 2.0, 2.25, 2.5, 2.5];
       return multipliers[stakedCount] || 1.0;
     };
 
     const getNextMultiplier = () => {
       const stakedCount = assetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
-      const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
+      const multipliers = [1.0, 1.5, 2.0, 2.25, 2.5, 2.5];
       return multipliers[stakedCount + 1] || 2.5;
     };
 
@@ -1832,8 +1848,10 @@ const Dashboard: React.FC = () => {
       const isPending = pendingStaking.has(asset);
       const assetPrice = MASTER_ASSETS[asset]?.price || 0;
       const diversityMultiplier = calculateDiversityMultiplier();
-      const weeklyYield = staked * assetPrice * 0.05 * diversityMultiplier;
-      const nextMultiplierBoost = isStaked ? 0 : 0.25; // Boost for staking new asset
+      const weeklyYield = staked * assetPrice * (3.0/100/52) * diversityMultiplier;
+      const currentMultiplier = calculateDiversityMultiplier();
+      const nextMultiplier = isStaked ? currentMultiplier : getNextMultiplier();
+      const nextMultiplierBoost = isStaked ? 0 : (nextMultiplier - currentMultiplier); // Boost for staking new asset
 
       return (
         <div key={asset} className={`staking-asset-card ${isStaked ? 'staked' : 'unstaked'} ${expandedAssets.has(asset) ? 'expanded' : ''}`}>
@@ -1882,7 +1900,7 @@ const Dashboard: React.FC = () => {
                   🌱 Growing • Yield: ${weeklyYield.toFixed(2)}/week
                   <br />
                   <small className="text-text-muted">
-                    Base rate: ${(staked * assetPrice * 0.05).toFixed(2)} × {diversityMultiplier}x multiplier
+                    Base rate: ${(staked * assetPrice * (3.0/100/52)).toFixed(2)} × {diversityMultiplier}x multiplier
                   </small>
                 </div>
               ) : (
@@ -1892,7 +1910,7 @@ const Dashboard: React.FC = () => {
                   </div>
                   {nextMultiplierBoost > 0 && (
                     <div className="staking-asset-multiplier-boost">
-                      +{nextMultiplierBoost}x Multiplier Boost
+                      +{nextMultiplierBoost.toFixed(2)}x Multiplier Boost
                     </div>
                   )}
                 </>
@@ -1949,7 +1967,7 @@ const Dashboard: React.FC = () => {
                         <span className="breakdown-sublabel">5% annual rate</span>
                       </div>
                       <span className="breakdown-value">
-                        ${(staked * assetPrice * 0.05 / 52).toFixed(2)}/week
+                        ${(staked * assetPrice * (3.0/100/52)).toFixed(2)}/week
                       </span>
                     </div>
                     <div className="breakdown-item">
@@ -1958,7 +1976,7 @@ const Dashboard: React.FC = () => {
                         <span className="breakdown-sublabel">{diversityMultiplier}x multiplier</span>
                       </div>
                       <span className="breakdown-value text-success-400">
-                        +${(weeklyYield - (staked * assetPrice * 0.05 / 52)).toFixed(2)}/week
+                        +${(weeklyYield - (staked * assetPrice * (3.0/100/52))).toFixed(2)}/week
                       </span>
                     </div>
                     <div className="breakdown-divider" />
@@ -2585,7 +2603,7 @@ const Dashboard: React.FC = () => {
     const modalAssetsWithBalance = modalAssetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
     const modalCalculateDiversityMultiplier = () => {
       const stakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
-      const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
+      const multipliers = [1.0, 1.5, 2.0, 2.25, 2.5, 2.5];
       return multipliers[stakedCount] || 1.0;
     };
     const currentMultiplier = modalCalculateDiversityMultiplier();
@@ -2596,7 +2614,7 @@ const Dashboard: React.FC = () => {
         <div className="space-y-2 text-xs">
           <div className="flex justify-between">
             <span className="text-text-secondary">Base APY</span>
-            <span className="text-success-400 font-medium">8.5%</span>
+            <span className="text-success-400 font-medium">3.0%</span>
           </div>
           <div className="flex justify-between">
             <span className="text-text-secondary">Current Diversity Multiplier</span>
@@ -2605,7 +2623,7 @@ const Dashboard: React.FC = () => {
           <div className="flex justify-between border-t border-white/10 pt-2">
             <span className="text-text-primary font-medium">Effective APY</span>
             <span className="text-success-400 font-bold">
-              {(8.5 * currentMultiplier).toFixed(1)}%
+              {(3.0 * currentMultiplier).toFixed(1)}%
             </span>
           </div>
         </div>
@@ -2619,7 +2637,7 @@ const Dashboard: React.FC = () => {
     const modalAssetsWithBalance = modalAssetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
     const modalCalculateDiversityMultiplier = () => {
       const stakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
-      const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
+      const multipliers = [1.0, 1.5, 2.0, 2.25, 2.5, 2.5];
       return multipliers[stakedCount] || 1.0;
     };
     
@@ -2627,7 +2645,7 @@ const Dashboard: React.FC = () => {
     const willHaveStaked = stakedAmounts[selectedStakingAsset] > 0;
     const newStakedCount = willHaveStaked ? currentStakedCount : currentStakedCount + 1;
     const currentMultiplier = modalCalculateDiversityMultiplier();
-    const newMultiplier = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2][newStakedCount] || 1.0;
+    const newMultiplier = [1.0, 1.5, 2.0, 2.25, 2.5, 2.5][newStakedCount] || 1.0;
     
     if (newMultiplier > currentMultiplier) {
       return (
@@ -2651,16 +2669,16 @@ const Dashboard: React.FC = () => {
     const modalAssetsWithBalance = modalAssetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
     const modalCalculateDiversityMultiplier = () => {
       const stakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
-      const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
+      const multipliers = [1.0, 1.5, 2.0, 2.25, 2.5, 2.5];
       return multipliers[stakedCount] || 1.0;
     };
     
     const currentMultiplier = modalCalculateDiversityMultiplier();
     const willHaveStaked = stakedAmounts[selectedStakingAsset] > 0;
     const newStakedCount = willHaveStaked ? modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length : modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length + 1;
-    const newMultiplier = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2][newStakedCount] || 1.0;
+    const newMultiplier = [1.0, 1.5, 2.0, 2.25, 2.5, 2.5][newStakedCount] || 1.0;
     const assetPrice = MASTER_ASSETS[selectedStakingAsset]?.price || 0;
-    const weeklyYield = pendingStakingAmount * assetPrice * 0.05 * newMultiplier;
+    const weeklyYield = pendingStakingAmount * assetPrice * (3.0/100/52) * newMultiplier;
     
     return (
       <div className="bg-surface-2 border border-white/10 rounded-xl p-4 mb-6">
@@ -2676,7 +2694,7 @@ const Dashboard: React.FC = () => {
           </div>
           <div className="flex justify-between">
             <span className="text-text-secondary">Base APY</span>
-            <span className="text-success-400 font-medium">8.5%</span>
+            <span className="text-success-400 font-medium">3.0%</span>
           </div>
           <div className="flex justify-between">
             <span className="text-text-secondary">Diversity Multiplier</span>
@@ -2699,14 +2717,14 @@ const Dashboard: React.FC = () => {
     const modalAssetsWithBalance = modalAssetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
     const modalCalculateDiversityMultiplier = () => {
       const stakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
-      const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
+      const multipliers = [1.0, 1.5, 2.0, 2.25, 2.5, 2.5];
       return multipliers[stakedCount] || 1.0;
     };
     
     const currentMultiplier = modalCalculateDiversityMultiplier();
     const currentStaked = stakedAmounts[selectedUnstakingAsset] || 0;
     const assetPrice = MASTER_ASSETS[selectedUnstakingAsset]?.price || 0;
-    const currentWeeklyYield = currentStaked * assetPrice * 0.05 * currentMultiplier;
+    const currentWeeklyYield = currentStaked * assetPrice * (3.0/100/52) * currentMultiplier;
     
     return (
       <div className="bg-surface-2 border border-white/10 rounded-xl p-4 mb-6">
@@ -2718,7 +2736,7 @@ const Dashboard: React.FC = () => {
           </div>
           <div className="flex justify-between">
             <span className="text-text-secondary">Current APY</span>
-            <span className="text-success-400 font-medium">{(8.5 * currentMultiplier).toFixed(1)}%</span>
+            <span className="text-success-400 font-medium">{(3.0 * currentMultiplier).toFixed(1)}%</span>
           </div>
           <div className="flex justify-between">
             <span className="text-text-secondary">Diversity Multiplier</span>
@@ -2739,15 +2757,15 @@ const Dashboard: React.FC = () => {
     const modalAssetsWithBalance = modalAssetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
     const modalCalculateDiversityMultiplier = () => {
       const stakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
-      const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
+      const multipliers = [1.0, 1.5, 2.0, 2.25, 2.5, 2.5];
       return multipliers[stakedCount] || 1.0;
     };
     
     const currentMultiplier = modalCalculateDiversityMultiplier();
     const currentStaked = stakedAmounts[selectedUnstakingAsset] || 0;
-    const newStaked = currentStaked - pendingUnstakingAmount;
+    const newStaked = currentStaked - (pendingUnstakingAmount || 0);
     const assetPrice = MASTER_ASSETS[selectedUnstakingAsset]?.price || 0;
-    const yieldLoss = pendingUnstakingAmount * assetPrice * 0.05 * currentMultiplier;
+    const yieldLoss = (pendingUnstakingAmount || 0) * assetPrice * (3.0/100/52) * currentMultiplier;
     
     return (
       <div className="bg-surface-2 border border-white/10 rounded-xl p-4 mb-6">
@@ -2755,7 +2773,7 @@ const Dashboard: React.FC = () => {
         <div className="space-y-3 text-sm">
           <div className="flex justify-between">
             <span className="text-text-secondary">Amount to Unstake</span>
-            <span className="text-text-primary font-medium">{formatAmount(pendingUnstakingAmount)} {selectedUnstakingAsset}</span>
+            <span className="text-text-primary font-medium">{formatAmount(pendingUnstakingAmount || 0)} {selectedUnstakingAsset}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-text-secondary">Remaining Staked</span>
@@ -2853,6 +2871,9 @@ const Dashboard: React.FC = () => {
         onClose={() => {
           setStakingModalOpen(false);
           setSelectedStakingAsset(null);
+          // Reset transaction state when closing modal
+          setStakingTransactionState('confirming');
+          setStakingConfirmationOpen(false);
         }}
         onStakingConfirmation={openStakingConfirmation}
       />
@@ -3009,10 +3030,10 @@ const Dashboard: React.FC = () => {
                     <AssetIcon asset={selectedUnstakingAsset} size={40} />
                   </div>
                   <div className="text-lg font-bold text-text-primary mb-2">
-                    Unstaking {formatAmount(pendingUnstakingAmount)} {selectedUnstakingAsset}
+                    Unstaking {formatAmount(pendingUnstakingAmount || 0)} {selectedUnstakingAsset}
                   </div>
                   <div className="text-sm text-text-muted">
-                    ~${formatAmount(pendingUnstakingAmount * (MASTER_ASSETS[selectedUnstakingAsset]?.price || 0))}
+                    ~${formatAmount((pendingUnstakingAmount || 0) * (MASTER_ASSETS[selectedUnstakingAsset]?.price || 0))}
                   </div>
                 </div>
                 
@@ -3057,7 +3078,7 @@ const Dashboard: React.FC = () => {
                   </div>
                   <h3 className="text-xl font-bold text-text-primary mb-2">Processing Unstaking</h3>
                   <p className="text-text-secondary mb-4">
-                    Unstaking {formatAmount(pendingUnstakingAmount)} {selectedUnstakingAsset}...
+                    Unstaking {formatAmount(pendingUnstakingAmount || 0)} {selectedUnstakingAsset}...
                   </p>
                   <div className="flex items-center justify-center gap-2 text-sm text-text-muted">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-error-400"></div>
@@ -3075,7 +3096,7 @@ const Dashboard: React.FC = () => {
                   </div>
                   <h3 className="text-xl font-bold text-text-primary mb-2">Unstaking Complete!</h3>
                   <p className="text-text-secondary mb-4">
-                    Successfully unstaked {formatAmount(pendingUnstakingAmount)} {selectedUnstakingAsset}
+                    Successfully unstaked {formatAmount(pendingUnstakingAmount || 0)} {selectedUnstakingAsset}
                   </p>
                   
                   <div className="bg-surface-2 border border-white/10 rounded-xl p-4 mb-6 text-left">
