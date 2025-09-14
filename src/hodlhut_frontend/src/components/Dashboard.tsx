@@ -378,15 +378,8 @@ const Dashboard: React.FC = () => {
   const [swapAmount, setSwapAmount] = useState('');
   const [selectedDEX, setSelectedDEX] = useState<string | null>(null);
   
-  // Portfolio collapse state - remember user preference, default based on user flow
-  const [portfolioExpanded, setPortfolioExpanded] = useState(() => {
-    const savedPreference = localStorage.getItem('portfolioExpanded');
-    if (savedPreference !== null) {
-      return JSON.parse(savedPreference);
-    }
-    // Default: expanded for returning users, collapsed for new users
-    return userFlow === 'returningUser';
-  });
+  // Portfolio collapse state - always default to closed on page load
+  const [portfolioExpanded, setPortfolioExpanded] = useState(false);
   const [swapAnalysis, setSwapAnalysis] = useState<CompleteSwapAnalysis | null>(null);
   const [showRouteDetails, setShowRouteDetails] = useState(false);
   const [showSmartSolutions, setShowSmartSolutions] = useState(false);
@@ -406,10 +399,6 @@ const Dashboard: React.FC = () => {
   // Unified Deposit Interface State
   const [selectedDepositAssetUnified, setSelectedDepositAssetUnified] = useState('');
 
-  // Save portfolio expansion preference to localStorage
-  useEffect(() => {
-    localStorage.setItem('portfolioExpanded', JSON.stringify(portfolioExpanded));
-  }, [portfolioExpanded]);
   
   // Smart Solutions Approval Modal State
   const [showApprovalModal, setShowApprovalModal] = useState(false);
