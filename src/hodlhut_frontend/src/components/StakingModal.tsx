@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Rocket, Star, TrendingUp } from 'lucide-react';
 import AssetIcon from './AssetIcon';
 import { MASTER_ASSETS } from '../../assets/master_asset_data';
@@ -22,6 +22,14 @@ const StakingModal: React.FC<StakingModalProps> = ({
 }) => {
   const [stakingAmount, setStakingAmount] = useState('');
 
+  // Clear input field when switching assets or modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      // Clear field when modal closes
+      setStakingAmount('');
+    }
+  }, [isOpen, selectedAsset]);
+
   // Format amount utility (keeping existing logic)
   const formatAmount = (amount: number | string): string => {
     const num = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -35,7 +43,7 @@ const StakingModal: React.FC<StakingModalProps> = ({
     const assetsList = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
     const assetsWithBalance = assetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
     const stakedCount = assetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
-    const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
+    const multipliers = [1.0, 1.5, 2.0, 2.25, 2.5, 2.5]; // 3.00%, 4.50%, 6.00%, 6.75%, 7.50% (max)
     return multipliers[Math.min(stakedCount, multipliers.length - 1)];
   };
 
@@ -43,7 +51,7 @@ const StakingModal: React.FC<StakingModalProps> = ({
   const renderStakingBenefits = () => {
     if (!selectedAsset) return null;
 
-    const baseAPY = 8.5; // Base APY percentage
+    const baseAPY = 3.0; // Base APY percentage
     const multiplier = calculateDiversityMultiplier();
     const boostedAPY = baseAPY * multiplier;
 
@@ -83,7 +91,7 @@ const StakingModal: React.FC<StakingModalProps> = ({
     if (!willBeStaking || currentlyStakedCount >= 5) return null;
 
     const newStakedCount = currentlyStakedCount + 1;
-    const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
+    const multipliers = [1.0, 1.5, 2.0, 2.25, 2.5, 2.5];
     const nextMultiplier = multipliers[Math.min(newStakedCount, multipliers.length - 1)];
 
     return (
@@ -97,7 +105,7 @@ const StakingModal: React.FC<StakingModalProps> = ({
           Your APY multiplier will increase to <span className="text-warning-400 font-semibold">{nextMultiplier.toFixed(2)}x</span>!
         </p>
         <p className="text-xs text-text-muted">
-          Stake more diverse assets to unlock higher multipliers (max 2.2x with 6 assets).
+          Stake more diverse assets to unlock higher multipliers (max 2.5x with 5+ assets).
         </p>
       </div>
     );

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
 import AssetIcon from './AssetIcon';
 import { MASTER_ASSETS } from '../../assets/master_asset_data';
@@ -22,6 +22,16 @@ const UnstakingModal: React.FC<UnstakingModalProps> = ({
 }) => {
   const [unstakingAmount, setUnstakingAmount] = useState('');
 
+  // Auto-populate with staked amount when modal opens
+  useEffect(() => {
+    if (isOpen && selectedAsset && stakedAmounts[selectedAsset]) {
+      setUnstakingAmount(stakedAmounts[selectedAsset].toString());
+    } else if (!isOpen) {
+      // Clear field when modal closes
+      setUnstakingAmount('');
+    }
+  }, [isOpen, selectedAsset, stakedAmounts]);
+
   // Format amount utility (keeping existing logic)
   const formatAmount = (amount: number | string): string => {
     const num = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -35,7 +45,7 @@ const UnstakingModal: React.FC<UnstakingModalProps> = ({
     const assetsList = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
     const assetsWithBalance = assetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
     const stakedCount = assetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
-    const multipliers = [1.0, 1.25, 1.5, 1.75, 2.0, 2.2];
+    const multipliers = [1.0, 1.5, 2.0, 2.25, 2.5, 2.5];
     return multipliers[stakedCount] || 1.0;
   };
 
@@ -46,7 +56,7 @@ const UnstakingModal: React.FC<UnstakingModalProps> = ({
     const currentMultiplier = calculateDiversityMultiplier();
     const currentStaked = stakedAmounts[selectedAsset] || 0;
     const assetPrice = MASTER_ASSETS[selectedAsset]?.price || 0;
-    const currentWeeklyYield = currentStaked * assetPrice * 0.05 * currentMultiplier;
+    const currentWeeklyYield = currentStaked * assetPrice * (3.0/100/52) * currentMultiplier;
 
     return (
       <div className="bg-surface-2 border border-white/10 rounded-xl p-4 mb-6">
@@ -58,7 +68,7 @@ const UnstakingModal: React.FC<UnstakingModalProps> = ({
           </div>
           <div className="flex justify-between">
             <span className="text-text-secondary">Current APY</span>
-            <span className="text-success-400 font-medium">{(8.5 * currentMultiplier).toFixed(1)}%</span>
+            <span className="text-success-400 font-medium">{(3.0 * currentMultiplier).toFixed(1)}%</span>
           </div>
           <div className="flex justify-between">
             <span className="text-text-secondary">Diversity Multiplier</span>
@@ -81,8 +91,8 @@ const UnstakingModal: React.FC<UnstakingModalProps> = ({
       return;
     }
 
-    if (!selectedAsset || amount > (stakedAmounts[selectedAsset] || 0)) {
-      alert('Insufficient staked balance');
+    if (!selectedAsset) {
+      alert('Please select an asset');
       return;
     }
 
