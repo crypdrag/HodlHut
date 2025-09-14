@@ -5,6 +5,7 @@ import DepositModal from './DepositModal';
 import SmartSolutionModal from './SmartSolutionModal';
 import AuthenticationModal, { AuthStep, TransactionStep } from './AuthenticationModal';
 import StakingModal from './StakingModal';
+import UnstakingModal from './UnstakingModal';
 import { MASTER_ASSETS, Portfolio } from '../../assets/master_asset_data';
 import { 
   analyzeCompleteSwap,
@@ -2975,133 +2976,14 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Unstaking Modal */}
-      {unstakingModalOpen && selectedUnstakingAsset && (
-        <div className="fixed inset-0 bg-overlay-1 flex items-center justify-center z-50 p-4">
-          <div className="bg-surface-1 rounded-3xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto border border-white/10">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="heading-3 text-text-primary m-0">
-                Manage {selectedUnstakingAsset}
-              </h2>
-              <button 
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-2 text-text-secondary hover:bg-surface-3 transition-colors"
-                onClick={closeUnstakingModal}
-              >
-                <X size={18} />
-              </button>
-            </div>
-            
-            {/* Asset Info */}
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-surface-2 rounded-full">
-                <AssetIcon asset={selectedUnstakingAsset} size={40} />
-              </div>
-              <div className="text-sm text-text-secondary mb-2">
-                Currently Staked
-              </div>
-              <div className="text-2xl font-bold text-text-primary">
-                {formatAmount(stakedAmounts[selectedUnstakingAsset] || 0)} {selectedUnstakingAsset}
-              </div>
-              <div className="text-sm text-text-muted">
-                ~${formatAmount((stakedAmounts[selectedUnstakingAsset] || 0) * (MASTER_ASSETS[selectedUnstakingAsset]?.price || 0))}
-              </div>
-            </div>
-            
-            {/* Unstaking Amount Input */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-text-secondary mb-2">
-                Amount to Unstake
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  placeholder="0.0"
-                  className="w-full px-4 py-3 bg-surface-2 border border-white/10 rounded-xl text-text-primary focus:ring-2 focus:ring-primary-400 focus:border-transparent"
-                  id="unstakingAmountInput"
-                  step="any"
-                  min="0"
-                  max={stakedAmounts[selectedUnstakingAsset] || 0}
-                />
-                <button 
-                  className="absolute right-3 top-1/2 -translate-y-1/2 px-3 py-1 text-xs font-medium bg-primary-600 hover:bg-primary-500 text-on-primary rounded-lg transition-colors"
-                  onClick={() => {
-                    const input = document.getElementById('unstakingAmountInput') as HTMLInputElement;
-                    if (input) {
-                      input.value = (stakedAmounts[selectedUnstakingAsset] || 0).toString();
-                    }
-                  }}
-                >
-                  ALL
-                </button>
-              </div>
-            </div>
-            
-            {/* Quick Unstaking Buttons */}
-            <div className="grid grid-cols-4 gap-2 mb-6">
-              {[0.25, 0.5, 0.75, 1].map((percentage) => (
-                <button
-                  key={percentage}
-                  className="px-3 py-2 text-xs font-medium bg-surface-2 hover:bg-surface-3 text-text-secondary hover:text-text-primary border border-white/10 rounded-lg transition-all"
-                  onClick={() => {
-                    const input = document.getElementById('unstakingAmountInput') as HTMLInputElement;
-                    if (input) {
-                      const amount = (stakedAmounts[selectedUnstakingAsset] || 0) * percentage;
-                      input.value = amount.toString();
-                    }
-                  }}
-                >
-                  {percentage === 1 ? '100%' : `${Math.round(percentage * 100)}%`}
-                </button>
-              ))}
-            </div>
-            
-            {/* Impact Analysis */}
-            {renderUnstakingImpactAnalysis()}
-            
-            {/* Warning Notice */}
-            <div className="bg-error-400/10 border border-error-400/20 rounded-xl p-4 mb-6">
-              <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle className="w-4 h-4 text-error-400" />
-                <span className="text-sm font-medium text-error-300">Unstaking Notice</span>
-              </div>
-              <p className="text-xs text-error-200">
-                Unstaking will immediately stop yield generation for the withdrawn amount. Consider partial unstaking to maintain some rewards.
-              </p>
-            </div>
-            
-            {/* Action Buttons */}
-            <div className="flex gap-3">
-              <button 
-                className="flex-1 btn-secondary py-3"
-                onClick={closeUnstakingModal}
-              >
-                Cancel
-              </button>
-              <button 
-                className="flex-1 btn-error py-3"
-                onClick={() => {
-                  const input = document.getElementById('unstakingAmountInput') as HTMLInputElement;
-                  const amount = parseFloat(input?.value || '0');
-                  
-                  if (amount <= 0) {
-                    alert('Please enter a valid amount');
-                    return;
-                  }
-                  
-                  if (amount > (stakedAmounts[selectedUnstakingAsset] || 0)) {
-                    alert('Insufficient staked balance');
-                    return;
-                  }
-                  
-                  openUnstakingConfirmation(selectedUnstakingAsset, amount);
-                }}
-              >
-                <AlertTriangle className="w-4 h-4 mr-2" />
-                Unstake {selectedUnstakingAsset}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <UnstakingModal
+        isOpen={unstakingModalOpen}
+        selectedAsset={selectedUnstakingAsset}
+        portfolio={portfolio}
+        stakedAmounts={stakedAmounts}
+        onClose={closeUnstakingModal}
+        onUnstakingConfirmation={openUnstakingConfirmation}
+      />
 
       {/* Unstaking Confirmation Modal */}
       {unstakingConfirmationOpen && selectedUnstakingAsset && (
