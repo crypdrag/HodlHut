@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import DepositModal from './DepositModal';
+import SmartSolutionModal from './SmartSolutionModal';
+import AuthenticationModal, { AuthStep, TransactionStep } from './AuthenticationModal';
 import { MASTER_ASSETS, Portfolio } from '../../assets/master_asset_data';
 import { 
   analyzeCompleteSwap,
@@ -444,10 +446,10 @@ const Dashboard: React.FC = () => {
   
   // Internet Identity Authentication Modal State
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authStep, setAuthStep] = useState<'authenticate' | 'confirming' | 'wallet_connect' | 'wallet_connecting' | 'executing' | 'success'>('authenticate');
+  const [authStep, setAuthStep] = useState<AuthStep>('authenticate');
   const [transactionData, setTransactionData] = useState<CompleteSwapAnalysis | null>(null);
   const [selectedWallet, setSelectedWallet] = useState<string>('');
-  const [transactionSteps, setTransactionSteps] = useState<Array<{message: string, completed: boolean, current: boolean}>>([]);
+  const [transactionSteps, setTransactionSteps] = useState<TransactionStep[]>([]);
   
   // My Garden Claim Yield State
   const [claimedAssets, setClaimedAssets] = useState<Set<string>>(new Set());
@@ -2814,325 +2816,31 @@ const Dashboard: React.FC = () => {
       />
 
       {/* Smart Solutions Approval Modal */}
-      {showApprovalModal && pendingApproval && (
-        <div className="modal-overlay" onClick={handleCancelApproval}>
-          <div className="smart-solution-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="smart-solution-header">
-              <div className="smart-solution-icon">
-                <Lightbulb size={24} color="#f1760f" />
-              </div>
-              <h3 className="smart-solution-title">Approve Smart Solution</h3>
-              <button 
-                className="modal-close-btn" 
-                onClick={handleCancelApproval}
-                aria-label="Close"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="smart-solution-content">
-              <div className="solution-details">
-                <h4>{formatTextWithNumbers(pendingApproval.title)}</h4>
-                <p className="solution-description">{formatTextWithNumbers(pendingApproval.description)}</p>
-                
-                <div className="solution-breakdown">
-                  <div className="cost-item">
-                    <span className="label">Cost:</span>
-                    <span className="value cost">
-                      {formatNumber(parseFloat(pendingApproval.cost.amount))} {pendingApproval.cost.asset}
-                      {pendingApproval.cost.description && (
-                        <div className="cost-description">{pendingApproval.cost.description}</div>
-                      )}
-                    </span>
-                  </div>
-                  <div className="receive-item">
-                    <span className="label">You'll receive:</span>
-                    <span className="value receive">
-                      {formatNumber(pendingApproval.userReceives.amount)} {pendingApproval.userReceives.asset}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="solution-actions">
-                <button 
-                  className="btn btn-decline" 
-                  onClick={handleCancelApproval}
-                >
-                  Decline
-                </button>
-                <button 
-                  className="btn btn-approve" 
-                  onClick={handleConfirmApproval}
-                >
-                  Approve
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <SmartSolutionModal
+        isOpen={showApprovalModal}
+        pendingApproval={pendingApproval}
+        onConfirm={handleConfirmApproval}
+        onCancel={handleCancelApproval}
+      />
 
       {/* Internet Identity Authentication Modal */}
-      {showAuthModal && transactionData && (
-        <div className="modal-overlay" onClick={() => setShowAuthModal(false)}>
-          <div className="auth-modal" onClick={(e) => e.stopPropagation()}>
-            {authStep === 'authenticate' && (
-              <>
-                <div className="auth-modal-header">
-                  <h3 className="auth-modal-title">Authenticate Internet Identity to Perform Transaction</h3>
-                  <button 
-                    className="modal-close-btn" 
-                    onClick={() => setShowAuthModal(false)}
-                    aria-label="Close"
-                  >
-                    ×
-                  </button>
-                </div>
-                
-                <div className="auth-modal-content">
-                  {/* Pancake-style swap interface */}
-                  <div className="swap-confirmation-card">
-                    <div className="swap-confirmation-header">
-                      <span>🔄</span>
-                      <h4>Confirm Swap</h4>
-                    </div>
-                    
-                    <div className="swap-details">
-                      <div className="swap-from-to">
-                        <div className="swap-asset">
-                          <span className="asset-amount">{formatAmount(transactionData.amount)}</span>
-                          <span className="text-lg font-semibold text-text-primary mb-2">{transactionData.fromAsset}</span>
-                        </div>
-                        <div className="swap-arrow">→</div>
-                        <div className="swap-asset">
-                          <span className="asset-amount">{formatAmount(transactionData.outputAmount)}</span>
-                          <span className="text-lg font-semibold text-text-primary mb-2">{transactionData.toAsset}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="swap-route-info">
-                        <div className="route-item">
-                          <span>Route:</span>
-                          <span>{transactionData.route.operationType}</span>
-                        </div>
-                        <div className="route-item">
-                          <span>DEX:</span>
-                          <span>{selectedDEX || 'Auto-Select'}</span>
-                        </div>
-                        <div className="route-item">
-                          <span>Estimated Time:</span>
-                          <span>{transactionData.route.estimatedTime}</span>
-                        </div>
-                        <div className="route-item">
-                          <span>Total Fees:</span>
-                          <span>${transactionData.totalFeesUSD.toFixed(2)}</span>
-                        </div>
-                        <div className="route-item">
-                          <span>Slippage:</span>
-                          <span>{slippageTolerance}%</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="auth-buttons">
-                    <button 
-                      className="btn btn-decline"
-                      onClick={() => setShowAuthModal(false)}
-                    >
-                      Cancel
-                    </button>
-                    <button 
-                      className="btn btn-approve auth-btn"
-                      onClick={() => {
-                        setAuthStep('confirming');
-                        // Simulate authentication delay
-                        setTimeout(() => {
-                          setAuthStep('wallet_connect');
-                        }, 1500);
-                      }}
-                    >
-                      🔐 Authenticate with Internet Identity
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-            
-            {authStep === 'confirming' && (
-              <div className="auth-modal-content">
-                <div className="transaction-status">
-                  <div className="status-icon spinning"><Lock className="w-12 h-12 text-blue-500" /></div>
-                  <h3>Authenticating...</h3>
-                  <p>Please complete the Internet Identity authentication in the popup window.</p>
-                </div>
-              </div>
-            )}
-            
-            {authStep === 'wallet_connect' && (
-              <>
-                <div className="auth-modal-header">
-                  <h3 className="auth-modal-title">Connect Ethereum Wallet</h3>
-                  <button 
-                    className="modal-close-btn" 
-                    onClick={() => setShowAuthModal(false)}
-                    aria-label="Close"
-                  >
-                    ×
-                  </button>
-                </div>
-                
-                <div className="auth-modal-content">
-                  <div className="wallet-selection">
-                    <p className="wallet-instruction">Choose your Ethereum wallet to complete the transaction:</p>
-                    <div className="wallet-options">
-                      {ETH_WALLET_OPTIONS.map((wallet) => (
-                        <button
-                          key={wallet.id}
-                          className="wallet-option"
-                          onClick={() => {
-                            setSelectedWallet(wallet.name);
-                            setAuthStep('wallet_connecting');
-                            // Simulate wallet connection
-                            setTimeout(() => {
-                              setAuthStep('executing');
-                              // Initialize transaction steps
-                              setTransactionSteps([
-                                { message: `MyHut Fees (0.1%) extracted`, completed: false, current: true },
-                                { message: `SWAP ${transactionData?.fromAsset}→${transactionData?.toAsset} ${selectedDEX || 'ICPSwap'}`, completed: false, current: false },
-                                { message: `${selectedDEX || 'ICPSwap'} 0.3% Fee extracted`, completed: false, current: false },
-                                { message: `Sending ${transactionData?.toAsset}+ckETH (gas) to ICP EVM RPC`, completed: false, current: false },
-                                { message: `Ethereum transaction confirmation`, completed: false, current: false }
-                              ]);
-                              // Start executing transaction steps
-                              executeTransactionSteps();
-                            }, 2000);
-                          }}
-                        >
-                          {wallet.icon}
-                          <span>{wallet.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
-            
-            {authStep === 'wallet_connecting' && (
-              <div className="auth-modal-content">
-                <div className="transaction-status">
-                  <div className="status-icon spinning"><Wallet className="w-12 h-12 text-orange-500" /></div>
-                  <h3>Connecting to {selectedWallet}...</h3>
-                  <p>Please approve the connection request in your {selectedWallet} extension.</p>
-                </div>
-              </div>
-            )}
-            
-            {authStep === 'executing' && (
-              <div className="auth-modal-content">
-                <div className="transaction-execution">
-                  <h3>Executing Transaction</h3>
-                  <p className="execution-subtitle">Processing your {transactionData.fromAsset} → {transactionData.toAsset} swap</p>
-                  
-                  <div className="transaction-steps">
-                    {transactionSteps.map((step, index) => (
-                      <div key={index} className={`transaction-step ${step.completed ? 'completed' : ''} ${step.current ? 'current' : ''}`}>
-                        <div className="step-indicator">
-                          {step.completed ? (
-                            <CheckCircle className="w-5 h-5 text-green-500" />
-                          ) : step.current ? (
-                            <div className="spinner"><Circle className="w-5 h-5 text-blue-500" /></div>
-                          ) : (
-                            <Circle className="w-5 h-5 text-gray-300" />
-                          )}
-                        </div>
-                        <div className="step-content">
-                          <span className={step.completed ? 'text-green-700' : step.current ? 'text-blue-700' : 'text-gray-500'}>
-                            {step.message}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {/* Show Ethereum confirmation meter when on the final step */}
-                  {transactionSteps.length > 0 && transactionSteps[4]?.current && (
-                    <div className="ethereum-confirmation-meter">
-                      <div className="confirmation-icon">
-                        <Circle className="w-8 h-8 text-blue-500" />
-                      </div>
-                      <h4>Ethereum Transaction Confirmation</h4>
-                      <div className="confirmation-progress">
-                        <div className="confirmation-bar">
-                          <div className="confirmation-fill ethereum-executing"></div>
-                        </div>
-                        <div className="confirmation-status">
-                          <Zap className="inline w-4 h-4 mr-1" /> Waiting for 65 confirmations...
-                        </div>
-                        <div className="confirmation-count">
-                          <Lock className="inline w-4 h-4 mr-1" /> ICP requires 65 confirmations for Ethereum finality (~13 min)
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-            
-            {authStep === 'success' && (
-              <div className="auth-modal-content">
-                <div className="transaction-success">
-                  <div className="success-icon">
-                    <PartyPopper className="w-16 h-16 text-green-500" />
-                  </div>
-                  <h3>Transaction Successful!</h3>
-                  <p className="success-message">Your swap has been completed successfully.</p>
-                  
-                  <div className="success-details">
-                    <div className="swap-summary">
-                      <div className="summary-row">
-                        <span>Swapped:</span>
-                        <span><strong>{formatAmount(transactionData.amount)} {transactionData.fromAsset}</strong></span>
-                      </div>
-                      <div className="summary-row">
-                        <span>Received:</span>
-                        <span><strong>{formatAmount(transactionData.outputAmount)} {transactionData.toAsset}</strong></span>
-                      </div>
-                      <div className="summary-row">
-                        <span>Total fees:</span>
-                        <span><strong>${transactionData.totalFeesUSD.toFixed(2)}</strong></span>
-                      </div>
-                      <div className="summary-row">
-                        <span>Via:</span>
-                        <span><strong>{selectedDEX || 'ICPSwap'} + Ethereum</strong></span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="success-actions">
-                    <button 
-                      className="btn btn-approve success-btn"
-                      onClick={() => {
-                        setShowAuthModal(false);
-                        setAuthStep('authenticate');
-                        setTransactionData(null);
-                        setSelectedWallet('');
-                        setTransactionSteps([]);
-                      }}
-                    >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Continue Trading
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <AuthenticationModal
+        isOpen={showAuthModal}
+        transactionData={transactionData}
+        authStep={authStep}
+        selectedWallet={selectedWallet}
+        selectedDEX={selectedDEX || 'ICPSwap'}
+        transactionSteps={transactionSteps}
+        onClose={() => setShowAuthModal(false)}
+        onStepChange={setAuthStep}
+        onReset={() => {
+          setAuthStep('authenticate');
+          setTransactionData(null);
+          setSelectedWallet('');
+          setTransactionSteps([]);
+        }}
+        onSetTransactionSteps={setTransactionSteps}
+      />
 
       {/* Staking Modal */}
       {stakingModalOpen && selectedStakingAsset && (

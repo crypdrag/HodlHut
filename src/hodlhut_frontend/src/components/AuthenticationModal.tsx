@@ -131,8 +131,8 @@ const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
                       <span>${transactionData.totalFeesUSD.toFixed(2)}</span>
                     </div>
                     <div className="route-item">
-                      <span>Slippage:</span>
-                      <span>{transactionData.route.slippage}%</span>
+                      <span>Price Impact:</span>
+                      <span>{transactionData.priceImpact.toFixed(2)}%</span>
                     </div>
                   </div>
                 </div>

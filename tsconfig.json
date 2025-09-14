@@ -18,6 +18,7 @@
     "isolatedModules": true,
     "noEmit": false,
     "jsx": "react-jsx",
+    "downlevelIteration": true,
     "experimentalDecorators": true,
     "strictPropertyInitialization": false,
     "baseUrl": ".",
