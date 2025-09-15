@@ -865,10 +865,6 @@ const Dashboard: React.FC = () => {
     </div>
   );
 
-
-
-
-
   const renderTransactionHistorySection = () => {
     const mockTransactions = [
       {
