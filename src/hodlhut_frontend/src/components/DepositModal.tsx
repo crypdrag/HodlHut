@@ -51,16 +51,6 @@ const WALLET_OPTIONS: Record<string, WalletOption[]> = {
     { id: 'coinbase', name: 'Coinbase Wallet', icon: <Circle className="w-4 h-4 text-blue-500" /> },
     { id: 'walletconnect', name: 'WalletConnect', icon: <Link className="w-4 h-4" /> }
   ],
-  'SOL': [
-    { id: 'phantom', name: 'Phantom Wallet', icon: <Wallet className="w-4 h-4 text-purple-500" /> },
-    { id: 'solflare', name: 'Solflare Wallet', icon: <Sun className="w-4 h-4 text-yellow-500" /> },
-    { id: 'backpack', name: 'Backpack Wallet', icon: <Square className="w-4 h-4 text-gray-600" /> }
-  ],
-  'USDCs': [
-    { id: 'phantom', name: 'Phantom Wallet', icon: <Wallet className="w-4 h-4 text-purple-500" /> },
-    { id: 'solflare', name: 'Solflare Wallet', icon: <Sun className="w-4 h-4 text-yellow-500" /> },
-    { id: 'backpack', name: 'Backpack Wallet', icon: <Square className="w-4 h-4 text-gray-600" /> }
-  ],
   'ckBTC': [
     { id: 'plug', name: 'Plug Wallet', icon: <Plug className="w-4 h-4 text-green-500" /> },
     { id: 'stoic', name: 'Stoic Wallet', icon: <Globe className="w-4 h-4 text-blue-500" /> },
@@ -81,11 +71,6 @@ const WALLET_OPTIONS: Record<string, WalletOption[]> = {
     { id: 'stoic', name: 'Stoic Wallet', icon: <Globe className="w-4 h-4 text-blue-500" /> },
     { id: 'nfid', name: 'NFID', icon: <User className="w-4 h-4 text-gray-600" /> }
   ],
-  'ckSOL': [
-    { id: 'plug', name: 'Plug Wallet', icon: <Plug className="w-4 h-4 text-green-500" /> },
-    { id: 'stoic', name: 'Stoic Wallet', icon: <Globe className="w-4 h-4 text-blue-500" /> },
-    { id: 'nfid', name: 'NFID', icon: <User className="w-4 h-4 text-gray-600" /> }
-  ],
   'ICP': [
     { id: 'plug', name: 'Plug Wallet', icon: <Plug className="w-4 h-4 text-green-500" /> },
     { id: 'stoic', name: 'Stoic Wallet', icon: <Globe className="w-4 h-4 text-blue-500" /> },
@@ -98,12 +83,10 @@ const ASSET_ICONS: Record<string, JSX.Element> = {
   'ETH': <Circle className="w-4 h-4 text-blue-500" />, 
   'USDC': <CreditCard className="w-4 h-4 text-green-500" />,
   'USDT': <CreditCard className="w-4 h-4 text-green-600" />,
-  'SOL': <Sun className="w-4 h-4 text-yellow-500" />,
   'ckBTC': <Circle className="w-4 h-4 text-orange-500" />,
   'ckETH': <Circle className="w-4 h-4 text-blue-500" />,
   'ckUSDC': <CreditCard className="w-4 h-4 text-green-500" />,
   'ckUSDT': <CreditCard className="w-4 h-4 text-green-600" />,
-  'ckSOL': <Sun className="w-4 h-4 text-yellow-500" />,
   'ICP': <Globe className="w-4 h-4 text-purple-500" />
 };
 
@@ -235,25 +218,6 @@ const DepositModal: React.FC<DepositModalProps> = ({
         'ckUSDT is in your Hut!'
       ];
       handleEthereumDeposit(messages, finalAsset, amount);
-    } else if (['SOL', 'USDCs'].includes(selectedAsset)) {
-      if (selectedAsset === 'SOL') {
-        finalAsset = 'ckSOL';
-        messages = [
-          'Sending SOL to ICP...',
-          'SOL Received!',
-          'Converting to ckSOL...',
-          'ckSOL is in your Hut!'
-        ];
-      } else { // USDCs
-        finalAsset = 'ckUSDC';
-        messages = [
-          'Sending USDCs to ICP...',
-          'USDCs Received!',
-          'Converting to ckUSDC...',
-          'ckUSDC is in your Hut!'
-        ];
-      }
-      handleSolanaDeposit(messages, finalAsset, amount);
     } else {
       // ck-tokens and ICP - direct deposits
       messages = [
@@ -446,7 +410,7 @@ const DepositModal: React.FC<DepositModalProps> = ({
         {(['ETH', 'USDC', 'USDT'].includes(selectedAsset) && processingMessage === '') && (
           <EthereumConfirmationAnimation />
         )}
-        {(['SOL', 'USDCs'].includes(selectedAsset) && processingMessage === '') && (
+        {(false && processingMessage === '') && (
           <SolanaConfirmationAnimation />
         )}
       </div>
@@ -528,7 +492,7 @@ const EthereumConfirmationAnimation: React.FC = () => (
 
 const SolanaConfirmationAnimation: React.FC = () => (
   <div className="solana-confirmation">
-    <div className="confirmation-icon"><AssetIcon asset="SOL" size={32} /></div>
+    <div className="confirmation-icon"><AssetIcon asset="BTC" size={32} /></div>
     <h4>Solana Transaction Confirmation</h4>
     <div className="confirmation-progress">
       <div className="confirmation-bar">

@@ -233,7 +233,7 @@ const HomePage: React.FC = () => {
               </div>
               <h3 className="text-2xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Universal Router</h3>
               <p className="text-text-secondary leading-relaxed">
-                Bitcoin ↔ Ethereum ↔ Solana ↔ ICP bridgeless routing. Move between any asset on any chain trustlessly with Chain Fusion.
+                Bitcoin ↔ Ethereum ↔ Solana ↔ ICP bridgeless routing. Move assets between legacy chains trustlessly with Chain Fusion.
               </p>
             </div>
 

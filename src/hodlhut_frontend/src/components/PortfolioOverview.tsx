@@ -18,7 +18,7 @@ const PortfolioOverview: React.FC<PortfolioOverviewProps> = ({
   formatAmount
 }) => {
   // Only show assets available in the FROM dropdown that have a balance > 0
-  const fromAssets = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+  const fromAssets = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'];
   const assetsWithBalance = fromAssets.filter(asset => portfolio[asset] && portfolio[asset] > 0);
 
   return (

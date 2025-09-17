@@ -110,7 +110,7 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
   // Helper functions moved from Dashboard
   const getSwapFromAssetOptions = () => {
     // Only show assets available in the FROM dropdown that have a balance > 0
-    const fromAssets = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+    const fromAssets = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'];
     const assetsWithBalance = fromAssets.filter(asset => portfolio[asset] && portfolio[asset] > 0);
 
     return assetsWithBalance.map(asset => ({
@@ -122,7 +122,7 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
   // Render swap action button based on asset types and user portfolio
   const renderSwapActionButton = () => {
     // Asset categorization logic
-    const ckAssetsAndICP = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+    const ckAssetsAndICP = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'];
     const isFromCkAsset = ckAssetsAndICP.includes(fromAsset);
     const isToCkAsset = ckAssetsAndICP.includes(toAsset);
     const userOwnsToAsset = portfolio[toAsset] && portfolio[toAsset] > 0;
@@ -412,16 +412,13 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
               options={[
                 { value: 'ckBTC', label: 'ckBTC' },
                 { value: 'ckETH', label: 'ckETH' },
-                { value: 'ckSOL', label: 'ckSOL' },
                 { value: 'ckUSDC', label: 'ckUSDC' },
                 { value: 'ckUSDT', label: 'ckUSDT' },
                 { value: 'ICP', label: 'ICP' },
                 { value: 'BTC', label: 'Bitcoin' },
                 { value: 'ETH', label: 'Ethereum' },
-                { value: 'SOL', label: 'Solana' },
                 { value: 'USDC', label: 'USDC' },
                 { value: 'USDT', label: 'USDT' },
-                { value: 'USDCs', label: 'USDCs' }
               ].filter(option => option.value !== fromAsset)}
             />
           </div>
