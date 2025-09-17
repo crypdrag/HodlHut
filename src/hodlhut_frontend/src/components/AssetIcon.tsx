@@ -3,13 +3,10 @@ import BTCIcon from '../../assets/images/BTC.svg';
 import ckBTCIcon from '../../assets/images/ckBTC.svg';
 import ETHIcon from '../../assets/images/ETH.svg';
 import ckETHIcon from '../../assets/images/ckETH.svg';
-import SOLIcon from '../../assets/images/SOL.svg';
-import ckSOLIcon from '../../assets/images/ckSOL.svg';
 import USDCIcon from '../../assets/images/USDC.svg';
 import ckUSDCIcon from '../../assets/images/ckUSDC.svg';
 import USDTIcon from '../../assets/images/USDT.svg';
 import ckUSDTIcon from '../../assets/images/ckUSDT.svg';
-import USDC_SOLIcon from '../../assets/images/USDC_SOL.svg';
 import ICPIcon from '../../assets/images/ICP.svg';
 import HodlHutLogo from '../../assets/images/hodlhut_logo.svg';
 
@@ -25,14 +22,10 @@ const assetIconMap: Record<string, string> = {
   'ckBTC': ckBTCIcon,
   'ETH': ETHIcon,
   'ckETH': ckETHIcon,
-  'SOL': SOLIcon,
-  'ckSOL': ckSOLIcon,
   'USDC': USDCIcon,
   'ckUSDC': ckUSDCIcon,
   'USDT': USDTIcon,
   'ckUSDT': ckUSDTIcon,
-  'USDCs': ckUSDCIcon,
-  'USDC_SOL': USDC_SOLIcon,
   'ICP': ICPIcon,
   'logo': HodlHutLogo
 };

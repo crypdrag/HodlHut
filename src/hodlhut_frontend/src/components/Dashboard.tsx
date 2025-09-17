@@ -61,14 +61,11 @@ import ckBTCIcon from '../../assets/images/ckBTC.svg';
 import BTCIcon from '../../assets/images/BTC.svg';
 import ckETHIcon from '../../assets/images/ckETH.svg';
 import ETHIcon from '../../assets/images/ETH.svg';
-import ckSOLIcon from '../../assets/images/ckSOL.svg';
-import SOLIcon from '../../assets/images/SOL.svg';
 import ckUSDCIcon from '../../assets/images/ckUSDC.svg';
 import USDCIcon from '../../assets/images/USDC.svg';
 import ckUSDTIcon from '../../assets/images/ckUSDT.svg';
 import USDTIcon from '../../assets/images/USDT.svg';
 import ICPIcon from '../../assets/images/ICP.svg';
-import USDCSOLIcon from '../../assets/images/USDC_SOL.svg';
 
 // Asset SVG icon mapping with proper webpack imports
 const ASSET_ICONS: { [key: string]: string } = {
@@ -76,14 +73,11 @@ const ASSET_ICONS: { [key: string]: string } = {
   'BTC': BTCIcon,
   'ckETH': ckETHIcon, 
   'ETH': ETHIcon,
-  'ckSOL': ckSOLIcon,
-  'SOL': SOLIcon,
   'ckUSDC': ckUSDCIcon,
   'USDC': USDCIcon,
   'ckUSDT': ckUSDTIcon,
   'USDT': USDTIcon,
   'ICP': ICPIcon,
-  'USDCs': USDCSOLIcon
 };
 
 // Helper component for asset icons
@@ -136,7 +130,6 @@ const PORTFOLIO_SCENARIOS = {
     ckBTC: 1.5,
     ckUSDC: 500,
     ckETH: 0,
-    ckSOL: 0,
     ckUSDT: 0,
     ICP: 1000
   },
@@ -144,7 +137,6 @@ const PORTFOLIO_SCENARIOS = {
     ICP: 25,
     ckBTC: 0.1,
     ckETH: 0,
-    ckSOL: 0,
     ckUSDC: 0,
     ckUSDT: 0
   },
@@ -152,7 +144,6 @@ const PORTFOLIO_SCENARIOS = {
     ckETH: 1.2,
     ckUSDC: 1000,
     ckBTC: 0.05,
-    ckSOL: 0,
     ckUSDT: 0,
     ICP: 1000
   },
@@ -161,7 +152,6 @@ const PORTFOLIO_SCENARIOS = {
     ckUSDT: 500,
     ckBTC: 0,
     ckETH: 0,
-    ckSOL: 0,
     ICP: 1000
   }
 };
@@ -882,7 +872,7 @@ const Dashboard: React.FC = () => {
         id: 2,
         type: 'DEX Swap',
         from: 'ckUSDT',
-        to: 'ckSOL',
+        to: 'ckUSDC',
         amount: '2,500',
         value: '$2,500.00',
         fee: '$7.50',
@@ -892,8 +882,8 @@ const Dashboard: React.FC = () => {
       {
         id: 3,
         type: 'Chain Fusion',
-        from: 'ckSOL',
-        to: 'SOL',
+        from: 'ckUSDC',
+        to: 'USDC',
         amount: '10.5',
         value: '$2,520.00',
         fee: '$0.24',
@@ -1001,7 +991,7 @@ const Dashboard: React.FC = () => {
     }
     
     // Check if selected asset is from ICP Ecosystem (has balances in portfolio)
-    const icpEcosystemAssets = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+    const icpEcosystemAssets = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'];
     const isIcpEcosystemAsset = icpEcosystemAssets.includes(selectedDepositAssetUnified);
     
     if (isIcpEcosystemAsset) {
@@ -1020,7 +1010,7 @@ const Dashboard: React.FC = () => {
         return `Balance: 0 ${selectedDepositAssetUnified}`;
       }
     } else {
-      // For L1 assets (BTC, ETH, SOL, etc.), show deposit flow message
+      // For L1 assets (BTC, ETH, etc.), show deposit flow message
       return 'Deposit to receive chain-key tokens in your portfolio';
     }
   };
@@ -1033,7 +1023,7 @@ const Dashboard: React.FC = () => {
   // Render staking benefits display with diversity multiplier
   const renderStakingBenefits = () => {
     // Calculate diversity multiplier for modal context
-    const modalAssetsList = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+    const modalAssetsList = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'];
     const modalAssetsWithBalance = modalAssetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
     const modalCalculateDiversityMultiplier = () => {
       const stakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
@@ -1067,7 +1057,7 @@ const Dashboard: React.FC = () => {
 
   // Render diversity boost notice for staking modal
   const renderDiversityBoostNotice = () => {
-    const modalAssetsList = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+    const modalAssetsList = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'];
     const modalAssetsWithBalance = modalAssetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
     const modalCalculateDiversityMultiplier = () => {
       const stakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
@@ -1099,7 +1089,7 @@ const Dashboard: React.FC = () => {
 
   // Render staking transaction details with diversity multiplier calculations
   const renderStakingTransactionDetails = () => {
-    const modalAssetsList = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+    const modalAssetsList = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'];
     const modalAssetsWithBalance = modalAssetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
     const modalCalculateDiversityMultiplier = () => {
       const stakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
@@ -1147,7 +1137,7 @@ const Dashboard: React.FC = () => {
 
   // Render unstaking impact analysis showing current position and yield details
   const renderUnstakingImpactAnalysis = () => {
-    const modalAssetsList = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+    const modalAssetsList = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'];
     const modalAssetsWithBalance = modalAssetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
     const modalCalculateDiversityMultiplier = () => {
       const stakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
@@ -1187,7 +1177,7 @@ const Dashboard: React.FC = () => {
 
   // Render unstaking transaction impact analysis with yield loss calculation
   const renderUnstakingTransactionImpact = () => {
-    const modalAssetsList = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+    const modalAssetsList = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'];
     const modalAssetsWithBalance = modalAssetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
     const modalCalculateDiversityMultiplier = () => {
       const stakedCount = modalAssetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;

@@ -3,9 +3,9 @@
 // ===============================================
 // 🛡️ SAFE BACKUP: Contains ALL assets from original + new work
 // Compatible with: Original Dapp, Old .ts files, NEW modules
-// ✅ Includes: ckSOL, SOL, USDCs (NEW additions)
+// ✅ Bitcoin and Ethereum integration only
 // ===============================================
-// COMPLETE ASSET REGISTRY (Original + New + ckSOL)
+// COMPLETE ASSET REGISTRY (Bitcoin + Ethereum Ecosystems)
 // ===============================================
 export const MASTER_ASSETS = {
     // BITCOIN ECOSYSTEM
@@ -106,43 +106,6 @@ export const MASTER_ASSETS = {
         canDeposit: true,
         canWithdraw: false
     },
-    // SOLANA ECOSYSTEM (NEW!)
-    'SOL': {
-        symbol: 'SOL',
-        name: 'Solana',
-        icon: './assets/images/SOL.svg',
-        price: 200,
-        chain: 'Solana',
-        type: 'native',
-        category: 'crypto',
-        isL1: true,
-        canDeposit: true,
-        canWithdraw: true
-    },
-    'ckSOL': {
-        symbol: 'ckSOL',
-        name: 'Chain Key Solana',
-        icon: './assets/images/ckSOL.svg',
-        price: 200,
-        chain: 'ICP',
-        type: 'ck-token',
-        category: 'crypto',
-        isL1: false,
-        canDeposit: true,
-        canWithdraw: false
-    },
-    'USDCs': {
-        symbol: 'USDCs',
-        name: 'USDC (Solana)',
-        icon: './assets/images/ckUSDC.svg',
-        price: 1.00,
-        chain: 'Solana',
-        type: 'native',
-        category: 'stablecoin',
-        isL1: true,
-        canDeposit: true,
-        canWithdraw: true
-    },
     // INTERNET COMPUTER
     'ICP': {
         symbol: 'ICP',
@@ -182,13 +145,13 @@ export const ALL_SWAP_DESTINATIONS = Object.keys(MASTER_ASSETS);
 // L1 withdrawal destinations (native assets on their chains)
 export const L1_WITHDRAWAL_ASSETS = Object.keys(MASTER_ASSETS).filter(symbol => MASTER_ASSETS[symbol].isL1);
 // Chain Fusion deposit sources (L1 assets that can be deposited via Chain Fusion)
-export const CHAIN_FUSION_SOURCES = ['BTC', 'ETH', 'USDC', 'USDT', 'SOL', 'USDCs'];
+export const CHAIN_FUSION_SOURCES = ['BTC', 'ETH', 'USDC', 'USDT'];
 // ICRC/ICP native assets (can be deposited directly on ICP)
-export const ICRC_ICP_ASSETS = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ckSOL', 'ICP'];
+export const ICRC_ICP_ASSETS = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'];
 // Stablecoins (for special handling)
 export const STABLECOINS = Object.keys(MASTER_ASSETS).filter(symbol => MASTER_ASSETS[symbol].category === 'stablecoin');
 // Major cryptocurrencies (for prioritization)
-export const MAJOR_CRYPTOS = ['BTC', 'ckBTC', 'ETH', 'ckETH', 'SOL', 'ckSOL', 'ICP'];
+export const MAJOR_CRYPTOS = ['BTC', 'ckBTC', 'ETH', 'ckETH', 'ICP'];
 // ===============================================
 // HELPER FUNCTIONS
 // ===============================================
@@ -243,9 +206,7 @@ export function getCkTokenForL1(l1Asset) {
         'BTC': 'ckBTC',
         'ETH': 'ckETH',
         'USDC': 'ckUSDC',
-        'USDT': 'ckUSDT',
-        'SOL': 'ckSOL',
-        'USDCs': 'ckUSDC' // Solana USDC converts to ckUSDC
+        'USDT': 'ckUSDT'
     };
     return ckTokenMap[l1Asset] || null;
 }
@@ -257,8 +218,7 @@ export function getL1ForCkToken(ckAsset) {
         'ckBTC': 'BTC',
         'ckETH': 'ETH',
         'ckUSDC': 'USDC',
-        'ckUSDT': 'USDT',
-        'ckSOL': 'SOL'
+        'ckUSDT': 'USDT'
     };
     return l1Map[ckAsset] || null;
 }
@@ -396,7 +356,6 @@ export const MOCK_PORTFOLIO = {
     'ckETH': 2.0,
     'ckUSDC': 1000,
     'ckUSDT': 500,
-    'ckSOL': 10, // NEW!
     'ICP': 1000
 };
 export const MOCK_PRICES_UPDATE = {

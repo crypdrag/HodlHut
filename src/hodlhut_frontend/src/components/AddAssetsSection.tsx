@@ -9,15 +9,12 @@ const DEPOSIT_ASSETS_CONFIG = {
   'Cross-Chain Deposits': [
     { asset: 'BTC', label: 'Bitcoin', description: 'Native Bitcoin from the Bitcoin network', walletType: 'Bitcoin Wallet' },
     { asset: 'ETH', label: 'Ethereum', description: 'Native Ethereum from the Ethereum network', walletType: 'Ethereum Wallet' },
-    { asset: 'SOL', label: 'Solana', description: 'Native Solana from the Solana network', walletType: 'Solana Wallet' },
     { asset: 'USDC', label: 'USDC (Ethereum)', description: 'USDC stablecoin from Ethereum network', walletType: 'Ethereum Wallet' },
     { asset: 'USDT', label: 'USDT (Ethereum)', description: 'USDT stablecoin from Ethereum network', walletType: 'Ethereum Wallet' },
-    { asset: 'USDCs', label: 'USDC (Solana)', description: 'USDC stablecoin from Solana network', walletType: 'Solana Wallet' }
   ],
   'ICP Ecosystem': [
     { asset: 'ckBTC', label: 'ckBTC', description: 'Chain-key Bitcoin on ICP', walletType: 'Internet Identity' },
     { asset: 'ckETH', label: 'ckETH', description: 'Chain-key Ethereum on ICP', walletType: 'Internet Identity' },
-    { asset: 'ckSOL', label: 'ckSOL', description: 'Chain-key Solana on ICP', walletType: 'Internet Identity' },
     { asset: 'ckUSDC', label: 'ckUSDC', description: 'Chain-key USDC on ICP', walletType: 'Internet Identity' },
     { asset: 'ckUSDT', label: 'ckUSDT', description: 'Chain-key USDT on ICP', walletType: 'Internet Identity' },
     { asset: 'ICP', label: 'ICP', description: 'Native Internet Computer token', walletType: 'Internet Identity' }
@@ -94,7 +91,7 @@ const AddAssetsSection: React.FC<AddAssetsSectionProps> = ({
             portfolio={portfolio}
             showBalances={(asset: string) => {
               // Only show balances for ICP Ecosystem assets
-              const icpEcosystemAssets = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+              const icpEcosystemAssets = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'];
               return icpEcosystemAssets.includes(asset);
             }}
           />
@@ -187,7 +184,7 @@ const AddAssetsSection: React.FC<AddAssetsSectionProps> = ({
             if (!assetDetails) return null;
 
             // Only show balances for ICP Ecosystem assets
-            const icpEcosystemAssets = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+            const icpEcosystemAssets = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'];
             const isIcpEcosystemAsset = icpEcosystemAssets.includes(asset);
             const hasBalance = isIcpEcosystemAsset && portfolio[asset] && portfolio[asset] > 0;
             const balance = portfolio[asset] || 0;

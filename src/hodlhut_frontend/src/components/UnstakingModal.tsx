@@ -42,7 +42,7 @@ const UnstakingModal: React.FC<UnstakingModalProps> = ({
 
   // Calculate diversity multiplier for impact analysis
   const calculateDiversityMultiplier = () => {
-    const assetsList = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+    const assetsList = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'];
     const assetsWithBalance = assetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
     const stakedCount = assetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
     const multipliers = [1.0, 1.5, 2.0, 2.25, 2.5, 2.5];

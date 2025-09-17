@@ -43,7 +43,7 @@ const MyGardenSection: React.FC<MyGardenSectionProps> = ({
   formatAmount
 }) => {
   // Use same asset filtering as Portfolio Overview - only swappable assets with balance > 0
-  const fromAssets = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+  const fromAssets = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'];
   const assetsWithBalance = fromAssets.filter(asset => portfolio[asset] && portfolio[asset] > 0);
 
   const calculateTotalYield = () => {

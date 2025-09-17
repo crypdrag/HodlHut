@@ -40,7 +40,7 @@ const StakingModal: React.FC<StakingModalProps> = ({
 
   // Calculate diversity multiplier for staking benefits display
   const calculateDiversityMultiplier = () => {
-    const assetsList = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+    const assetsList = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'];
     const assetsWithBalance = assetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
     const stakedCount = assetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
     const multipliers = [1.0, 1.5, 2.0, 2.25, 2.5, 2.5]; // 3.00%, 4.50%, 6.00%, 6.75%, 7.50% (max)
@@ -83,7 +83,7 @@ const StakingModal: React.FC<StakingModalProps> = ({
 
   // Render diversity boost notice for first-time stakers
   const renderDiversityBoostNotice = () => {
-    const assetsList = ['ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT', 'ICP'];
+    const assetsList = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'];
     const assetsWithBalance = assetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
     const currentlyStakedCount = assetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
     const willBeStaking = selectedAsset && stakedAmounts[selectedAsset] === 0;
