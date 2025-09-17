@@ -37,8 +37,6 @@ const ASSET_ICONS: Record<string, string> = {
     'USDC': '💵',
     'ckUSDT': '₮',
     'USDT': '₮',
-    'ckSOL': '◉',
-    'SOL': '◉',
     'USDCs': '💵',
     'ICP': '∞'
 };

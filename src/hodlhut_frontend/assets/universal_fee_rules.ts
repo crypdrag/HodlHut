@@ -52,7 +52,7 @@ export function getUniversalFeeRules(
   // ============================================
   // RULE 1: DIRECT CHAIN FUSION - SAME ASSET GAS
   // ============================================
-  // ckBTC → BTC, ckETH → ETH, ckSOL → SOL (can deduct from final)
+  // ckBTC → BTC, ckETH → ETH (can deduct from final)
   if (isDirectChainFusion(fromAsset, toAsset)) {
     const gasAmount = getL1GasAmount(toAsset);
     const networkName = getNetworkName(toAsset);
@@ -73,7 +73,7 @@ export function getUniversalFeeRules(
   // ============================================
   // RULE 2: DEX + CHAIN FUSION 
   // ============================================
-  // ckBTC → ckETH → ETH, ckUSDT → ckSOL → SOL (involves DEX swap first)
+  // ckBTC → ckETH → ETH (involves DEX swap first)
   if (isDexPlusChainFusion(fromAsset, toAsset)) {
     const gasAmount = getL1GasAmount(toAsset);
     const bridgeToken = getBridgeToken(toAsset);
@@ -115,9 +115,6 @@ export function getUniversalFeeRules(
       gasPrice = 3200; // ETH price
     } else if (['USDCs'].includes(toAsset)) {
       gasAmount = 0.001;
-      gasToken = 'ckSOL';
-      networkName = 'SOL';
-      gasPrice = 240; // SOL price
     } else {
       gasAmount = 0.003;
       gasToken = 'ckETH';
@@ -151,7 +148,7 @@ export function getUniversalFeeRules(
   // ============================================
   // RULE 4: PURE DEX SWAPS
   // ============================================
-  // ckBTC → ckUSDC, ckETH → ckSOL (no L1 withdrawal)
+  // ckBTC → ckUSDC (no L1 withdrawal)
   return {
     shouldShowSmartSolutions: false, // DEX fees are automatic, no Smart Solutions needed
     dexFeeIncluded: true
@@ -166,14 +163,13 @@ function isDirectChainFusion(fromAsset: string, toAsset: string): boolean {
   const directPairs = [
     ['ckBTC', 'BTC'],
     ['ckETH', 'ETH'], 
-    ['ckSOL', 'SOL']
   ];
   return directPairs.some(([from, to]) => fromAsset === from && toAsset === to);
 }
 
 function isDexPlusChainFusion(fromAsset: string, toAsset: string): boolean {
-  const l1Assets = ['BTC', 'ETH', 'SOL'];
-  const ckTokens = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ckSOL', 'ICP'];
+  const l1Assets = ['BTC', 'ETH'];
+  const ckTokens = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'];
   
   return ckTokens.includes(fromAsset) && l1Assets.includes(toAsset) && 
          !isDirectChainFusion(fromAsset, toAsset) && 
@@ -182,7 +178,7 @@ function isDexPlusChainFusion(fromAsset: string, toAsset: string): boolean {
 
 function isDirectChainFusionDifferentGas(toAsset: string): boolean {
   // Direct Chain Fusion operations that require separate gas tokens
-  // USDC/USDT require ckETH, USDCs requires ckSOL
+  // USDC/USDT require ckETH
   return ['USDC', 'USDT', 'USDCs'].includes(toAsset);
 }
 
@@ -190,14 +186,11 @@ function getL1GasAmount(toAsset: string): number {
   // TODO: MAINNET INTEGRATION - Replace hardcoded values with RPC canister calls
   // - Bitcoin fees: Query Bitcoin RPC canister for current mempool fee rates
   // - Ethereum fees: Query Ethereum RPC canister for current gas prices (EIP-1559)
-  // - Solana fees: Query Solana RPC canister for current network fee structure
   // See DEVELOPMENT_NOTES.md for detailed implementation plan
   
   const gasAmounts: Record<string, number> = {
     'BTC': 0.0005,  // TODO: Replace with Bitcoin RPC canister call
     'ETH': 0.003,   // TODO: Replace with Ethereum RPC canister call  
-    'SOL': 0.001,   // TODO: Replace with Solana RPC canister call
-    'USDCs': 0.001  // TODO: Replace with Solana RPC canister call
   };
   return gasAmounts[toAsset] || 0;
 }
@@ -206,7 +199,6 @@ function getBridgeToken(toAsset: string): string {
   const bridges: Record<string, string> = {
     'BTC': 'ckBTC',
     'ETH': 'ckETH',
-    'SOL': 'ckSOL',
     'USDCs': 'ckUSDC'
   };
   return bridges[toAsset] || 'ckUSDC';
@@ -215,6 +207,5 @@ function getBridgeToken(toAsset: string): string {
 function getNetworkName(toAsset: string): string {
   if (['BTC'].includes(toAsset)) return 'Bitcoin';
   if (['ETH', 'USDC', 'USDT'].includes(toAsset)) return 'Ethereum';
-  if (['SOL', 'USDCs'].includes(toAsset)) return 'Solana';
   return 'Network';
 }

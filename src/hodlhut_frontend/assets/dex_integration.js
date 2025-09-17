@@ -55,7 +55,6 @@ const LIQUIDITY_PREFERENCES = {
     'ckBTC-ckUSDC': 'ICPSwap', // Higher liquidity needed for major pairs
     'ckETH-ckUSDC': 'ICPSwap',
     'ckBTC-ckETH': 'ICPSwap',
-    'ckSOL-ckUSDC': 'KongSwap', // Good for newer assets
     'ICP-ckUSDC': 'KongSwap',
     'ckUSDC-ckUSDT': 'KongSwap' // Stablecoin pairs work well on either
 };
@@ -298,8 +297,6 @@ function getAssetPrice(asset) {
         'USDC': 1.00,
         'ckUSDT': 1.00,
         'USDT': 1.00,
-        'ckSOL': 200,
-        'SOL': 200,
         'USDCs': 1.00,
         'ICP': 12.50
     };
@@ -327,10 +324,10 @@ export function getSupportedPairs(dexId) {
     const supportedPairs = {
         'ICPSwap': [
             'ckBTC-ckUSDC', 'ckETH-ckUSDC', 'ckBTC-ckETH',
-            'ICP-ckUSDC', 'ckSOL-ckUSDC', 'ckUSDC-ckUSDT'
+            'ICP-ckUSDC', 'ckUSDC-ckUSDT'
         ],
         'KongSwap': [
-            'ckBTC-ckUSDC', 'ckETH-ckUSDC', 'ckSOL-ckUSDC',
+            'ckBTC-ckUSDC', 'ckETH-ckUSDC',
             'ICP-ckUSDC', 'ckUSDC-ckUSDT'
         ]
     };
