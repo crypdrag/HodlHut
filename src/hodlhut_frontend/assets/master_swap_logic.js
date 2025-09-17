@@ -40,10 +40,6 @@ export function calculateSwapRoute(fromAsset, toAsset) {
             bridgeAsset = toAsset === 'ETH' ? 'ckETH' : 'ckUSDC';
             chainsInvolved.push('Ethereum');
         }
-        else if (['SOL', 'USDCs'].includes(toAsset)) {
-            bridgeAsset = toAsset === 'SOL' ? 'ckSOL' : 'ckUSDC';
-            chainsInvolved.push('Solana');
-        }
         // Build multi-step route: Asset → Bridge → L1
         const steps = fromAsset === bridgeAsset
             ? [fromAsset, toAsset]
@@ -76,7 +72,6 @@ export function needsDEXSelection(fromAsset, toAsset) {
         ['ckETH', 'ETH'], ['ETH', 'ckETH'],
         ['ckUSDC', 'USDC'], ['USDC', 'ckUSDC'],
         ['ckUSDT', 'USDT'], ['USDT', 'ckUSDT'],
-        ['ckSOL', 'SOL'], ['SOL', 'ckSOL'],
         ['ckUSDC', 'USDCs'], ['USDCs', 'ckUSDC']
     ];
     const isDirect = minterPairs.some(pair => (pair[0] === fromAsset && pair[1] === toAsset) ||
@@ -116,7 +111,6 @@ export function calculatePriceImpact(fromAsset, toAsset, amount) {
     const LIQUIDITY_POOLS = {
         'ckBTC-ckUSDC': { depth: 5000000, volume24h: 2500000 },
         'ckETH-ckUSDC': { depth: 8000000, volume24h: 4000000 },
-        'ckSOL-ckUSDC': { depth: 1500000, volume24h: 800000 },
         'ICP-ckUSDC': { depth: 3000000, volume24h: 1200000 },
         'ckBTC-ckETH': { depth: 3500000, volume24h: 1800000 },
         'ckETH-ckSOL': { depth: 2000000, volume24h: 900000 },

@@ -11,8 +11,6 @@ const ASSET_ICONS = {
     'USDC': './assets/images/ckUSDC.svg',
     'ckUSDT': './assets/images/ckUSDT.svg',
     'USDT': './assets/images/ckUSDT.svg',
-    'ckSOL': './assets/images/ckSOL.svg',
-    'SOL': './assets/images/SOL.svg',
     'USDCs': './assets/images/ckUSDC.svg',
     'ICP': './assets/images/ICP.svg'
 };
