@@ -413,11 +413,6 @@ Real production requires deep integration with ICP's Chain Fusion technology, th
 3. Transaction broadcast: EVM RPC Canister → eth_sendRawTransaction(signedTx)
 4. Confirmation monitoring: EVM RPC Canister → eth_getTransactionReceipt(txHash)
 
-// Standard Solana operation pattern
-1. Health check: SOL RPC Canister → sol_getHealth({network: 'Mainnet'})
-2. Balance queries: SOL RPC Canister → sol_getBalance({network: 'Mainnet', account: pubkey})
-3. Transaction broadcast: SOL RPC Canister → sol_sendTransaction(signedTx)
-4. Confirmation monitoring: SOL RPC Canister → sol_getTransaction(signature)
 
 // Standard DEX operation pattern (within MyHut Canister)
 1. Quote aggregation: MyHut → KongSwap canister + ICPSwap SwapCalculator
@@ -494,7 +489,7 @@ testBitcoinMultiCanisterCoordination() {
 
 **Data Consistency Requirements:**
 - Byzantine fault tolerance for bridge operations across multiple networks
-- Consensus validation for multi-provider RPC operations (EVM and Solana)
+- Consensus validation for multi-provider RPC operations (EVM)
 - State synchronization across distributed canister architecture
 - Rollback and recovery procedure validation for production deployment
 
@@ -774,7 +769,6 @@ Savings: 2.4% execution cost reduction via deeper ICP liquidity
 **Hardcoded Values (Demo Required):**
 - Bitcoin fees: `0.0005 BTC` in `universal_fee_rules.ts` - `getL1GasAmount()` function
 - Ethereum fees: `0.003 ETH` in `universal_fee_rules.ts` - `getL1GasAmount()` function  
-- Solana fees: `0.001 SOL` in `universal_fee_rules.ts` - `getL1GasAmount()` function
 - Purpose: Predictable demo behavior and testing consistency
 
 **Frontend Integration (Demo):**
@@ -821,7 +815,6 @@ Savings: 2.4% execution cost reduction via deeper ICP liquidity
 - 🟡 **MasterAgent**: Prototype coordination logic, needs multi-canister orchestration
 - 🟡 **BitcoinRPCAgent**: Single-canister prototype, needs 5-canister Bitcoin coordination  
 - 🟡 **EVMRPCAgent**: Basic RPC prototype, needs EVM RPC canister (7hfb6-caaaa-aaaar-qadga-cai) integration
-- 🟡 **SVMRPCAgent**: Standard prototype, needs NNS SOL RPC canister integration
 - 🟡 **DEXRoutingAgent**: External API prototype, needs MyHut canister-to-canister integration
 - 🟡 **HutFactoryAgent**: Basic factory prototype, needs user consent and upgrade mechanisms
 - 🟡 **TransactionMonitorAgent**: Simple monitoring prototype, needs cross-chain correlation
@@ -840,7 +833,7 @@ Current prototypes demonstrate basic concepts but require complete architectural
 **Agent System Critical Limitations:**
 - **Architecture Gap**: All agents designed for single-canister interactions, production requires multi-canister coordination
 - **Chain Fusion Missing**: No integration with ICP's threshold cryptography (ECDSA/Ed25519)
-- **Consensus Logic**: Missing multi-provider consensus validation for EVM and Solana operations  
+- **Consensus Logic**: Missing multi-provider consensus validation for EVM operations  
 - **State Management**: No distributed state coordination across canister boundaries
 - **Error Handling**: Prototype-level error handling, production requires comprehensive rollback mechanisms
 - **MyHut Integration**: DEX operations assume external API calls, need sovereign canister integration
@@ -848,7 +841,6 @@ Current prototypes demonstrate basic concepts but require complete architectural
 **Specific Agent Gaps:**
 - **BitcoinRPCAgent**: Assumes single Bitcoin canister, needs 5-canister coordination architecture
 - **EVMRPCAgent**: Missing EVM RPC canister integration and multi-provider consensus
-- **SVMRPCAgent**: Lacks Solana-specific fast-block consensus and IPv6 provider management
 - **DEXRoutingAgent**: External API focused, needs MyHut canister-to-canister quote aggregation
 - **MasterAgent**: No multi-canister workflow orchestration capabilities
 - **TransactionMonitorAgent**: Basic monitoring, lacks cross-chain correlation
@@ -971,27 +963,10 @@ dfx deploy evm_rpc --argument '(record {})'
 - Secondary: `src/hodlhut_frontend/src/components/Dashboard.tsx`
 - Agents: `src/agents/MasterAgent.js` through `src/agents/TransactionMonitorAgent.js`
 
-**Solana RPC Testing Examples**
-```bash
-# Test network health across providers
-dfx canister call sol_rpc sol_getHealth '(variant{Mainnet}, null)' --wallet $(dfx identity get-wallet)
-
-# Test devnet connectivity  
-dfx canister call sol_rpc sol_getHealth '(variant{Devnet}, null)' --wallet $(dfx identity get-wallet)
-
-# Test custom provider configuration
-dfx canister call sol_rpc sol_getHealth '(variant{Custom=vec{record{network="https://mainnet.helius-rpc.com/"}}}, null)' --wallet $(dfx identity get-wallet)
-
-# Test balance queries
-dfx canister call sol_rpc sol_getBalance '(variant{Mainnet}, null, "ACCOUNT_PUBKEY")' --with-cycles=1000000000 --wallet $(dfx identity get-wallet)
-
-# Test transaction status
-dfx canister call sol_rpc sol_getTransaction '(variant{Mainnet}, null, "TRANSACTION_SIGNATURE")' --with-cycles=1000000000 --wallet $(dfx identity get-wallet)
-```
 
 ### C. How to Run (Local)
 - Pre-reqs: dfx version, node/cargo versions, identities.
-- Bootstrap: deploy sequence (Bitcoin Canister → Minter → Ledger → Index → Archive; EVM/SOL → DEX adapters).
+- Bootstrap: deploy sequence (Bitcoin Canister → Minter → Ledger → Index → Archive; EVM → DEX adapters).
 - Single-command entrypoints: `npm run test:local:agents`, `npm run test:local:integration`.
 - Artifacts: see “Results storage” paths in each suite below.
 
@@ -1037,18 +1012,6 @@ dfx canister call sol_rpc sol_getTransaction '(variant{Mainnet}, null, "TRANSACT
 - Known Issues/Flakes: Divergent `latest` block across providers; throttle windows
 - Artifacts: `docs/test-results/<date>/agents/evm_rpc.junit.json`
 
-#### SVMRPCAgent
-- Purpose: Provider health (`getHealth`), recent block/slot consensus, SPL token read calls; note Ed25519 signing constraints/fallbacks.
-- Dependencies: SOL RPC canister, provider keys (if used), t-Ed25519 capability (if applicable).
-- Commands (Local): `npm run test:local:svm`
-- Commands (Mainnet/Boundary): `SVM_PROVIDERS=... SVM_QUORUM=n/m npm run test:mainnet:svm`
-- Assertions:
-  - Health returns OK across providers; fast-block consensus within N slots
-  - SPL token account reads match expected schema/balances
-  - (If signing covered) client-side signing fallback works when t-Ed25519 unavailable
-- Expected Output: Provider consensus report + slot offsets
-- Known Issues/Flakes: Slot drift; RPC method availability differences
-- Artifacts: `docs/test-results/<date>/agents/svm_rpc.junit.json`
 
 #### DEXRoutingAgent
 - **Purpose:** ICPSwap & KongSwap quotes, pool discovery, and **route optimization with direct vs ICP-bridge routing** (optional extra hubs off by default). LP management smoke tests.
@@ -1082,8 +1045,8 @@ dfx canister call sol_rpc sol_getTransaction '(variant{Mainnet}, null, "TRANSACT
 - Artifacts: `docs/test-results/<date>/agents/hutfactory.junit.json`
 
 #### TransactionMonitorAgent
-- Purpose: Correlate cross-chain events (Bitcoin/EVM/Solana) and track multi-canister operation lifecycles end-to-end.
-- Dependencies: Bitcoin Canister, ckBTC Minter & Ledger, EVM RPC canister, SOL RPC canister, event indexers.
+- Purpose: Correlate cross-chain events (Bitcoin/EVM) and track multi-canister operation lifecycles end-to-end.
+- Dependencies: Bitcoin Canister, ckBTC Minter & Ledger, EVM RPC canister, event indexers.
 - Commands (Local): `npm run test:local:txmon`
 - Commands (Mainnet/Boundary): `TXMON_PROVIDERS=... npm run test:mainnet:txmon`
 - Assertions:
@@ -1162,9 +1125,9 @@ dfx canister call sol_rpc sol_getTransaction '(variant{Mainnet}, null, "TRANSACT
 
 #### F.3 Multi-Chain Readiness (Chain-Key / Chain Fusion Validation)
 **What to validate**
-- Threshold signature paths: **ECDSA (Bitcoin)**, **Ed25519 (Solana)** (note fallbacks where threshold isn’t available).
+- Threshold signature paths: **ECDSA (Bitcoin)** (note fallbacks where threshold isn't available).
 - Cross-chain transaction **correlation & monitoring** across agents.
-- **Consensus checks** under load (provider quorum for EVM/SVM).
+- **Consensus checks** under load (provider quorum for EVM).
 - **Rollback & recovery** behavior on partial failure.
 
 **Runner (skeleton)**
@@ -1197,13 +1160,13 @@ dfx canister call sol_rpc sol_getTransaction '(variant{Mainnet}, null, "TRANSACT
 
 **Examples**
 ```bash
-# Evaluate candidates for ckSOL → ckBTC (typical high-slippage case)
+# Evaluate candidates for ckETH → ckBTC (typical high-slippage case)
 dfx canister call my_hut_canister optimize_trade_route \
-  '(record { from_token="ckSOL"; to_token="ckBTC"; amount=5000000 })'
+  '(record { from_token="ckETH"; to_token="ckBTC"; amount=5000000 })'
 
 # Execute chosen route with slippage guard (example: ICP-bridge)
 dfx canister call my_hut_canister execute_swap \
-  '(record { route=vec { "ckSOL","ICP","ckBTC" }; amount=5000000; max_slippage_bps=50 })'
+  '(record { route=vec { "ckETH","ICP","ckBTC" }; amount=5000000; max_slippage_bps=50 })'
 
 ```
 
@@ -1316,12 +1279,6 @@ dfx canister call evm_rpc getProviders
 - UTXO validation and confirmation tracking
 - Threshold ECDSA operation success rates
 
-**Solana Network Monitoring:**
-- SOL RPC canister health and provider availability tracking
-- Multi-provider consensus success/failure rates across Helius, Alchemy, Ankr, dRPC
-- Transaction broadcast success and confirmation times on fast network
-- Ed25519 signature validation success rates and threshold cryptography operations
-- SPL token interaction success rates and Associated Token Account creation
 
 **DEX Protocol Monitoring:**
 - Quote aggregation accuracy and response times across KongSwap and ICPSwap
@@ -1421,12 +1378,6 @@ dfx canister call evm_rpc getProviders
 - Methods: `eth_feeHistory()`, `eth_getLogs()`, `eth_getBlockByNumber()`, `eth_sendRawTransaction()`
 - Integration: ic-alloy Rust crate for seamless workflow
 
-**Solana Mainnet Canisters:**
-- SOL RPC Canister: NNS-controlled service canister for Solana blockchain interaction
-- Supported Networks: Solana mainnet, Devnet, custom provider configurations  
-- Methods: `sol_getHealth()`, `sol_getBalance()`, `sol_getTransaction()`, `sol_sendTransaction()`
-- Integration: Direct canister-to-canister calls, no API keys required
-- Providers: Helius, Alchemy, Ankr, dRPC, PublicNode (IPv6 required)
 
 **DEX Protocol Canisters:**
 - KongSwap Main: `2ipq2-uqaaa-aaaar-qailq-cai` (single canister architecture)
@@ -1484,12 +1435,10 @@ dfx canister call evm_rpc getProviders
 - Dashboard: `src/hodlhut_frontend/src/components/Dashboard.tsx`
 - Agent files: `src/agents/[AgentName].js`
 - EVM RPC integration: via dfx deps or custom Wasm deployment
-- SOL RPC integration: NNS-controlled service canister, direct calls
 - DEX integration: Direct canister-to-canister calls from MyHut canisters
 - KongSwap documentation: https://kongswap.io/kb/documentation/kongswap-api-documentation
 - ICPSwap documentation: https://github.com/ICPSwap-Labs/docs
 - ic-alloy documentation: https://ic-alloy.dev/getting-started.html
-- SOL RPC canister repository: https://github.com/dfinity/sol-rpc-canister
 
 ### API Reference and Specifications
 **Standard Integration Patterns:**
