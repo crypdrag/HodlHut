@@ -1,6 +1,7 @@
 import React from 'react';
 import KongSwapIcon from '../../assets/images/KongSwap.svg';
 import ICPSwapIcon from '../../assets/images/ICPSwap.svg';
+import ICDEXIcon from '../../assets/images/ICDEX.svg';
 
 interface DEXIconProps {
   dex: string;
@@ -11,7 +12,8 @@ interface DEXIconProps {
 
 const dexIconMap: Record<string, string> = {
   'KongSwap': KongSwapIcon,
-  'ICPSwap': ICPSwapIcon
+  'ICPSwap': ICPSwapIcon,
+  'ICDEX': ICDEXIcon
 };
 
 const DEXIcon: React.FC<DEXIconProps> = ({
@@ -53,7 +55,7 @@ const DEXIcon: React.FC<DEXIconProps> = ({
       style={{
         width: size,
         height: size,
-        borderRadius: '8px',
+        borderRadius: '50%',
         ...style
       }}
     />

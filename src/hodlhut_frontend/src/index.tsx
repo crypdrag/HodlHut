@@ -5,6 +5,9 @@ import './styles/tailwind.css';
 import App from './App';
 // import './styles/nuclear-fix.css';
 
+// Initialize DEX agents for testing
+import './agents/AgentInitializer';
+
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );

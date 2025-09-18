@@ -1,0 +1,208 @@
+// DEX Routing Agent Implementation
+// Implements scoring logic and quote aggregation based on your specifications
+
+import { DEXQuote, RouteInput, ScoringWeights, DEXAdapter, DEXRoutingAgent as IDEXRoutingAgent } from '../types/dex';
+
+export class DEXRoutingAgent implements IDEXRoutingAgent {
+  private adapters: Map<string, DEXAdapter> = new Map();
+  private scoringWeights: ScoringWeights = {
+    slippage: 0.40,        // 40% weight - direct impact on trade value
+    fee: 0.30,             // 30% weight - AMM fee or taker fee
+    speed: 0.15,           // 15% weight - swap execution latency
+    liquidityDepth: 0.10,  // 10% weight - pool depth or book size
+    availability: 0.05     // 5% weight - error/timeout history
+  };
+
+  constructor() {
+    // Adapters will be registered by individual agent stubs
+  }
+
+  // Register a DEX adapter
+  registerAdapter(adapter: DEXAdapter): void {
+    this.adapters.set(adapter.getDEXName(), adapter);
+  }
+
+  // Get available DEX names
+  getAvailableDEXs(): string[] {
+    return Array.from(this.adapters.keys());
+  }
+
+  // Update scoring weights configuration
+  updateScoringWeights(weights: Partial<ScoringWeights>): void {
+    this.scoringWeights = { ...this.scoringWeights, ...weights };
+  }
+
+  // Main routing method - returns sorted quotes based on your scoring algorithm
+  async getBestRoutes(input: RouteInput): Promise<DEXQuote[]> {
+    const quotes: DEXQuote[] = [];
+
+    // STEP 1: Pull quotes in parallel from active DEXs
+    const quotePromises = Array.from(this.adapters.entries()).map(async ([dexName, adapter]) => {
+      try {
+        // Apply threshold logic - ICDEX only for trades >$500 equivalent
+        const shouldIncludeICDEX = input.amount > 500_000_000; // 500M in token decimals
+        if (dexName === 'ICDEX' && !shouldIncludeICDEX) {
+          return null;
+        }
+
+        const isAvailable = await adapter.isAvailable();
+        if (!isAvailable) {
+          return this.createErrorQuote(dexName, 'DEX unavailable');
+        }
+
+        return await adapter.getQuote(input.fromToken, input.toToken, input.amount);
+      } catch (error) {
+        return this.createErrorQuote(dexName, `Quote failed: ${error}`);
+      }
+    });
+
+    const results = await Promise.all(quotePromises);
+    quotes.push(...results.filter(quote => quote !== null) as DEXQuote[]);
+
+    // STEP 2: Attach scoring metadata to each quote
+    for (const quote of quotes) {
+      if (!quote.quoteError) {
+        quote.score = this.scoreQuote(quote, input);
+        this.assignBadge(quote, quotes);
+      } else {
+        quote.score = 0; // Error quotes get lowest score
+      }
+    }
+
+    // STEP 3: Sort by score descending (highest score first)
+    quotes.sort((a, b) => b.score - a.score);
+
+    // STEP 4: Apply dynamic weight adjustments based on user preferences
+    this.adjustScoresForPreferences(quotes, input);
+
+    return quotes;
+  }
+
+  // Get quote from specific DEX
+  async getQuoteFromDEX(dexName: string, fromToken: string, toToken: string, amount: number): Promise<DEXQuote> {
+    const adapter = this.adapters.get(dexName);
+    if (!adapter) {
+      return this.createErrorQuote(dexName, 'DEX adapter not found');
+    }
+
+    try {
+      return await adapter.getQuote(fromToken, toToken, amount);
+    } catch (error) {
+      return this.createErrorQuote(dexName, `Quote failed: ${error}`);
+    }
+  }
+
+  // Scoring function based on your specification
+  private scoreQuote(quote: DEXQuote, input: RouteInput): number {
+    // Normalize metrics to 0-100 scale for scoring
+    const slippageScore = Math.max(0, 100 - (quote.slippage * 100)); // Lower slippage = higher score
+    const feeScore = Math.max(0, 100 - (quote.fee * 100)); // Lower fees = higher score
+
+    // Speed score based on estimated execution time
+    const speedScore = this.getSpeedScore(quote.estimatedSpeed);
+
+    // Liquidity score based on USD depth
+    const liquidityScore = Math.min(100, (quote.liquidityUsd / 10000)); // Scale to 100 max
+
+    // Availability score (100 if no errors, 0 if errors)
+    const availabilityScore = quote.quoteError ? 0 : 100;
+
+    // Calculate weighted score
+    const totalScore =
+      (slippageScore * this.scoringWeights.slippage) +
+      (feeScore * this.scoringWeights.fee) +
+      (speedScore * this.scoringWeights.speed) +
+      (liquidityScore * this.scoringWeights.liquidityDepth) +
+      (availabilityScore * this.scoringWeights.availability);
+
+    return Math.round(totalScore * 100) / 100; // Round to 2 decimal places
+  }
+
+  // Convert speed strings to numeric scores
+  private getSpeedScore(estimatedSpeed: string): number {
+    if (estimatedSpeed.includes('s')) {
+      const seconds = parseFloat(estimatedSpeed.replace('s', ''));
+      return Math.max(0, 100 - (seconds * 10)); // Lower seconds = higher score
+    }
+
+    // Handle special cases
+    if (estimatedSpeed.includes('orderbook')) return 85;
+    if (estimatedSpeed.includes('instant')) return 100;
+    if (estimatedSpeed.includes('fast')) return 90;
+
+    return 75; // Default moderate score
+  }
+
+  // Assign badges based on relative performance
+  private assignBadge(quote: DEXQuote, allQuotes: DEXQuote[]): void {
+    const validQuotes = allQuotes.filter(q => !q.quoteError);
+
+    if (validQuotes.length === 0) return;
+
+    // Find best in each category
+    const lowestSlippage = Math.min(...validQuotes.map(q => q.slippage));
+    const lowestFee = Math.min(...validQuotes.map(q => q.fee));
+    const highestLiquidity = Math.max(...validQuotes.map(q => q.liquidityUsd));
+
+    // Assign badges
+    if (quote.slippage === lowestSlippage && quote.fee === lowestFee) {
+      quote.badge = 'RECOMMENDED';
+    } else if (quote.fee === lowestFee) {
+      quote.badge = 'CHEAPEST';
+    } else if (quote.slippage === lowestSlippage) {
+      quote.badge = 'LOWEST_COST';
+    } else if (quote.liquidityUsd === highestLiquidity) {
+      quote.badge = 'ADVANCED';
+    } else if (quote.estimatedSpeed.includes('1.') || quote.estimatedSpeed.includes('0.')) {
+      quote.badge = 'FASTEST';
+    }
+  }
+
+  // Adjust scores based on user preferences and urgency
+  private adjustScoresForPreferences(quotes: DEXQuote[], input: RouteInput): void {
+    if (input.urgency === 'high') {
+      // Boost speed weight for urgent trades
+      quotes.forEach(quote => {
+        const speedBoost = this.getSpeedScore(quote.estimatedSpeed) * 0.3;
+        quote.score += speedBoost;
+      });
+    }
+
+    if (input.userPreference === 'lowest_cost') {
+      // Boost cost-related scores
+      quotes.forEach(quote => {
+        const costBoost = (100 - quote.fee * 100) * 0.2;
+        quote.score += costBoost;
+      });
+    }
+
+    if (input.userPreference === 'most_liquid') {
+      // Boost liquidity scores
+      quotes.forEach(quote => {
+        const liquidityBoost = Math.min(100, quote.liquidityUsd / 10000) * 0.2;
+        quote.score += liquidityBoost;
+      });
+    }
+
+    // Re-sort after adjustments
+    quotes.sort((a, b) => b.score - a.score);
+  }
+
+  // Create error quote for failed DEX calls
+  private createErrorQuote(dexName: string, error: string): DEXQuote {
+    return {
+      dexName,
+      path: [],
+      slippage: 999,
+      fee: 999,
+      estimatedSpeed: 'Error',
+      liquidityUsd: 0,
+      score: 0,
+      reason: `${dexName} unavailable`,
+      quoteError: error
+    };
+  }
+}
+
+// Singleton instance for global use
+export const dexRoutingAgent = new DEXRoutingAgent();

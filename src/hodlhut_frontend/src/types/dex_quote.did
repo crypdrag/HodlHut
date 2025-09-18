@@ -1,0 +1,83 @@
+// DEX Quote Candid Interface
+// Specification for agent-to-agent and agent-to-frontend communication
+
+type DEXQuote = record {
+  // DEX Identity
+  dex_name: text;
+  path: vec text;
+
+  // Quote Metrics
+  slippage: float64;
+  fee: float64;
+  estimated_speed: text;
+  liquidity_usd: float64;
+
+  // Scoring and UX
+  score: float64;
+  badge: opt text;
+  reason: text;
+
+  // Optional fallback
+  quote_error: opt text;
+};
+
+type RouteInput = record {
+  from_token: text;
+  to_token: text;
+  amount: nat;
+  urgency: opt text;
+  user_preference: opt text;
+};
+
+type ScoringWeights = record {
+  slippage: float64;
+  fee: float64;
+  speed: float64;
+  liquidity_depth: float64;
+  availability: float64;
+};
+
+// DEX Adapter Service Interface
+service DEXAdapter : {
+  // Core quote method - called by DEXRoutingAgent
+  get_quote : (text, text, nat) -> (DEXQuote);
+
+  // Health check method
+  is_available : () -> (bool);
+
+  // DEX identification
+  get_dex_name : () -> (text);
+}
+
+// DEX Routing Agent Service Interface
+service DEXRoutingAgent : {
+  // Main routing method - returns sorted quotes
+  get_best_routes : (RouteInput) -> (vec DEXQuote);
+
+  // Configuration methods
+  get_available_dexs : () -> (vec text);
+  update_scoring_weights : (ScoringWeights) -> ();
+
+  // Utility methods
+  get_quote_from_dex : (text, text, text, nat) -> (DEXQuote);
+}
+
+// MyHut Canister Interface (for trade execution)
+service MyHut : {
+  // Trade execution - receives DEXQuote from frontend
+  execute_swap : (DEXQuote, nat) -> (variant { Ok: text; Err: text });
+
+  // Balance queries
+  get_balance : (text) -> (nat);
+  get_all_balances : () -> (vec record { text; nat });
+
+  // Transaction history
+  get_transaction_history : (opt nat) -> (vec record {
+    timestamp: nat64;
+    from_token: text;
+    to_token: text;
+    amount: nat;
+    dex_used: text;
+    status: text
+  });
+}

@@ -41,6 +41,18 @@ const DEX_OPTIONS_ENHANCED = {
     stats: DEX_OPTIONS.ICPSwap.stats,
     advantages: DEX_OPTIONS.ICPSwap.advantages,
     tradeoffs: ['Slightly slower', 'Higher fees']
+  },
+  ICDEX: {
+    name: 'ICDEX',
+    badge: 'orderbook',
+    stats: {
+      'Order Type': 'Limit/Market',
+      'Trading Fee': '0.1-0.2%',
+      'Liquidity': 'Deep pools',
+      'Slippage': 'Minimal'
+    },
+    advantages: ['Professional orderbook', 'Large trade support', 'Price discovery', 'Multiple order types'],
+    tradeoffs: ['Learning curve', 'Orderbook complexity', 'Market/limit orders required']
   }
 };
 
