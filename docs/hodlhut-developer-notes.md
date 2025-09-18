@@ -108,18 +108,17 @@ HodlHut is necessarily ambitious to explore the development of AI Agents within 
 - Functional React-based dashboard with asset selection interfaces
 - Working FROM/TO asset dropdowns supporting BTC, ETH asset selection
 - DEX selection interface (`setSelectedDEX('KongSwap')` / `setSelectedDEX('ICPSwap')`)
-- Asset deposit triggers (`startDeposit('BTC')`, `startDeposit('ETH')`, `startDeposit('SOL')`)
+- Asset deposit triggers (`startDeposit('BTC')`, `startDeposit('ETH')`)
 - Basic navigation and user interface components
 
 **Demo Fee Structure:**
 - Predictable hardcoded fees for demonstration purposes:
-  - Bitcoin: `0.0005 BTC` 
+  - Bitcoin: `0.0005 BTC`
   - Ethereum: `0.003 ETH`
-  - Solana: `0.001 SOL`
 - Purpose: Consistent demo behavior for user testing and development
 
 **Basic Agent Framework:**
-- 7 prototype agents demonstrating proof-of-concept functionality
+- 6 prototype agents demonstrating proof-of-concept functionality
 - Test suite validating basic agent communication (36 individual + 6 integration tests)
 - Agent coordination patterns documented and partially implemented
 
@@ -135,7 +134,7 @@ HodlHut is necessarily ambitious to explore the development of AI Agents within 
 
 **Multi-Chain Integration:**
 - Replace hardcoded fees with real-time blockchain data via Chain Fusion
-- Implement actual Bitcoin (5-canister), Ethereum (EVM RPC), and Solana (SOL RPC) integration
+- Implement actual Bitcoin (5-canister) and Ethereum (EVM RPC) integration
 - Build production wallet connectivity and transaction signing workflows
 
 **MyHut Sovereign Canister System:**
@@ -213,7 +212,6 @@ Each of the 6 agents operates in a security-hardened environment with agent isol
 - **Status:** Threshold Ed25519 signing on IC is limited in surface area today; verify availability per target network components before relying on it end‑to‑end.
 - **Plan:** Where threshold signing is not yet supported, use canister‑held keys or client‑side signing with explicit risk notes.
 - **Fallback matrix:** _Operation ➝ Signer ➝ Current status ➝ Fallback_
-- **Solana transaction signing** ➝ _Canister or client_ ➝ _Prototype_ ➝ _Client‑side signing until t‑Ed25519 available_.
 - **Inter‑agent attestations** ➝ _Canister_ ➝ _Available_ ➝ _n/a_.
 - **Administrative approvals** ➝ _DAO multi‑sig_ ➝ _Available_ ➝ _Emergency guardian_.
 
@@ -371,12 +369,12 @@ Real production requires deep integration with ICP's Chain Fusion technology, th
 **Phase 1: Multi-Canister Architecture**
 - **BitcoinRPCAgent**: Redesign for 5-canister coordination (Bitcoin Canister → ckBTC Minter → ckBTC Ledger → Index → Archive)
 - **EVMRPCAgent**: Integrate with EVM RPC canister multi-provider consensus validation
-- **SVMRPCAgent**: Implement NNS SOL RPC canister integration with fast-block consensus
+- **SVMRPCAgent**: Removed from system (Solana integration no longer required due to DFINITY roadmap)
 - **DEXRoutingAgent**: Rebuild for MyHut canister-to-canister quote aggregation (KongSwap + ICPSwap)
 
 **Phase 2: Chain Fusion Integration**
-- **Threshold Cryptography**: Integrate ECDSA (Bitcoin) and Ed25519 (Solana) signature coordination
-- **Consensus Mechanisms**: Implement multi-provider validation for EVM and Solana operations
+- **Threshold Cryptography**: Integrate ECDSA (Bitcoin) signature coordination
+- **Consensus Mechanisms**: Implement multi-provider validation for EVM operations
 - **State Coordination**: Develop distributed state management across canister boundaries
 - **Error Handling**: Build comprehensive rollback and recovery mechanisms
 
@@ -534,21 +532,6 @@ testBitcoinMultiCanisterCoordination() {
 5. System: Monitor confirmation status via multi-provider consensus
 6. User: Receive ETH at specified address after network confirmation
 
-**Solana Deposit Journey:**
-1. Frontend: `startDeposit('SOL')` triggered from asset card
-2. Backend: Solana wallet connection via Phantom/Solflare/Backpack
-3. User: External wallet transaction signing with SPL token approval
-4. System: SOL RPC canister monitors transaction via `sol_getTransaction()`
-5. System: Fast confirmation tracking via multi-provider consensus
-6. User: SPL assets available in sovereign MyHut canister
-
-**Solana Withdrawal Journey:**
-1. User: Select 'SOL' in TO dropdown → `setToAsset('SOL')`
-2. System: Health check via SOL RPC `sol_getHealth()` for optimal routing
-3. User: Transaction signing via connected Solana wallet with Ed25519
-4. System: Broadcast transaction via `sol_sendTransaction()` through SOL RPC
-5. System: Monitor confirmation status via multi-provider aggregation
-6. User: Receive SOL/SPL tokens at specified address after network confirmation
 
 **DEX Trading Journey (Within MyHut Canister):**
 1. User: Select FROM and TO assets in MyHut interface → triggers quote aggregation
@@ -582,18 +565,10 @@ testBitcoinMultiCanisterCoordination() {
 - Transaction validation: Gas estimation via EVM RPC `eth_feeHistory()`
 - Nonce management: Automatic via `eth_getTransactionCount()` queries
 
-**Solana Wallet Integration:**
-- Browser wallets: Phantom, Solflare, Backpack, Glow
-- SPL token transaction support (USDC, USDT, other SPL tokens)
-- Associated Token Account creation and management
-- High-speed transaction processing capabilities
-- Connection protocols: Solana Wallet Adapter standard
-- Transaction validation: Fee estimation via SOL RPC health monitoring
-- Ed25519 signature verification for transaction authenticity
 
 **ICP Wallet Integration:**
 - Plug wallet and ICP-compatible wallets
-- ICRC-1 token standard integration for ckBTC/ckETH/ckUSDC/ckUSDT/ckSOL
+- ICRC-1 token standard integration for ckBTC/ckETH/ckUSDC/ckUSDT
 - No external RPC canisters needed (assets already on IC)
 
 ### Cross-Chain Transaction Sequences
@@ -636,37 +611,6 @@ switch (result) {
 }
 ```
 
-**Solana Error Scenarios:**
-- Fast block times (400ms): Limited support for `getLatestBlockhash` due to consensus issues
-- IPv6 requirements: Some Solana Foundation public RPC endpoints not supported on mainnet
-- Provider aggregation failures: Retry with different provider subset
-- Ed25519 signature validation: Transaction replay prevention and authenticity verification
-- SPL token account creation: Associated Token Account setup and validation
-
-**Solana RPC Error Handling:**
-```javascript
-// Multi-provider consensus handling for Solana
-switch (result) {
-  case (#Consistent(#Ok(data))) {
-    // All Solana providers agree - process data
-    processSolanaResult(data)
-  };
-  case (#Consistent(#Err(error))) {
-    // All providers report same error - handle gracefully
-    handleSolanaError(error)
-  };
-  case (#Inconsistent(results))) {
-    // Providers disagree due to fast block times - requires retry strategy
-    logSolanaInconsistency(results);
-    retryWithConsensusStrategy(results)
-  };
-}
-```
-
-**Solana Consensus Strategy:**
-- 3-out-of-5 validation: Query 5 providers, succeed if ≥3 agree
-- Fast block adaptation: Special handling for rapidly changing responses
-- Temporal canonicalization: Response transformation for consensus alignment
 
 ### Gas Fee Optimization Strategies
 **Network-Specific Optimization:**
@@ -685,11 +629,6 @@ switch (result) {
 - **Separate Gas Management**: ERC-20 deposits require separate ckETH balance for gas payment
 - **Multi-Provider Consensus**: Gas estimation via EVM RPC canister with fallback providers
 
-**Solana Fee Optimization:**
-- **Predictable Low Fees**: ~$0.0001 vs $3+ for Ethereum transactions
-- **Fast Confirmation**: 0.4 second average slot time vs 12+ seconds for Ethereum
-- **Stable Fee Structure**: More predictable costs than Bitcoin/Ethereum volatility
-- **SPL Token Efficiency**: Associated Token Account creation optimized for multi-token operations
 
 **Agent-Level Optimization:**
 **Dynamic Fee Replacement Architecture:**
@@ -697,7 +636,6 @@ switch (result) {
 // Replace all hardcoded fees with intelligent estimation
 BitcoinRPCAgent: 0.0005 BTC → mempool.getCurrentFees()
 EVMRPCAgent: 0.003 ETH → eth_feeHistory() + EIP-1559 calculation  
-SVMRPCAgent: 0.001 SOL → sol_getHealth() + network analysis
 ```
 
 **Fallback Architecture for Reliability:**
@@ -765,26 +703,6 @@ Savings: 2.4% execution cost reduction via deeper ICP liquidity
 - Rate limiting: Provider-specific with automatic failover
 - Consensus validation: Consistent results across 3+ providers
 
-**Solana Network Integration:**
-- SOL RPC Canister: NNS-controlled service canister for Solana blockchain interaction
-- Chain Fusion via ICP HTTPS outcalls to multiple Solana RPC providers
-- Supported networks: Solana mainnet, Devnet, custom provider configurations
-- Dynamic fee estimation replacing hardcoded `0.001 SOL`
-- Threshold Ed25519 signatures for secure transaction signing
-
-**Solana RPC Methods:**
-- `sol_getHealth()`: Network health and provider status validation
-- `sol_getBalance()`: SPL token and SOL balance queries
-- `sol_getTransaction()`: Transaction confirmation and receipt validation
-- `sol_getLatestBlockhash()`: Limited support due to fast block times (400ms)
-- `sol_getAccountInfo()`: Account state and ownership verification
-- `sol_sendTransaction()`: Signed transaction broadcast to network
-
-**Solana RPC Providers:**
-- Primary: Helius, Alchemy, Ankr, dRPC (multi-provider consensus)
-- Fallback: PublicNode and custom provider endpoints
-- Aggregation strategies: 3-out-of-5 consensus validation
-- API keys optional but recommended for authenticated provider tiers
 - IPv6 requirement: All providers must support IPv6 HTTPS
 
 ### DEX Protocol Connections
@@ -825,15 +743,10 @@ Savings: 2.4% execution cost reduction via deeper ICP liquidity
 - EIP-1559 transaction signing capabilities
 - Multi-token support (ETH, USDC, USDT)
 
-**Solana Wallet Integration:**
-- Browser wallets: Phantom, Solflare, Backpack, Glow
-- SPL token support for USDC transactions
-- Associated Token Account creation
-- High-throughput transaction capabilities
 
 **ICP Wallet Integration:**
 - Plug wallet and ICP-compatible wallets
-- ICRC-1 token standard integration for ckBTC/ckETH/ckUSDC/ckUSDT/ckSOL
+- ICRC-1 token standard integration for ckBTC/ckETH/ckUSDC/ckUSDT
 - No external RPC canisters needed (assets already on IC)
 
 ### RPC Provider Configuration
@@ -887,13 +800,6 @@ Savings: 2.4% execution cost reduction via deeper ICP liquidity
 - 🚧 External wallet integration (MetaMask, WalletConnect)
 - 🚧 Production dynamic fee estimation via `eth_feeHistory()`
 
-**Solana Integration Status:**
-- ✅ Demo hardcoded fee structure
-- ✅ Frontend trigger mapping  
-- 🚧 SOL RPC Agent development (NNS-controlled service canister integration required)
-- 🚧 Multi-provider consensus coordination
-- 🚧 External wallet integration (Phantom, Solflare, Backpack)
-- 🚧 Production dynamic fee estimation via SOL RPC health monitoring
 
 **DEX Integration Status:**
 - ✅ Demo routing logic and slippage optimization (FROM/TO asset selection)
@@ -1046,20 +952,6 @@ Current agent system represents early prototyping work, not production-ready Cha
 }
 ```
 
-**Solana RPC dfx Integration**
-```json
-// dfx.json configuration for SOL RPC canister
-{
-  "canisters": {
-    "sol_rpc": {
-      "type": "custom",
-      "candid": "https://github.com/dfinity/sol-rpc-canister/releases/latest/download/sol_rpc_canister.did",
-      "wasm": "https://github.com/dfinity/sol-rpc-canister/releases/latest/download/sol_rpc_canister.wasm.gz",
-      "init_arg": "(record {})"
-    }
-  }
-}
-```
 
 **EVM Development Commands**
 ```bash
@@ -1073,18 +965,6 @@ dfx deps deploy
 dfx deploy evm_rpc --argument '(record {})'
 ```
 
-**Solana Development Commands**
-```bash
-# Local SOL RPC setup  
-dfx start --background
-dfx deploy sol_rpc --argument '(record {})'
-
-# Mainnet deployment (requires API key management)
-dfx deploy sol_rpc --network ic --argument '(record {})'
-
-# Update API keys for authenticated providers
-dfx canister call sol_rpc updateApiKeys '(vec { record { 0 : nat64; opt "YOUR-HELIUS-API-KEY" } })'
-```
 
 **File Structure**
 - Primary: `src/hodlhut_frontend/assets/universal_fee_rules.ts`
