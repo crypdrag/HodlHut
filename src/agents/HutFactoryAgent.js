@@ -96,11 +96,10 @@ class HutFactoryAgent {
           timeRemainingFormatted: '30 minutes',
           activationInstructions: {
             requirement: 'Make any deposit to activate your sovereign hut',
-            supportedAssets: ['BTC', 'ETH', 'USDC', 'USDT', 'SOL', 'ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ckSOL', 'ICP'],
+            supportedAssets: ['BTC', 'ETH', 'USDC', 'USDT', 'ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'],
             minimumAmounts: {
               'BTC': '0.0001 BTC',
               'ETH': '0.001 ETH',
-              'SOL': '0.01 SOL',
               'USDC': '1 USDC',
               'USDT': '1 USDT',
               'ICP': '0.1 ICP'
@@ -379,13 +378,11 @@ class HutFactoryAgent {
     const minimumAmounts = {
       'BTC': 0.0001,
       'ETH': 0.001,
-      'SOL': 0.01,
       'USDC': 1.0,
       'USDT': 1.0,
       'ICP': 0.1,
       'ckBTC': 0.0001,
       'ckETH': 0.001,
-      'ckSOL': 0.01,
       'ckUSDC': 1.0,
       'ckUSDT': 1.0
     };
@@ -535,7 +532,7 @@ class HutFactoryAgent {
       configuration: {
         activationTimeoutMs: this.activationTimeoutMs,
         cleanupInterval: this.cleanupInterval,
-        supportedAssets: ['BTC', 'ETH', 'SOL', 'USDC', 'USDT', 'ICP', 'ckBTC', 'ckETH', 'ckSOL', 'ckUSDC', 'ckUSDT']
+        supportedAssets: ['BTC', 'ETH', 'USDC', 'USDT', 'ICP', 'ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT']
       },
       notes: [
         'Manages sovereign canister creation and lifecycle',

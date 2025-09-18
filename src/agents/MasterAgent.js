@@ -10,7 +10,6 @@
 // MasterAgent serves as the orchestration hub for 7 specialized agents:
 // 1. BitcoinRPCAgent   - Bitcoin network intelligence & fee optimization
 // 2. EVMRPCAgent       - Ethereum EIP-1559 gas analysis & ERC-20 handling  
-// 3. SVMRPCAgent       - Solana network analysis & SPL token support
 // 4. DEXRoutingAgent   - Intelligent ICP hub routing & slippage optimization
 // 5. HutFactoryAgent   - Sovereign canister lifecycle management
 // 6. TransactionMonitorAgent - Multi-chain operation tracking
@@ -26,7 +25,6 @@
 
 const { BitcoinRPCAgent } = require('./BitcoinRPCAgent');
 const { EVMRPCAgent } = require('./EVMRPCAgent');
-const { SVMRPCAgent } = require('./SVMRPCAgent');
 const { DEXRoutingAgent } = require('./DEXRoutingAgent');
 const { TransactionMonitorAgent } = require('./TransactionMonitorAgent');
 const { HutFactoryAgent } = require('./HutFactoryAgent');
@@ -39,7 +37,6 @@ class MasterAgent {
     // Initialize all agents including HutFactoryAgent
     this.bitcoinAgent = new BitcoinRPCAgent(environment);
     this.evmAgent = new EVMRPCAgent(environment);
-    this.solanaAgent = new SVMRPCAgent(environment);
     this.dexAgent = new DEXRoutingAgent(environment);
     this.transactionMonitor = new TransactionMonitorAgent(environment);
     this.hutFactoryAgent = new HutFactoryAgent(environment);
@@ -239,10 +236,8 @@ class MasterAgent {
         'ETH': this.evmAgent,
         'USDC': this.evmAgent,
         'USDT': this.evmAgent,
-        'SOL': this.solanaAgent,
         'ckBTC': this.bitcoinAgent,
         'ckETH': this.evmAgent,
-        'ckSOL': this.solanaAgent,
         'ckUSDC': this.evmAgent,
         'ckUSDT': this.evmAgent,
         'ICP': this.dexAgent
@@ -436,7 +431,6 @@ class MasterAgent {
   const agents = [
     { name: 'Bitcoin', agent: this.bitcoinAgent },
     { name: 'EVM', agent: this.evmAgent },
-    { name: 'Solana', agent: this.solanaAgent },
     { name: 'DEX', agent: this.dexAgent },
     { name: 'TransactionMonitor', agent: this.transactionMonitor },
     { name: 'HutFactory', agent: this.hutFactoryAgent }
@@ -514,7 +508,6 @@ class MasterAgent {
     const shutdownPromises = [
       this.bitcoinAgent.shutdown(),
       this.evmAgent.shutdown(),
-      this.solanaAgent.shutdown(),
       this.dexAgent.shutdown(),
       this.transactionMonitor.shutdown(),
       this.hutFactoryAgent.shutdown()

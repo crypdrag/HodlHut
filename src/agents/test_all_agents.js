@@ -4,7 +4,6 @@
 const { DEXRoutingAgent } = require('./DEXRoutingAgent');
 const { BitcoinRPCAgent } = require('./BitcoinRPCAgent');
 const { EVMRPCAgent } = require('./EVMRPCAgent');
-const { SVMRPCAgent } = require('./SVMRPCAgent');
 const { TransactionMonitorAgent } = require('./TransactionMonitorAgent');
 const { HutFactoryAgent } = require('./HutFactoryAgent');
 const { MasterAgent } = require('./MasterAgent');
@@ -14,7 +13,6 @@ class AgentTestSuite {
     this.dexAgent = new DEXRoutingAgent('development');
     this.bitcoinAgent = new BitcoinRPCAgent('development');
     this.evmAgent = new EVMRPCAgent('development');
-    this.solanaAgent = new SVMRPCAgent('development');
     this.monitorAgent = new TransactionMonitorAgent('development');
     this.hutFactoryAgent = new HutFactoryAgent('development');
     this.masterAgent = new MasterAgent('development');
@@ -260,59 +258,6 @@ class AgentTestSuite {
     }
   }
 
-  // Solana Agent Tests
-  async testSolanaAgent() {
-    console.log('🔄 Testing SVMRPCAgent...\n');
-
-    // Test 1: SOL deposit (supported)
-    try {
-      const result = await this.solanaAgent.startDeposit({
-        amount: 10.0,
-        token: 'SOL',
-        priority: 'normal'
-      });
-      this.logTest('Solana - SOL Deposit', 
-        result.success, 
-        `Fee: ${result.estimatedFee} SOL, Time: ${result.estimatedConfirmationTime}`);
-    } catch (error) {
-      this.logTest('Solana - SOL Deposit', false, null, error.message);
-    }
-
-    // Test 2: USDC-SOL deposit (future token)
-    try {
-      const result = await this.solanaAgent.startDeposit({
-        amount: 100,
-        token: 'ckUSDC-SOL',
-        priority: 'fast'
-      });
-      this.logTest('Solana - Future Token Handling', 
-        !result.success && result.error.includes('not yet available'), 
-        `Properly rejects future token: ${result.error}`);
-    } catch (error) {
-      this.logTest('Solana - Future Token Handling', false, null, error.message);
-    }
-
-    // Test 3: Fee estimation
-    try {
-      const result = await this.solanaAgent.getCurrentFees();
-      this.logTest('Solana - Fee Estimation', 
-        result.success && result.priorityFees, 
-        `Normal: ${result.priorityFees?.normal || 'N/A'} SOL, TPS: ${result.networkInfo?.currentTPS || 'N/A'}`);
-    } catch (error) {
-      this.logTest('Solana - Fee Estimation', false, null, error.message);
-    }
-
-    // Test 4: Token support status
-    try {
-      const tokens = this.solanaAgent.getSupportedTokens();
-      this.logTest('Solana - Token Support Status', 
-        tokens.SOL?.isSupported && !tokens['USDC-SOL']?.isSupported, 
-        `SOL: ${tokens.SOL?.status}, USDC-SOL: ${tokens['USDC-SOL']?.status}`);
-    } catch (error) {
-      this.logTest('Solana - Token Support Status', false, null, error.message);
-    }
-  }
-
   // Transaction Monitor Agent Tests
   async testTransactionMonitorAgent() {
     console.log('🔄 Testing TransactionMonitorAgent...\n');
@@ -466,17 +411,17 @@ class AgentTestSuite {
       this.logTest('Master - Deposit Routing', false, null, error.message);
     }
 
-    // Test 6: System status reporting (updated for 7 agents)
+    // Test 6: System status reporting (updated for 6 agents)
     try {
       const systemStatus = await this.masterAgent.getAgentStatus();
       const expectedAgents = ['Bitcoin', 'EVM', 'Solana', 'DEX', 'TransactionMonitor', 'HutFactory'];
       const actualAgents = Object.keys(systemStatus.agentStatuses);
       
-      this.logTest('Master - System Status (7 Agents)', 
+      this.logTest('Master - System Status (6 Agents)', 
         systemStatus.connectedAgents === 6 && expectedAgents.every(agent => actualAgents.includes(agent)), 
         `Connected: ${systemStatus.connectedAgents}/6 agents, HutFactory included: ${actualAgents.includes('HutFactory')}`);
     } catch (error) {
-      this.logTest('Master - System Status (7 Agents)', false, null, error.message);
+      this.logTest('Master - System Status (6 Agents)', false, null, error.message);
     }
   }
 
@@ -484,22 +429,21 @@ class AgentTestSuite {
   async testIntegration() {
     console.log('🔄 Testing Agent Integration...\n');
 
-    // Test 1: All agents health check (updated for 7 agents)
+    // Test 1: All agents health check (updated for 6 agents)
     try {
       const statuses = [
         this.dexAgent.getAgentStatus(),
         this.bitcoinAgent.getAgentStatus(),
         this.evmAgent.getAgentStatus(),
-        this.solanaAgent.getAgentStatus(),
         this.monitorAgent.getAgentStatus(),
         this.hutFactoryAgent.getAgentStatus(),
         await this.masterAgent.getAgentStatus()
       ];
-      this.logTest('Integration - Agent Health (7 Agents)', 
+      this.logTest('Integration - Agent Health (6 Agents)', 
         statuses.every(s => s.isHealthy), 
         `All ${statuses.length} agents healthy (including HutFactory)`);
     } catch (error) {
-      this.logTest('Integration - Agent Health (7 Agents)', false, null, error.message);
+      this.logTest('Integration - Agent Health (6 Agents)', false, null, error.message);
     }
 
     // Test 2: Complete user journey (Get Hut → Activate → Deposit)
@@ -591,7 +535,6 @@ class AgentTestSuite {
       const errorResults = await Promise.allSettled([
         this.bitcoinAgent.startDeposit({ amount: -1 }), // Invalid amount
         this.evmAgent.startDeposit({ amount: 1, token: 'INVALID' }), // Invalid token
-        this.solanaAgent.startDeposit({ amount: 1, token: 'ckUSDC-SOL' }), // Unsupported token
         this.hutFactoryAgent.createHut({ userPrincipal: '' }), // Invalid principal
         this.masterAgent.routeDepositRequest({ asset: 'INVALID', amount: 1, userPrincipal: 'test' }) // Invalid asset
       ]);
@@ -599,11 +542,11 @@ class AgentTestSuite {
       const properErrors = errorResults.filter(r => 
         r.status === 'fulfilled' && !r.value.success && r.value.error
       ).length;
-      this.logTest('Integration - Error Handling (7 Agents)', 
+      this.logTest('Integration - Error Handling (6 Agents)', 
         properErrors === 5, 
         `${properErrors}/5 error cases handled properly across all agents`);
     } catch (error) {
-      this.logTest('Integration - Error Handling (7 Agents)', false, null, error.message);
+      this.logTest('Integration - Error Handling (6 Agents)', false, null, error.message);
     }
   }
 
@@ -614,14 +557,13 @@ class AgentTestSuite {
     console.log('='.repeat(60) + '\n');
 
     try {
-      await this.testHutFactoryAgent(); // NEW - Test 7th agent first
+      await this.testHutFactoryAgent(); // NEW - Test HutFactory agent first
       await this.testDEXAgent();
       await this.testBitcoinAgent();
       await this.testEVMAgent();
-      await this.testSolanaAgent();
       await this.testTransactionMonitorAgent();
       await this.testMasterAgent(); // Updated with hut lifecycle tests
-      await this.testIntegration(); // Updated for 7-agent coordination
+      await this.testIntegration(); // Updated for 6-agent coordination
     } catch (error) {
       console.log(`❌ Test suite error: ${error.message}\n`);
     }
@@ -645,14 +587,13 @@ class AgentTestSuite {
     console.log(`   DEX Routing: ${this.dexAgent.getAgentStatus().isHealthy ? '✅ Ready' : '❌ Issues'}`);
     console.log(`   Bitcoin RPC: ${this.bitcoinAgent.getAgentStatus().isHealthy ? '✅ Ready' : '❌ Issues'}`);
     console.log(`   Ethereum RPC: ${this.evmAgent.getAgentStatus().isHealthy ? '✅ Ready' : '❌ Issues'}`);
-    console.log(`   Solana RPC: ${this.solanaAgent.getAgentStatus().isHealthy ? '✅ Ready' : '❌ Issues'}`);
     console.log(`   Transaction Monitor: ${this.monitorAgent.getAgentStatus().isHealthy ? '✅ Ready' : '❌ Issues'}`);
     console.log(`   Hut Factory: ${this.hutFactoryAgent.getAgentStatus().isHealthy ? '✅ Ready' : '❌ Issues'}`);
     const masterStatus = await this.masterAgent.getAgentStatus();
     console.log(`   Master Agent: ${masterStatus.isHealthy ? '✅ Ready' : '❌ Issues'}`);
-    
-    console.log('\n📋 Complete System Architecture (7 Agents):');
-    console.log('   Frontend → MasterAgent → [HutFactoryAgent + 5 RPC Agents] → TransactionMonitorAgent');
+
+    console.log('\n📋 Complete System Architecture (6 Agents):');
+    console.log('   Frontend → MasterAgent → [HutFactoryAgent + 4 RPC Agents] → TransactionMonitorAgent');
     console.log('   ✅ Hut lifecycle management (Create → Activate → Operate)');
     console.log('   ✅ Multi-chain deposit routing (BTC, ETH, SOL)');
     console.log('   ✅ DEX intelligent routing with ICP hub');
