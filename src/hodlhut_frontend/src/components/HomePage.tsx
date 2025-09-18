@@ -233,7 +233,7 @@ const HomePage: React.FC = () => {
               </div>
               <h3 className="text-2xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Universal Router</h3>
               <p className="text-text-secondary leading-relaxed">
-                Bitcoin ↔ Ethereum ↔ Solana ↔ ICP bridgeless routing. Move assets between legacy chains trustlessly with Chain Fusion.
+                Bitcoin ↔ Ethereum ↔ ICP bridgeless routing. Move assets between legacy chains trustlessly with Chain Fusion.
               </p>
             </div>
 
@@ -273,7 +273,7 @@ const HomePage: React.FC = () => {
               </div>
               <h3 className="text-2xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Diverse Portfolio</h3>
               <p className="text-text-secondary leading-relaxed">
-                Manage ICP, ckBTC, ckETH, ckUSDC, ckUSDT, and ckSOL all in one place. You can hodl & farm diverse assets for Bounty, or cash out all the way to Bitcoin, Ethereum, or Solana blockchains.
+                Manage ICP, ckBTC, ckETH, ckUSDC, and ckUSDT all in one place. You can hodl & farm diverse assets for Bounty, or cash out all the way to Bitcoin and Ethereum blockchains.
               </p>
             </div>
           </div>
@@ -323,21 +323,6 @@ const HomePage: React.FC = () => {
                 <div className="text-xs text-text-muted">Native USDT → ckUSDT</div>
               </div>
               
-              <div className="asset-card-compact">
-                <div className="mb-3 flex justify-center items-center h-5">
-                  <AssetIcon asset="SOL" size={20} />
-                </div>
-                <div className="text-base font-semibold text-text-primary mb-1">Solana</div>
-                <div className="text-xs text-text-muted">Native SOL → ckSOL</div>
-              </div>
-              
-              <div className="asset-card-compact">
-                <div className="mb-3 flex justify-center items-center h-5">
-                  <AssetIcon asset="USDC_SOL" size={20} />
-                </div>
-                <div className="text-base font-semibold text-text-primary mb-1">USDC (SOL)</div>
-                <div className="text-xs text-text-muted">Native USDC → ckUSDC</div>
-              </div>
             </div>
           </div>
 
@@ -383,14 +368,6 @@ const HomePage: React.FC = () => {
                 <div className="text-xs text-text-muted">Chain Key USDT</div>
               </div>
 
-              <div className="asset-card-compact">
-                {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
-                <div className="mb-3 flex justify-center items-center h-5">
-                  <AssetIcon asset="ckSOL" size={20} />
-                </div>
-                <div className="text-base font-semibold text-text-primary mb-1">ckSOL</div>
-                <div className="text-xs text-text-muted">Chain Key Solana</div>
-              </div>
               
               <div className="asset-card-compact">
                 {/* Backend: ICP wallet interface (Plug, etc.) + native ICP integration */}

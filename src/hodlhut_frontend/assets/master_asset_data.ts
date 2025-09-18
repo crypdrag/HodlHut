@@ -127,43 +127,6 @@ export const MASTER_ASSETS: { [key: string]: Asset } = {
     canWithdraw: false
   },
 
-  // SOLANA ECOSYSTEM (NEW!)
-  'SOL': { 
-    symbol: 'SOL', 
-    name: 'Solana', 
-    icon: './assets/images/SOL.svg', 
-    price: 200, 
-    chain: 'Solana', 
-    type: 'native',
-    category: 'crypto',
-    isL1: true,
-    canDeposit: true,
-    canWithdraw: true
-  },
-  'ckSOL': { 
-    symbol: 'ckSOL', 
-    name: 'Chain Key Solana', 
-    icon: './assets/images/ckSOL.svg', 
-    price: 200, 
-    chain: 'ICP', 
-    type: 'ck-token',
-    category: 'crypto',
-    isL1: false,
-    canDeposit: true,
-    canWithdraw: false
-  },
-  'USDCs': { 
-    symbol: 'USDCs', 
-    name: 'USDC (Solana)', 
-    icon: './assets/images/ckUSDC.svg', 
-    price: 1.00, 
-    chain: 'Solana', 
-    type: 'native',
-    category: 'stablecoin',
-    isL1: true,
-    canDeposit: true,
-    canWithdraw: true
-  },
 
   // INTERNET COMPUTER
   'ICP': { 
@@ -217,10 +180,10 @@ export const L1_WITHDRAWAL_ASSETS = Object.keys(MASTER_ASSETS).filter(
 );
 
 // Chain Fusion deposit sources (L1 assets that can be deposited via Chain Fusion)
-export const CHAIN_FUSION_SOURCES = ['BTC', 'ETH', 'USDC', 'USDT', 'SOL', 'USDCs'];
+export const CHAIN_FUSION_SOURCES = ['BTC', 'ETH', 'USDC', 'USDT'];
 
 // ICRC/ICP native assets (can be deposited directly on ICP)
-export const ICRC_ICP_ASSETS = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ckSOL', 'ICP'];
+export const ICRC_ICP_ASSETS = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'];
 
 // Stablecoins (for special handling)
 export const STABLECOINS = Object.keys(MASTER_ASSETS).filter(
@@ -228,7 +191,7 @@ export const STABLECOINS = Object.keys(MASTER_ASSETS).filter(
 );
 
 // Major cryptocurrencies (for prioritization)
-export const MAJOR_CRYPTOS = ['BTC', 'ckBTC', 'ETH', 'ckETH', 'SOL', 'ckSOL', 'ICP'];
+export const MAJOR_CRYPTOS = ['BTC', 'ckBTC', 'ETH', 'ckETH', 'ICP'];
 
 // ===============================================
 // HELPER FUNCTIONS
@@ -293,8 +256,6 @@ export function getCkTokenForL1(l1Asset: string): string | null {
     'ETH': 'ckETH', 
     'USDC': 'ckUSDC',
     'USDT': 'ckUSDT',
-    'SOL': 'ckSOL',
-    'USDCs': 'ckUSDC' // Solana USDC converts to ckUSDC
   };
   return ckTokenMap[l1Asset] || null;
 }
@@ -308,7 +269,6 @@ export function getL1ForCkToken(ckAsset: string): string | null {
     'ckETH': 'ETH',
     'ckUSDC': 'USDC',
     'ckUSDT': 'USDT',
-    'ckSOL': 'SOL'
   };
   return l1Map[ckAsset] || null;
 }
@@ -479,7 +439,6 @@ export const MOCK_PORTFOLIO: Portfolio = {
   'ckETH': 2.0,
   'ckUSDC': 1000,
   'ckUSDT': 500,
-  'ckSOL': 10, // NEW!
   'ICP': 1000
 };
 
