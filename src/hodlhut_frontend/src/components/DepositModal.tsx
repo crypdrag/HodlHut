@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import AssetIcon from './AssetIcon';
-import { 
+import WalletIcon from './WalletIcon';
+import {
   PartyPopper,
   Lock,
   Zap,
   Circle,
-  Square,
-  Sun,
   Wallet,
   Globe,
   CreditCard,
@@ -32,9 +31,9 @@ interface WalletOption {
 
 const WALLET_OPTIONS: Record<string, WalletOption[]> = {
   'BTC': [
-    { id: 'unisat', name: 'Unisat Wallet', icon: <Circle className="w-4 h-4 text-orange-500" /> },
-    { id: 'xverse', name: 'Xverse Wallet', icon: <Square className="w-4 h-4 text-blue-500" /> },
-    { id: 'leather', name: 'Leather Wallet', icon: <Square className="w-4 h-4 text-amber-600" /> }
+    { id: 'unisat', name: 'Unisat Wallet', icon: <WalletIcon wallet="unisat" size={20} /> },
+    { id: 'xverse', name: 'Xverse Wallet', icon: <WalletIcon wallet="xverse" size={20} /> },
+    { id: 'okx', name: 'OKX Wallet', icon: <WalletIcon wallet="okx" size={20} /> }
   ],
   'ETH': [
     { id: 'metamask', name: 'MetaMask', icon: <Wallet className="w-4 h-4 text-orange-500" /> },
@@ -383,13 +382,33 @@ const DepositModal: React.FC<DepositModalProps> = ({
       <h3 className="text-xl font-bold text-text-primary mb-6 text-center" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Connect Wallet</h3>
       <div className="grid grid-cols-1 gap-3">
         {WALLET_OPTIONS[selectedAsset]?.map((wallet) => (
-          <div 
+          <div
             key={wallet.id}
-            className="rounded-2xl border border-white/10 bg-surface-1 p-6 hover:bg-surface-2 transition-all duration-300 cursor-pointer gap-3"
+            className="
+              rounded-2xl border border-white/10 bg-surface-1 p-4
+              hover:bg-surface-2 hover:border-primary-500/20
+              active:scale-[0.98]
+              transition-all duration-200
+              cursor-pointer
+              flex items-center gap-4
+              min-h-[4rem]
+            "
             onClick={() => handleWalletSelect(wallet.id)}
           >
-            <span>{wallet.icon}</span>
-            <span className="text-sm font-semibold text-text-primary">{wallet.name}</span>
+            <div className="flex-shrink-0">
+              {wallet.icon}
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-semibold text-text-primary block truncate">
+                {wallet.name}
+              </span>
+              <span className="text-xs text-text-muted">
+                Bitcoin Wallet
+              </span>
+            </div>
+            <div className="flex-shrink-0">
+              <div className="w-2 h-2 bg-success-400 rounded-full opacity-60"></div>
+            </div>
           </div>
         ))}
       </div>
