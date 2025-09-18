@@ -18,7 +18,6 @@
       <a href="#development-roadmap">Development Roadmap</a>
       <ul>
         <li><a href="#implementation-phases">Implementation Phases</a></li>
-        <li><a href="#solana-integration-phases">Solana Integration Phases</a></li>
         <li><a href="#dex-integration-phases">DEX Integration Phases</a></li>
       </ul>
     </li>
@@ -79,9 +78,11 @@
 ## System Overview
 
 ### What is HodlHut?
-HodlHut is a multichain DeFi platform built on the Internet Computer Protocol (ICP) that enables users to manage Bitcoin, Ethereum, Solana, ICRC and other blockchain assets through their own sovereign canister smart contracts. Each user controls their own "MyHut" canister, providing custody of cross-chain assets via Chain Fusion and Dfinity technology.
+HodlHut is a multichain DeFi platform built on the Internet Computer Protocol (ICP) that enables users to manage Bitcoin, Ethereum, and ICRC blockchain assets through their own sovereign canister smart contracts.
 
-My Hut canister performs Agent assisted comprehensive swaps involving both ICP DEXs and Chain Fusion. While complexity is abstracted as much as possible for the user, transparency is not. Users are given swap options if DEXs are involved [ckBTC ->ckUSDC-> USDC (ETH)] advising them of slippage, liquidity risk, and DEX fees prior to choosing which ICP DEX to perform the swap. (Custom Agents check ICP as the liquidity bridge for any ckX ↔ ckY swap when the direct pool is thin.)  Chain Fusion gas fees are always real-time and visible. HoldHut Smart Solutions advise the user of any gas necessary for crosschain resolutions on Bitcoin, Ethereum, and Solana, and offers solutions for the easiest way to obtain the appropriate gas if they don't hold ckBTC, ckETH, or ckSolana. 
+**NOTE:** Solana integration was removed based on DFINITY's roadmap decision not to create ckSOL or ckUSDC(SOL) chain-key tokens, making Solana integration unnecessary for HodlHut's architecture. Each user controls their own "MyHut" canister, providing custody of cross-chain assets via Chain Fusion and Dfinity technology.
+
+My Hut canister performs Agent assisted comprehensive swaps involving both ICP DEXs and Chain Fusion. While complexity is abstracted as much as possible for the user, transparency is not. Users are given swap options if DEXs are involved [ckBTC ->ckUSDC-> USDC (ETH)] advising them of slippage, liquidity risk, and DEX fees prior to choosing which ICP DEX to perform the swap. (Custom Agents check ICP as the liquidity bridge for any ckX ↔ ckY swap when the direct pool is thin.)  Chain Fusion gas fees are always real-time and visible. HoldHut Smart Solutions advise the user of any gas necessary for crosschain resolutions on Bitcoin and Ethereum, and offers solutions for the easiest way to obtain the appropriate gas if they don't hold ckBTC or ckETH. 
 
 My Garden is a user's private yield farm where multipliers reward users based on staking diversity. Reef Raffle and Tsunami Sweep are DAO controlled daily lotteries, and a subsequent weekly lotteries. (The ReefRaffleAgent and MyGarden Agent have not been prototyped yet.) DAO and tokenomics designs are on the RoadMap. HodlHut's future build plans to incorporate Bitcoin metaprotocols and complement current BTCFi ICP platforms such as RichSwap, Odin.Fun, Blockminer, and Tyche.
 
@@ -96,8 +97,8 @@ HodlHut is necessarily ambitious to explore the development of AI Agents within 
 **Core Value Proposition:**
 - **Sovereign Custody**: Each user owns and controls their individual MyHut canister
 - **Cross-Chain Integration**: Direct blockchain interaction via ICP's Chain Fusion technology
-- **Minimized Off-Chain Dependencies**: Bitcoin is native on the IC; Ethereum & Solana via HTTPS outcalls (Chain Fusion) with multi‑provider redundancy and consensus.
-- **Unified Interface**: Single interface for Bitcoin, Ethereum, Solana assets and DeFi operations
+- **Minimized Off-Chain Dependencies**: Bitcoin is native on the IC; Ethereum via HTTPS outcalls (Chain Fusion) with multi‑provider redundancy and consensus.
+- **Unified Interface**: Single interface for Bitcoin, Ethereum assets and DeFi operations
 
 ### Current Working Demo (MVP Status)
 **✅ What Users Can Experience Today:**
@@ -105,7 +106,7 @@ HodlHut is necessarily ambitious to explore the development of AI Agents within 
 **Frontend Interface:**
 **CRITICAL: Always check global CSS classes first. Never add utility classes as quick fixes. Follow Tailwind v4 architecture.**
 - Functional React-based dashboard with asset selection interfaces
-- Working FROM/TO asset dropdowns supporting BTC, ETH, SOL asset selection
+- Working FROM/TO asset dropdowns supporting BTC, ETH asset selection
 - DEX selection interface (`setSelectedDEX('KongSwap')` / `setSelectedDEX('ICPSwap')`)
 - Asset deposit triggers (`startDeposit('BTC')`, `startDeposit('ETH')`, `startDeposit('SOL')`)
 - Basic navigation and user interface components
@@ -143,7 +144,7 @@ HodlHut is necessarily ambitious to explore the development of AI Agents within 
 - Sovereign custody implementation with cryptographic principal verification
 
 **Production Agent Architecture:**
-- Complete redesign of all 7 agents for multi-canister coordination
+- Complete redesign of all 6 agents for multi-canister coordination
 - Chain Fusion integration with threshold cryptography (ECDSA/Ed25519)
 - Real-time cross-chain transaction monitoring and state management
 
@@ -159,7 +160,7 @@ Users will deploy their own MyHut canister, directly control cross-chain assets,
 ### Threat Model and Attack Vectors
 **High-Risk Attack Surfaces:**
 1. **Mint/Burn Lifecycle for Chain‑Key Assets** — Chain Fusion controlled mint/burn processes
-2. **AI Agent Coordination Layer** - 7-agent communication and decision-making
+2. **AI Agent Coordination Layer** - 6-agent communication and decision-making
 3. **Sovereign Canister Architecture** - Individual user hut security
 4. **Internet Identity Integration** - Authentication and session management
 5. **Multi-Chain Asset Management** - Cross-network transaction coordination
@@ -193,7 +194,7 @@ Users will deploy their own MyHut canister, directly control cross-chain assets,
 - **Agent Resource Competition**: Internal system conflicts
 
 **Multi-Agent Trust Model:**
-Each of the 7 agents operates in a security-hardened environment with agent isolation, cryptographic verification, multi-source validation, and byzantine fault tolerance. Critical decisions require multi-agent agreement with consensus requirements and rollback mechanisms for compromised agent detection.
+Each of the 6 agents operates in a security-hardened environment with agent isolation, cryptographic verification, multi-source validation, and byzantine fault tolerance. Critical decisions require multi-agent agreement with consensus requirements and rollback mechanisms for compromised agent detection.
 ### Multi-Chain Security Protocols
 **Bitcoin Multi-Canister Architecture:**
 - Bitcoin Subnet ID: `w4rem-dv5e3-widiz-wbpea-kbttk-mnzfm-tzrc7-svcj3-kbxyb-zamch-hqe`
@@ -313,21 +314,14 @@ Needed: {
 - **Gap**: Missing EVM RPC canister (7hfb6-caaaa-aaaar-qadga-cai) integration
 - **Gap**: Lacks provider failover and cycle optimization
 
-**SVMRPCAgent (Prototype Status):**
+**~~SVMRPCAgent~~ [REMOVED]:**
 ```javascript
-// CURRENT LIMITATION: Standard RPC calls without fast-block consensus
-// PRODUCTION REQUIREMENT: Solana-specific consensus with NNS SOL RPC
-Current: solanaRPC.getBalance()
-Needed: {
-  solRPCCanister.sol_getHealth({consensus: '3-out-of-5'}),
-  fastBlockHandling.handle400msBlockTimes(),
-  ed25519Validation.verifyThresholdSignatures(),
-  ipv6ProviderManagement.handleMainnetLimitations()
-}
+// REMOVED: SVMRPCAgent was deleted completely from the codebase
+// REASON: DFINITY roadmap does not include ckSOL or ckUSDC(SOL) chain-key tokens
+// STATUS: All Solana integration systematically removed across 4 phases
 ```
-- **Gap**: No fast block time consensus strategy
-- **Gap**: Missing NNS-controlled SOL RPC canister integration
-- **Gap**: Lacks Ed25519 threshold cryptography coordination
+- **Removal Completed**: All Solana functionality removed from HodlHut
+- **Architecture Update**: System now operates with 6 agents instead of 7
 
 **DEXRoutingAgent (Prototype Status):**
 ```javascript
@@ -911,7 +905,7 @@ Savings: 2.4% execution cost reduction via deeper ICP liquidity
 - 🚧 Cross-DEX liquidity management within MyHut sovereign canisters
 
 **Agent System Status (Honest Assessment):**
-- **Prototype Stage**: 7 agents exist as proof-of-concept demonstrations
+- **Prototype Stage**: 6 agents exist as proof-of-concept demonstrations
 - **Test Results**: Basic functionality validated, NOT production readiness
 - **Architecture Gaps**: All agents require significant multi-canister coordination development
 - **Integration Missing**: No agents properly integrate with ICP Chain Fusion architecture
@@ -992,19 +986,17 @@ Current agent system represents early prototyping work, not production-ready Cha
 - Smart contract interaction patterns
 - L2 chain integration (Arbitrum, Base, Optimism)
 
-### Solana Integration Phases
+### ~~Solana Integration Phases~~ [REMOVED]
 
-**Phase 1: SOL RPC Integration**
-- Replace demo hardcoded fees with SOL RPC dynamic estimation
-- Implement SOL RPC Agent coordination with NNS-controlled service canister
-- Multi-provider consensus validation (Helius, Alchemy, Ankr, dRPC)
-- Solana wallet API integration for testing
+**REMOVAL COMPLETED:** Solana integration was systematically removed from HodlHut based on DFINITY's roadmap decision not to create ckSOL or ckUSDC(SOL) chain-key tokens.
 
-**Phase 2: Production Solana Security**
-- Ed25519 threshold signature validation and optimization
-- Multi-provider failover and IPv6 requirement compliance
-- SPL token interaction patterns and Associated Token Account management
-- Fast block time consensus strategy implementation
+**Removal Phases Completed:**
+- **Phase 1:** Frontend removal (16 files) - Removed all Solana UI components and asset references
+- **Phase 2:** Backend logic removal (7 files) - Cleaned swap logic, fee rules, and DEX integration
+- **Phase 3:** Agent system cleanup (6 files) - Deleted SVMRPCAgent.js completely, updated to 6-agent architecture
+- **Phase 4:** Visual interface cleanup - Converted from 6-card to 4-card asset grid
+
+**Current Status:** HodlHut operates as a focused Bitcoin + Ethereum DeFi platform with 6-agent architecture.
 
 ### DEX Integration Phases
 
