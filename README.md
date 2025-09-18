@@ -2,12 +2,14 @@
 
 **Sovereign Multichain DeFi Router on the Internet Computer (ICP)**
 
-HodlHut is a prototype BTCFi platform that uses a **Multi‑agent intelligence layer** on ICP to optimize fees and route liquidity across Bitcoin, Ethereum, and Solana — anchored by **dynamic routing with an ICP liquidity bridge** (choosing between direct and ICP liquidity bridge paths at runtime). The HodlHut interface abstracts complexity for multi-hopping trades while transparently advising the user exactly what is happening behind the scenes with simple language and charts. Yield Farming and games are built into the roadmap. 
+HodlHut is a prototype BTCFi platform that uses a **Multi‑agent intelligence layer** on ICP to optimize fees and route liquidity across Bitcoin and Ethereum — anchored by **dynamic routing with an ICP liquidity bridge** (choosing between direct and ICP liquidity bridge paths at runtime). The HodlHut interface abstracts complexity for multi-hopping trades while transparently advising the user exactly what is happening behind the scenes with simple language and charts. Yield Farming and games are built into the roadmap.
+
+> **Note:** Solana integration was removed based on DFINITY's roadmap decision not to create ckSOL or ckUSDC(SOL) chain-key tokens, making Solana integration unnecessary for the HodlHut architecture. 
 
 > **Hackathon TL;DR**
 >
 > * **Demo:** local prototype + read‑only mainnet checks (Boundary‑NET)
-> * **What's novel:** ICP as a fast L2 coordination layer for BTC/ETH/SOL via agents + canisters
+> * **What's novel:** ICP as a fast L2 coordination layer for BTC/ETH via agents + canisters
 > * **Tests:** 36 unit + 6 integration scenarios (see *Testing (Canonical)*)
 
 ---
@@ -40,7 +42,6 @@ Runs agent checks against public providers / IC canisters without state changes.
 ```bash
 # (optional) env for providers (redacted values)
 export EVM_PROVIDERS="<urls or json>"
-export SVM_PROVIDERS="<urls or json>"
 export BTC_PROVIDERS="<urls or json>"
 
 # run agent test aggregator (prototype)
@@ -57,7 +58,6 @@ node src/agents/test_all_agents.js
 User → Frontend (React) → MasterAgent
                      ├─ BitcoinRPCAgent  ─▶ Bitcoin Canister (read) ─▶ ckBTC Minter/Ledger (read)
                      ├─ EVMRPCAgent      ─▶ EVM RPC canister/providers (quorum)
-                     ├─ SVMRPCAgent      ─▶ SOL RPC canister/providers (quorum)
                      ├─ DEXRoutingAgent  ─▶ ICPSwap/KongSwap (direct vs ICP liquidity bridge; optional extra hubs)
                      ├─ HutFactoryAgent  ─▶ Governance + MyHut canister lifecycle
                      └─ TransactionMonitorAgent ─▶ Correlates deposit→mint→swap→settle
@@ -71,7 +71,7 @@ User → Frontend (React) → MasterAgent
 
 ## Key Features (current prototype)
 
-* **Dynamic Fee Intelligence:** BTC/EVM/SOL fee and health snapshots.
+* **Dynamic Fee Intelligence:** BTC/EVM fee and health snapshots.
 * **Dynamic Routing with ICP Liquidity Bridge:** cross‑DEX quote/route selection (ICPSwap & KongSwap), choosing between **direct** and **ICP liquidity bridge** paths.
 * **Sovereign Accounts (design):** per‑user **MyHut** canister + **HutFactory** governance window (30‑min gate).
 * **Observability:** JSONL operation logs, phase transitions, reorg handling.
@@ -118,7 +118,7 @@ User → Frontend (React) → MasterAgent
 ```text
 HodlHut/
 ├─ src/
-│  ├─ agents/                      # Node/TS agents (Master, BTC/EVM/SVM RPC, DEX, HutFactory, TxMonitor)
+│  ├─ agents/                      # Node/TS agents (Master, BTC/EVM RPC, DEX, HutFactory, TxMonitor)
 │  │  └─ test_all_agents.js        # prototype aggregator
 │  └─ scripts/
 │     └─ integration/              # F.* runners (skeletons)
@@ -152,7 +152,7 @@ See **/docs/infra-tech-stack.md** for workflow names and secrets.
 
 ## Roadmap (abridged)
 
-* **Phase 1 — Intelligence (done):** 7 agents, fee/quote logic, tests
+* **Phase 1 — Intelligence (done):** 6 agents, fee/quote logic, tests
 * **Phase 2 — Canisters (WIP):** RPC adapters, DEX router, HutFactory/MyHut, governance gates
 * **Phase 3 — Productize:** real DEX trades, II auth, metrics canister, CI promotions
 
@@ -160,14 +160,13 @@ See **/docs/infra-tech-stack.md** for workflow names and secrets.
 
 ## Developer Deep‑Dive (appendix)
 
-### 7‑Agent System
+### 6‑Agent System
 
 | Agent                       | Purpose                                             | Selected Assertions                                       |
 | --------------------------- | --------------------------------------------------- | --------------------------------------------------------- |
 | **MasterAgent**             | Orchestration & health                              | Fan‑out/fan‑in across ≥3 agents; rollback on stale quotes |
 | **BitcoinRPCAgent**         | Fee/mempool/headers                                 | POW & height continuity; reorg tolerance                  |
 | **EVMRPCAgent**             | Quorum reads                                        | n‑of‑m agreement; reject divergent payloads               |
-| **SVMRPCAgent**             | Solana health/slots                                 | fast‑slot consensus within N slots                        |
 | **DEXRoutingAgent**         | Route optimization (direct vs ICP liquidity bridge) | chosen path = lowest expected cost; slippage guard        |
 | **HutFactoryAgent**         | MyHut lifecycle & roles                             | Activation Window required for role changes               |
 | **TransactionMonitorAgent** | Correlate flows                                     | Pending→Confirmed→Completed; rollback on reorg            |
@@ -184,8 +183,8 @@ See **/docs/infra-tech-stack.md** for workflow names and secrets.
 # DEX routing via MyHut (quote)
 dfx canister call my_hut get_kongswap_quote '(record {from_token="ICP"; to_token="ckBTC"; amount=1000000})'
 
-# Solana providers (health)
-dfx canister call sol_rpc sol_getHealth '(variant{Mainnet}, null)'
+# Bitcoin fee estimation
+dfx canister call btc_rpc get_current_fee_percentiles '(variant{Mainnet}, null)'
 ```
 
 > Many more examples in *Testing (Canonical)* and component specs under `/docs/specs/`.

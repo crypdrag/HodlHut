@@ -589,7 +589,7 @@ class EVMRPCAgent {
 
   // Mock transaction status for local demo
   getMockTransactionStatus(transactionId) {
-    // Ethereum transactions take longer than Solana but faster than Bitcoin
+    // Ethereum transactions take longer than Bitcoin
     const statuses = ['pending', 'confirmed', 'finalized'];
     const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
     

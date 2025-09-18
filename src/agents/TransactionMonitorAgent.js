@@ -273,41 +273,6 @@ class TransactionMonitorAgent {
     }
   }
 
-  // Monitor Solana transaction step
-  async monitorSolanaStep(operation, step, solanaAgent) {
-    try {
-      if (!step.transactionHash) {
-        return { continueMonitoring: true };
-      }
-
-      const txStatus = await solanaAgent.getTransactionStatus(step.transactionHash);
-      
-      if (txStatus.success) {
-        if (txStatus.status === 'finalized' && txStatus.confirmations >= 32) {
-          await this.updateStepStatus(operation.id, step.stepIndex, {
-            status: 'completed',
-            completionTime: new Date().toISOString(),
-            slot: txStatus.slot,
-            confirmations: txStatus.confirmations
-          });
-          return { continueMonitoring: false };
-        } else if (['pending', 'confirmed'].includes(txStatus.status)) {
-          await this.updateStepStatus(operation.id, step.stepIndex, {
-            status: 'confirming',
-            confirmations: txStatus.confirmations || 0
-          });
-          return { continueMonitoring: true };
-        }
-      }
-
-      return { continueMonitoring: true };
-
-    } catch (error) {
-      await this.handleStepError(operation, step, error);
-      return { continueMonitoring: false };
-    }
-  }
-
   // Monitor DEX swap step
   async monitorDEXStep(operation, step, dexAgent) {
     try {
@@ -405,7 +370,6 @@ class TransactionMonitorAgent {
         return this.mockNetworkMonitoring(operation, step, 180000); // 3 minutes
         
       case 'solana':
-        // Mock Solana monitoring
         return this.mockNetworkMonitoring(operation, step, 5000); // 5 seconds
         
       case 'icp':
