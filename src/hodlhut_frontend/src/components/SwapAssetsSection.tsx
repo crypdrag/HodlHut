@@ -16,8 +16,9 @@ import {
 } from 'lucide-react';
 import AssetIcon from './AssetIcon';
 import CustomDropdown from './CustomDropdown';
+import CompactDEXSelector from './CompactDEXSelector';
 import { AuthStep } from './AuthenticationModal';
-import { Portfolio, MASTER_ASSETS } from '../../assets/master_asset_data';
+import { Portfolio, MASTER_ASSETS, ASSET_PRICES } from '../../assets/master_asset_data';
 import { CompleteSwapAnalysis, SmartSolution, DEX_OPTIONS } from '../../assets/master_swap_logic';
 import { type SwapRoute } from '../../assets/visual_brackets';
 
@@ -492,7 +493,7 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
         </div>
       )}
 
-      {/* STEP 2: Choose Your Method (DEX Selection) - ONLY WHEN NEEDED */}
+      {/* STEP 2: Choose Your Method (DEX Selection) - COMPACT VERSION */}
       {showDEXSelection && swapAnalysis && fromAsset !== toAsset && (
         <div className="w-full max-w-lg mt-6 rounded-2xl border border-white/10 bg-surface-1 p-8">
           <div className="flex justify-center mb-8">
@@ -503,57 +504,16 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Backend: KongSwap onclick calls KongSwap API, ICPSwap onclick calls ICPSwap API */}
-            {Object.entries(DEX_OPTIONS_ENHANCED).map(([key, dex]) => (
-              <div
-                key={key}
-                className={`rounded-xl border p-6 cursor-pointer transition-all duration-300 ${
-                  selectedDEX === key
-                    ? 'border-primary-500 bg-primary-600/10'
-                    : 'border-white/20 bg-surface-2 hover:bg-surface-3'
-                }`}
-                onClick={() => setSelectedDEX(key)}
-              >
-                <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 badge-text mb-3 ${
-                  dex.badge === 'speed'
-                    ? 'bg-warning-400/15 text-warning-300'
-                    : 'bg-primary-600/15 text-primary-400'
-                }`}>
-                  {dex.badge === 'speed' ? <><Zap className="inline w-4 h-4 mr-1" /> SPEED FOCUSED</> : <><Waves className="inline w-4 h-4 mr-1" /> LIQUIDITY FOCUSED</>}
-                </div>
-                <div className="heading-4 text-text-primary mb-4">{dex.name}</div>
-
-                {/* Improved Stats Grid */}
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  {Object.entries(dex.stats).map(([stat, value]) => (
-                    <div key={stat} className="text-center">
-                      <div className="ui-label text-text-muted mb-1">{stat}</div>
-                      <div className="body-sm text-text-primary font-semibold">{value}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Clean Advantages/Trade-offs */}
-                <div className="space-y-2 body-sm">
-                  <div className="flex items-start gap-2">
-                    <Star size={16} className="text-success-400 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <span className="ui-label text-text-primary">Best for:</span>
-                      <span className="text-text-secondary ml-1">{dex.advantages.join(' • ')}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Scale size={16} className="text-warning-400 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <span className="font-semibold text-text-primary">Trade-offs:</span>
-                      <span className="text-text-secondary ml-1">{dex.tradeoffs.join(' • ')}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          {/* Backend: KongSwap onclick calls KongSwap API, ICPSwap onclick calls ICPSwap API */}
+          <CompactDEXSelector
+            selectedDEX={selectedDEX}
+            setSelectedDEX={setSelectedDEX}
+            dexData={DEX_OPTIONS_ENHANCED}
+            fromAsset={fromAsset}
+            toAsset={toAsset}
+            swapAmount={swapAmount}
+            swapValueUSD={parseFloat(swapAmount || '0') * (ASSET_PRICES[fromAsset] || 0)}
+          />
 
           <div className="mt-6 p-4 bg-primary-600/5 rounded-lg border border-primary-600/20">
             <p className="text-sm text-text-secondary">
