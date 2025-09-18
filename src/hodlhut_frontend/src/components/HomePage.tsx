@@ -283,12 +283,11 @@ const HomePage: React.FC = () => {
       {/* Supported Assets Section */}
       <section className="section bg-bg">
         <div className="container-app">
-          <h2 className="text-4xl font-bold text-center text-text-primary mb-12" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Supported Assets</h2>
+          <h2 className="text-4xl font-bold text-center text-text-primary mb-12" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Supported Crosschain Assets</h2>
           
           {/* Chain Fusion Deposits */}
           <div className="mb-16">
-            <h3 className="text-3xl font-bold text-center text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Add Assets via Chain Fusion</h3>
-            <p className="text-lg text-center text-text-secondary mb-8">Deposit native assets from their L1 chains</p>
+            <h3 className="text-2xl font-semibold text-center text-text-secondary mb-8">Legacy assets from their native L1 chains</h3>
             
             <div className="grid-assets">
               <div className="asset-card-compact">
@@ -328,9 +327,21 @@ const HomePage: React.FC = () => {
 
           {/* ICRC/ICP Assets */}
           <div className="mb-16">
-            <h3 className="text-3xl font-bold text-center text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Add ICRC and ICP Assets</h3>
-            <p className="text-lg text-center text-text-secondary mb-8">Deposit assets already on the Internet Computer Protocol</p>
-            
+            <h3 className="text-2xl font-semibold text-center text-text-secondary mb-8">ICP ecosystem assets</h3>
+
+            {/* ICP Token - Prominent Center Position */}
+            <div className="flex justify-center mb-8">
+              <div className="asset-card-compact">
+                {/* Backend: ICP wallet interface (Plug, etc.) + native ICP integration */}
+                <div className="mb-3 flex justify-center items-center h-5">
+                  <AssetIcon asset="ICP" size={20} />
+                </div>
+                <div className="text-base font-semibold text-text-primary mb-1">ICP</div>
+                <div className="text-xs text-text-muted">Internet Computer</div>
+              </div>
+            </div>
+
+            {/* Chain Key Assets - Symmetric Grid */}
             <div className="grid-assets">
               <div className="asset-card-compact">
                 {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
@@ -340,7 +351,7 @@ const HomePage: React.FC = () => {
                 <div className="text-base font-semibold text-text-primary mb-1">ckBTC</div>
                 <div className="text-xs text-text-muted">Chain Key Bitcoin</div>
               </div>
-              
+
               <div className="asset-card-compact">
                 {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
                 <div className="mb-3 flex justify-center items-center h-5">
@@ -366,16 +377,6 @@ const HomePage: React.FC = () => {
                 </div>
                 <div className="text-base font-semibold text-text-primary mb-1">ckUSDT</div>
                 <div className="text-xs text-text-muted">Chain Key USDT</div>
-              </div>
-
-              
-              <div className="asset-card-compact">
-                {/* Backend: ICP wallet interface (Plug, etc.) + native ICP integration */}
-                <div className="mb-3 flex justify-center items-center h-5">
-                  <AssetIcon asset="ICP" size={20} />
-                </div>
-                <div className="text-base font-semibold text-text-primary mb-1">ICP</div>
-                <div className="text-xs text-text-muted">Internet Computer</div>
               </div>
             </div>
           </div>
