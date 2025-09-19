@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Settings,
   Fuel,
@@ -88,6 +88,7 @@ interface SwapAssetsSectionProps {
   handleRejectSolution: (index: number) => void;
   resetSolutionsView: () => void;
   formatNumber: (num: number) => string;
+  onShowTransactionPreview: () => void;
 }
 
 const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
@@ -118,8 +119,12 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
   handleApproveSolution,
   handleRejectSolution,
   resetSolutionsView,
-  formatNumber
+  formatNumber,
+  onShowTransactionPreview
 }) => {
+  // State for execution confirmation
+  const [showExecutionConfirm, setShowExecutionConfirm] = useState<number | null>(null);
+
   // Helper functions moved from Dashboard
   const getSwapFromAssetOptions = () => {
     // Only show assets available in the FROM dropdown that have a balance > 0
@@ -210,8 +215,11 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
   const renderSmartSolutionsFooter = () => {
     if (selectedSolution !== null && !showAllSolutions) {
       return (
-        <div className="contextual-message">
-          <PartyPopper className="inline w-4 h-4 mr-1" /> <strong>Perfect!</strong> You've chosen your fee payment method. Click "Execute & Continue Swap" above to proceed.
+        <div className="mt-4 p-3 bg-success-600/10 border border-success-500/20 rounded-lg">
+          <div className="text-sm text-success-400 flex items-center gap-2">
+            <PartyPopper size={16} />
+            <span><strong>Perfect!</strong> You've chosen your fee payment method. Click "Execute & Continue Swap" above to proceed.</span>
+          </div>
         </div>
       );
     }
@@ -225,8 +233,10 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
       const firstSolution = smartSolutions[0];
       if (firstSolution.badge === 'RECOMMENDED') {
         return (
-          <div className="solution-message">
-            ✅ <strong>Best Option Found!</strong> This is the easiest way to handle your fee payment. Approve it or see alternatives.
+          <div className="mt-4 p-3 bg-primary-600/10 border border-primary-500/20 rounded-lg">
+            <div className="text-sm text-primary-400">
+              ✅ <strong>Best Option Found!</strong> This is the easiest way to handle your fee payment. Approve it or see alternatives.
+            </div>
           </div>
         );
       }
@@ -234,20 +244,28 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
 
     if (hasRecommended) {
       return (
-        <div className="solution-message">
-          ✅ <strong>Great news!</strong> We found easy solutions for your fee payments. The recommended option is usually the best choice.
+        <div className="mt-4 p-3 bg-primary-600/10 border border-primary-500/20 rounded-lg">
+          <div className="text-sm text-primary-400">
+            ✅ <strong>Great news!</strong> We found easy solutions for your fee payments. The recommended option is usually the best choice.
+          </div>
         </div>
       );
     } else if (hasRequiredSteps) {
       return (
-        <div className="warning-message">
-          <AlertTriangle className="inline w-4 h-4 mr-1" /> <strong>Manual Steps Required:</strong> You'll need to complete some DEX swaps first to get the required fee tokens.
+        <div className="mt-4 p-3 bg-warning-600/10 border border-warning-500/20 rounded-lg">
+          <div className="text-sm text-warning-400 flex items-center gap-2">
+            <AlertTriangle size={16} />
+            <span><strong>Manual Steps Required:</strong> You'll need to complete some DEX swaps first to get the required fee tokens.</span>
+          </div>
         </div>
       );
     } else if (hasAlternatives) {
       return (
-        <div className="warning-message">
-          <Lightbulb className="inline w-4 h-4 mr-1" /> <strong>Alternative Options:</strong> Here are different ways to handle fee payments based on your portfolio.
+        <div className="mt-4 p-3 bg-warning-600/10 border border-warning-500/20 rounded-lg">
+          <div className="text-sm text-warning-400 flex items-center gap-2">
+            <Lightbulb size={16} />
+            <span><strong>Alternative Options:</strong> Here are different ways to handle fee payments based on your portfolio.</span>
+          </div>
         </div>
       );
     }
@@ -363,11 +381,17 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
           </div>
 
           <div className="flex items-center gap-4 mb-4">
-            <div className="flex-1 text-2xl font-semibold text-text-primary">
-              {swapAmount || '0.0'}
-            </div>
+            <input
+              type="number"
+              value={swapAmount}
+              onChange={(e) => setSwapAmount(e.target.value)}
+              placeholder="0.0"
+              className="flex-1 text-lg sm:text-xl md:text-2xl font-semibold text-text-primary bg-transparent border-none outline-none w-0 min-w-0"
+              step="any"
+              min="0"
+            />
             <CustomDropdown
-              className="asset-dropdown min-w-[140px]"
+              className="asset-dropdown min-w-[100px] sm:min-w-[120px] md:min-w-[140px]"
               value={fromAsset}
               onChange={(value) => {
                 setFromAsset(value);
@@ -413,11 +437,11 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
           </div>
 
           <div className="flex items-center gap-4 mb-4">
-            <div className="flex-1 text-2xl font-semibold text-text-primary">
+            <div className="flex-1 text-lg sm:text-xl md:text-2xl font-semibold text-text-primary min-w-0">
               {swapAnalysis?.outputAmount ? formatAmount(swapAnalysis.outputAmount) : '0.0'}
             </div>
             <CustomDropdown
-              className="asset-dropdown min-w-[140px]"
+              className="asset-dropdown min-w-[100px] sm:min-w-[120px] md:min-w-[140px]"
               value={toAsset}
               onChange={setToAsset}
               placeholder="Select asset"
@@ -544,14 +568,14 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
             {selectedSolution !== null && (
               <button
                 onClick={resetSolutionsView}
-                className="ml-auto bg-surface-2 border border-white/20 rounded px-2 py-1 text-xs cursor-pointer hover:bg-surface-3 transition-colors duration-200 text-text-secondary"
+                className="ml-auto btn-secondary btn-sm"
               >
                 ↶ Back to All Options
               </button>
             )}
           </div>
 
-          <div className="solutions-grid">
+          <div className="space-y-4">
             {/* Show only selected solution when approved, or all when exploring */}
             {(selectedSolution !== null && !showAllSolutions ?
               [smartSolutions[selectedSolution]] :
@@ -591,10 +615,10 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
                   {!isSelected && (
                     <div className="flex gap-3">
                       <button
-                        className={`flex-1 py-3 px-4 rounded-xl btn-text font-semibold transition-all duration-200 ${
+                        className={`flex-1 btn-text ${
                           solution.badge === 'RECOMMENDED'
-                            ? 'bg-primary-600 hover:bg-primary-500 text-on-primary focus:ring-2 focus:ring-primary-400 focus:outline-none'
-                            : 'bg-surface-3 hover:bg-surface-2 text-text-primary border border-white/20'
+                            ? 'btn-primary'
+                            : 'btn-secondary'
                         }`}
                         onClick={() => handleApproveSolution(actualIndex)}
                       >
@@ -604,7 +628,7 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
                       </button>
 
                       <button
-                        className="flex-1 py-3 px-4 rounded-xl btn-text font-semibold transition-all duration-200 bg-surface-3 hover:bg-surface-2 text-text-secondary border border-white/20"
+                        className="flex-1 btn-secondary btn-text"
                         onClick={() => handleRejectSolution(actualIndex)}
                       >
                         {isFirstSolution ? 'See Other Options' : 'Skip This'}
@@ -614,18 +638,61 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
 
                   {/* Show confirmation when selected */}
                   {isSelected && (
-                    <div className="solution-confirmation">
-                      <div className="solution-approved-text">
-                        ✅ Solution Approved
+                    <div className="bg-success-600/10 border border-success-500/20 rounded-xl p-4">
+                      <div className="text-success-400 font-semibold mb-3 flex items-center gap-2">
+                        <CheckCircle size={16} />
+                        Solution Approved
                       </div>
-                      <button
-                        className="solution-btn execute"
-                        onClick={() => {
-                          alert(`Executing: ${solution.title}\n\nThis would now execute the selected fee payment solution and proceed with your swap.`);
-                        }}
-                      >
-                        <Rocket className="inline w-4 h-4 mr-1" /> Execute & Continue Swap
-                      </button>
+
+                      {showExecutionConfirm === actualIndex ? (
+                        // Execution confirmation dialog
+                        <div className="bg-warning-600/10 border border-warning-500/20 rounded-lg p-4 mb-3">
+                          <div className="text-warning-400 font-semibold mb-2 flex items-center gap-2">
+                            <AlertTriangle size={16} />
+                            Confirm Execution
+                          </div>
+                          <div className="text-sm text-text-secondary mb-4">
+                            This will execute: <strong>{solution.title}</strong>
+                            <br />
+                            Are you ready to proceed with your fee payment solution and continue the swap?
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              className="flex-1 btn-success btn-text"
+                              onClick={() => {
+                                // Set transaction data and show transaction preview modal
+                                if (swapAnalysis) {
+                                  setTransactionData(swapAnalysis);
+                                }
+                                setShowExecutionConfirm(null);
+                                onShowTransactionPreview();
+                              }}
+                            >
+                              Yes, Execute
+                            </button>
+                            <button
+                              className="flex-1 btn-secondary btn-text"
+                              onClick={() => setShowExecutionConfirm(null)}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        // Initial execute button
+                        <button
+                          className="w-full btn-success btn-text"
+                          onClick={() => {
+                            // Set transaction data and show transaction preview modal
+                            if (swapAnalysis) {
+                              setTransactionData(swapAnalysis);
+                            }
+                            onShowTransactionPreview();
+                          }}
+                        >
+                          <Rocket className="inline w-4 h-4 mr-1" /> View & Approve Transaction
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -644,67 +711,6 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
       {/* Gas Optimization */}
       {renderGasOptimization()}
 
-      {/* Transaction Preview */}
-      {swapAnalysis && fromAsset !== toAsset && (
-        <div className="w-full max-w-lg mt-6 rounded-2xl border border-white/10 bg-surface-1 p-8">
-          <div className="flex items-center justify-center mb-8">
-            <span className="heading-4 text-text-primary">📋 Transaction Preview</span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div className="bg-surface-2 rounded-xl p-6">
-              <div className="ui-label text-text-muted mb-2">From</div>
-              <div className="body-md text-text-primary font-semibold">{formatAmount(swapAnalysis.amount)} {swapAnalysis.fromAsset}</div>
-            </div>
-            <div className="bg-surface-2 rounded-xl p-6">
-              <div className="ui-label text-text-muted mb-2">To</div>
-              <div className="body-md text-text-primary font-semibold">{formatAmount(swapAnalysis.outputAmount)} {swapAnalysis.toAsset}</div>
-            </div>
-            <div className="bg-surface-2 rounded-xl p-6">
-              <div className="ui-label text-text-muted mb-2">Rate</div>
-              <div className="body-md text-text-primary font-semibold">1 {swapAnalysis.fromAsset} = {formatAmount(swapAnalysis.rate)} {swapAnalysis.toAsset}</div>
-            </div>
-            <div className="bg-surface-2 rounded-xl p-6">
-              <div className="ui-label text-text-muted mb-2">Route</div>
-              <div className="body-md text-text-primary font-semibold">{swapAnalysis.route.steps.join(' → ')}</div>
-            </div>
-          </div>
-
-          {swapAnalysis.feeRequirements.length > 0 && (
-            <div className="bg-surface-2 rounded-xl p-6 mb-6">
-              <div className="ui-label text-text-muted mb-4">Fee Breakdown</div>
-              {/* Backend: DEX trading fees should pull live data from KongSwap API or ICPSwap API */}
-              <div className="space-y-2">
-                {swapAnalysis.feeRequirements.map((fee: any, index: number) => (
-                  <div key={index} className="flex justify-between items-center body-sm">
-                    <span className="text-text-secondary">{fee.description}</span>
-                    <span className="text-text-primary ui-label">${fee.usdValue.toFixed(2)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="bg-surface-3 rounded-xl p-6 mb-8">
-            <div className="flex justify-between items-center">
-              <span className="body-md text-text-primary font-semibold">Total Fees</span>
-              <span className="body-md text-text-primary font-bold">${swapAnalysis.totalFeesUSD.toFixed(2)}</span>
-            </div>
-          </div>
-
-          <button
-            className="w-full px-6 py-3 rounded-2xl bg-primary-600 hover:bg-primary-500 text-on-primary font-semibold transition-all duration-200"
-            onClick={() => {
-              // Set transaction data and trigger authentication modal
-              setTransactionData(swapAnalysis);
-              setAuthStep('authenticate');
-              setShowAuthModal(true);
-            }}
-          >
-            Execute Swap
-          </button>
-        </div>
-      )}
     </div>
   );
 };
