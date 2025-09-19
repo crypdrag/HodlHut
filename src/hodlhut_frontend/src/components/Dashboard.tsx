@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import DepositModal from './DepositModal';
 import SmartSolutionModal from './SmartSolutionModal';
+import TransactionPreviewModal from './TransactionPreviewModal';
 import AuthenticationModal, { AuthStep, TransactionStep } from './AuthenticationModal';
 import StakingModal from './StakingModal';
 import UnstakingModal from './UnstakingModal';
@@ -200,6 +201,9 @@ const Dashboard: React.FC = () => {
   // Smart Solutions Approval Modal State
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [pendingApproval, setPendingApproval] = useState<EnhancedSmartSolution | null>(null);
+
+  // Transaction Preview Modal State
+  const [showTransactionPreviewModal, setShowTransactionPreviewModal] = useState(false);
 
 
   // Update portfolio when scenario changes
@@ -1262,6 +1266,7 @@ const Dashboard: React.FC = () => {
             handleRejectSolution={handleRejectSolution}
             resetSolutionsView={resetSolutionsView}
             formatNumber={formatNumber}
+            onShowTransactionPreview={() => setShowTransactionPreviewModal(true)}
           />
         );
       case 'myGarden':
@@ -1340,6 +1345,19 @@ const Dashboard: React.FC = () => {
         pendingApproval={pendingApproval}
         onConfirm={handleConfirmApproval}
         onCancel={handleCancelApproval}
+      />
+
+      {/* Transaction Preview Modal */}
+      <TransactionPreviewModal
+        isOpen={showTransactionPreviewModal}
+        transactionData={transactionData}
+        onClose={() => setShowTransactionPreviewModal(false)}
+        onExecute={() => {
+          setShowTransactionPreviewModal(false);
+          // Execute swap directly without authentication modal
+          console.log('Executing swap:', transactionData);
+          // Here you would implement the actual swap execution logic
+        }}
       />
 
       {/* Internet Identity Authentication Modal */}
