@@ -369,7 +369,7 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
     <div className="w-full flex flex-col items-center px-4 py-8">
       <div className="text-center mb-4 md:mb-8">
         <div className="heading-2 text-text-primary mb-2">Swap Assets Crosschain</div>
-        <p className="text-text-secondary">Swap assets within ICP or out to Bitcoin, Ethereum, and Solana</p>
+        <p className="text-text-secondary">Swap assets within ICP or out to Bitcoin and Ethereum.</p>
       </div>
 
       {/* Main Swap Interface */}
@@ -529,6 +529,9 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
         </div>
       )}
 
+      {/* Slippage Settings */}
+      {renderSlippageSettings()}
+
       {/* STEP 2: Choose Your Method (DEX Selection) - COMPACT VERSION */}
       {showDEXSelection && swapAnalysis && fromAsset !== toAsset && (
         <div className="w-full max-w-lg mt-6 rounded-2xl border border-white/10 bg-surface-1 p-8">
@@ -559,12 +562,15 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
         </div>
       )}
 
+      {/* Gas Optimization */}
+      {renderGasOptimization()}
+
       {/* STEP 3: Smart Solutions with Progressive Yes/No Interactions */}
       {showSmartSolutions && smartSolutions.length > 0 && (
         <div className="w-full max-w-lg mt-6 rounded-2xl border border-white/10 bg-surface-1 p-8">
           <div className="flex justify-center items-center gap-3 mb-8">
             <Lightbulb size={24} className="text-primary-500" />
-            <span className="heading-4 text-text-primary">Smart Solutions for Fee Payment</span>
+            <span className="heading-4 text-text-primary">Smart Solutions</span>
             {selectedSolution !== null && (
               <button
                 onClick={resetSolutionsView}
@@ -726,12 +732,6 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
           {renderSmartSolutionsFooter()}
         </div>
       )}
-
-      {/* Slippage Settings */}
-      {renderSlippageSettings()}
-
-      {/* Gas Optimization */}
-      {renderGasOptimization()}
 
     </div>
   );
