@@ -682,6 +682,7 @@ const Dashboard: React.FC = () => {
     setFromAsset('');
     setToAsset('');
     setSwapAmount('');
+    setSelectedDEX(null); // Reset DEX selection to show "Select" instead of "Selected"
     setSwapAnalysis(null);
     setShowRouteDetails(false);
     setShowSmartSolutions(false);
@@ -691,6 +692,32 @@ const Dashboard: React.FC = () => {
     setShowAllSolutions(false);
     setPendingApproval(null);
     setTransactionData(null);
+  };
+
+  // Handle DEX selection for ICP ecosystem swaps (direct to Transaction Preview)
+  const handleDEXSelectedForICPSwap = (dexId: string) => {
+    console.log('🎯 DEX selected for ICP ecosystem swap:', dexId);
+
+    // Update selected DEX
+    setSelectedDEX(dexId);
+
+    // Generate swap analysis with selected DEX
+    if (fromAsset && toAsset && swapAmount && parseFloat(swapAmount) > 0) {
+      const amount = parseFloat(swapAmount);
+      const analysis = analyzeCompleteSwap(fromAsset, toAsset, amount, portfolio, dexId);
+
+      if (analysis.success) {
+        setSwapAnalysis(analysis);
+        setTransactionData(analysis);
+
+        // Immediately open Transaction Preview modal
+        setTimeout(() => {
+          setShowTransactionPreviewModal(true);
+        }, 100); // Small delay to ensure state is set
+      } else {
+        console.error('Failed to generate swap analysis for DEX selection');
+      }
+    }
   };
 
 
@@ -1288,6 +1315,7 @@ const Dashboard: React.FC = () => {
             resetSolutionsView={resetSolutionsView}
             formatNumber={formatNumber}
             onShowTransactionPreview={() => setShowTransactionPreviewModal(true)}
+            onDEXSelectedForICPSwap={handleDEXSelectedForICPSwap}
           />
         );
       case 'myGarden':
