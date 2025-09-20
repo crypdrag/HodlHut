@@ -599,16 +599,38 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
                      <><Lightbulb size={16} className="inline mr-1" />{solution.badge}</>}
                   </div>
 
-                  <div className="heading-4 text-text-primary mb-3">{solution.title}</div>
-                  <div className="body-md text-text-secondary mb-4">{solution.description}</div>
+                  {/* Simplified Smart Solutions Display */}
+                  <div className="space-y-3 mb-4">
+                    {(() => {
+                      // Determine balance token based on destination
+                      const getBalanceToken = () => {
+                        if (toAsset === 'BTC') return 'ckBTC';
+                        if (['ETH', 'USDC', 'USDT'].includes(toAsset)) return 'ckETH';
+                        return solution.cost.asset; // fallback to the cost asset
+                      };
 
-                  <div className="space-y-2 mb-4">
-                    <div className="body-sm text-text-primary">
-                      You'll receive: <span className="ui-label">{formatNumber(solution.userReceives.amount)} {solution.userReceives.asset}</span>
-                    </div>
-                    <div className="body-sm text-text-primary">
-                      Cost: <span className="ui-label">{solution.cost.amount} {solution.cost.asset}</span>
-                    </div>
+                      const balanceToken = getBalanceToken();
+                      const userBalance = portfolio[balanceToken] || 0;
+
+                      return (
+                        <>
+                          <div className="flex justify-between items-center">
+                            <span className="body-sm text-text-secondary">Balance</span>
+                            <span className="body-sm font-semibold text-text-primary">{formatNumber(userBalance)} {balanceToken}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="body-sm text-text-secondary">Gas required</span>
+                            <span className="body-sm font-semibold text-text-primary">{solution.cost.amount} {solution.cost.asset}</span>
+                          </div>
+                          <div className="border-t border-white/10 pt-3">
+                            <div className="flex justify-between items-center">
+                              <span className="body-sm text-text-secondary">You'll receive</span>
+                              <span className="body-sm font-semibold text-success-400">{formatNumber(solution.userReceives.amount)} {solution.userReceives.asset}</span>
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
 
                   {/* Progressive Yes/No Buttons */}

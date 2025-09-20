@@ -490,8 +490,8 @@ export function generateSmartSolutions(
       solutions.push({
         id: `deduct_from_withdrawal_${fee.token}`,
         type: 'deduct_from_swap',
-        title: `✅ ${networkName} gas fees can be deducted from your final ${swapAnalysis.toAsset} balance. Deduct gas fees from ${swapAnalysis.toAsset}?`,
-        description: `The ${formatCleanNumber(fee.amount)} ${fee.token} network fee will be automatically deducted from your withdrawal. You'll receive ${formatCleanNumber(swapAnalysis.outputAmount - fee.amount)} ${swapAnalysis.toAsset} (instead of ${formatCleanNumber(swapAnalysis.outputAmount)} ${swapAnalysis.toAsset}).`,
+        title: ``,
+        description: `${fee.token} gas fee will be deducted from your final ${swapAnalysis.toAsset} amount.`,
         badge: 'RECOMMENDED',
         userReceives: {
           amount: swapAnalysis.outputAmount - fee.amount,

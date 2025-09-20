@@ -36,57 +36,57 @@ const WALLET_OPTIONS: Record<string, WalletOption[]> = {
     { id: 'okx', name: 'OKX Wallet', icon: <WalletIcon wallet="okx" size={20} /> }
   ],
   'ETH': [
-    { id: 'metamask', name: 'MetaMask', icon: <Wallet className="w-4 h-4 text-orange-500" /> },
-    { id: 'coinbase', name: 'Coinbase Wallet', icon: <Circle className="w-4 h-4 text-blue-500" /> },
+    { id: 'metamask', name: 'MetaMask', icon: <Wallet className="w-4 h-4 text-warning-400" /> },
+    { id: 'coinbase', name: 'Coinbase Wallet', icon: <Circle className="w-4 h-4 text-primary-400" /> },
     { id: 'walletconnect', name: 'WalletConnect', icon: <Link className="w-4 h-4" /> }
   ],
   'USDC': [
-    { id: 'metamask', name: 'MetaMask', icon: <Wallet className="w-4 h-4 text-orange-500" /> },
-    { id: 'coinbase', name: 'Coinbase Wallet', icon: <Circle className="w-4 h-4 text-blue-500" /> },
+    { id: 'metamask', name: 'MetaMask', icon: <Wallet className="w-4 h-4 text-warning-400" /> },
+    { id: 'coinbase', name: 'Coinbase Wallet', icon: <Circle className="w-4 h-4 text-primary-400" /> },
     { id: 'walletconnect', name: 'WalletConnect', icon: <Link className="w-4 h-4" /> }
   ],
   'USDT': [
-    { id: 'metamask', name: 'MetaMask', icon: <Wallet className="w-4 h-4 text-orange-500" /> },
-    { id: 'coinbase', name: 'Coinbase Wallet', icon: <Circle className="w-4 h-4 text-blue-500" /> },
+    { id: 'metamask', name: 'MetaMask', icon: <Wallet className="w-4 h-4 text-warning-400" /> },
+    { id: 'coinbase', name: 'Coinbase Wallet', icon: <Circle className="w-4 h-4 text-primary-400" /> },
     { id: 'walletconnect', name: 'WalletConnect', icon: <Link className="w-4 h-4" /> }
   ],
   'ckBTC': [
-    { id: 'plug', name: 'Plug Wallet', icon: <Plug className="w-4 h-4 text-green-500" /> },
-    { id: 'stoic', name: 'Stoic Wallet', icon: <Globe className="w-4 h-4 text-blue-500" /> },
-    { id: 'nfid', name: 'NFID', icon: <User className="w-4 h-4 text-gray-600" /> }
+    { id: 'plug', name: 'Plug Wallet', icon: <Plug className="w-4 h-4 text-success-400" /> },
+    { id: 'stoic', name: 'Stoic Wallet', icon: <Globe className="w-4 h-4 text-primary-400" /> },
+    { id: 'nfid', name: 'NFID', icon: <User className="w-4 h-4 text-text-muted" /> }
   ],
   'ckETH': [
-    { id: 'plug', name: 'Plug Wallet', icon: <Plug className="w-4 h-4 text-green-500" /> },
-    { id: 'stoic', name: 'Stoic Wallet', icon: <Globe className="w-4 h-4 text-blue-500" /> },
-    { id: 'nfid', name: 'NFID', icon: <User className="w-4 h-4 text-gray-600" /> }
+    { id: 'plug', name: 'Plug Wallet', icon: <Plug className="w-4 h-4 text-success-400" /> },
+    { id: 'stoic', name: 'Stoic Wallet', icon: <Globe className="w-4 h-4 text-primary-400" /> },
+    { id: 'nfid', name: 'NFID', icon: <User className="w-4 h-4 text-text-muted" /> }
   ],
   'ckUSDC': [
-    { id: 'plug', name: 'Plug Wallet', icon: <Plug className="w-4 h-4 text-green-500" /> },
-    { id: 'stoic', name: 'Stoic Wallet', icon: <Globe className="w-4 h-4 text-blue-500" /> },
-    { id: 'nfid', name: 'NFID', icon: <User className="w-4 h-4 text-gray-600" /> }
+    { id: 'plug', name: 'Plug Wallet', icon: <Plug className="w-4 h-4 text-success-400" /> },
+    { id: 'stoic', name: 'Stoic Wallet', icon: <Globe className="w-4 h-4 text-primary-400" /> },
+    { id: 'nfid', name: 'NFID', icon: <User className="w-4 h-4 text-text-muted" /> }
   ],
   'ckUSDT': [
-    { id: 'plug', name: 'Plug Wallet', icon: <Plug className="w-4 h-4 text-green-500" /> },
-    { id: 'stoic', name: 'Stoic Wallet', icon: <Globe className="w-4 h-4 text-blue-500" /> },
-    { id: 'nfid', name: 'NFID', icon: <User className="w-4 h-4 text-gray-600" /> }
+    { id: 'plug', name: 'Plug Wallet', icon: <Plug className="w-4 h-4 text-success-400" /> },
+    { id: 'stoic', name: 'Stoic Wallet', icon: <Globe className="w-4 h-4 text-primary-400" /> },
+    { id: 'nfid', name: 'NFID', icon: <User className="w-4 h-4 text-text-muted" /> }
   ],
   'ICP': [
-    { id: 'plug', name: 'Plug Wallet', icon: <Plug className="w-4 h-4 text-green-500" /> },
-    { id: 'stoic', name: 'Stoic Wallet', icon: <Globe className="w-4 h-4 text-blue-500" /> },
-    { id: 'nfid', name: 'NFID', icon: <User className="w-4 h-4 text-gray-600" /> }
+    { id: 'plug', name: 'Plug Wallet', icon: <Plug className="w-4 h-4 text-success-400" /> },
+    { id: 'stoic', name: 'Stoic Wallet', icon: <Globe className="w-4 h-4 text-primary-400" /> },
+    { id: 'nfid', name: 'NFID', icon: <User className="w-4 h-4 text-text-muted" /> }
   ]
 };
 
 const ASSET_ICONS: Record<string, JSX.Element> = {
-  'BTC': <Circle className="w-4 h-4 text-orange-500" />,
-  'ETH': <Circle className="w-4 h-4 text-blue-500" />, 
-  'USDC': <CreditCard className="w-4 h-4 text-green-500" />,
-  'USDT': <CreditCard className="w-4 h-4 text-green-600" />,
-  'ckBTC': <Circle className="w-4 h-4 text-orange-500" />,
-  'ckETH': <Circle className="w-4 h-4 text-blue-500" />,
-  'ckUSDC': <CreditCard className="w-4 h-4 text-green-500" />,
-  'ckUSDT': <CreditCard className="w-4 h-4 text-green-600" />,
-  'ICP': <Globe className="w-4 h-4 text-purple-500" />
+  'BTC': <Circle className="w-4 h-4 text-warning-400" />,
+  'ETH': <Circle className="w-4 h-4 text-primary-400" />, 
+  'USDC': <CreditCard className="w-4 h-4 text-success-400" />,
+  'USDT': <CreditCard className="w-4 h-4 text-success-500" />,
+  'ckBTC': <Circle className="w-4 h-4 text-warning-400" />,
+  'ckETH': <Circle className="w-4 h-4 text-primary-400" />,
+  'ckUSDC': <CreditCard className="w-4 h-4 text-success-400" />,
+  'ckUSDT': <CreditCard className="w-4 h-4 text-success-500" />,
+  'ICP': <Globe className="w-4 h-4 text-secondary-400" />
 };
 
 enum DepositStep {

@@ -264,10 +264,10 @@ const Dashboard: React.FC = () => {
   
   // Ethereum Wallet Options for Transaction
   const ETH_WALLET_OPTIONS = [
-    { id: 'metamask', name: 'MetaMask', icon: <Wallet className="w-4 h-4 text-orange-500" /> },
-    { id: 'coinbase', name: 'Coinbase Wallet', icon: <Circle className="w-4 h-4 text-blue-500" /> },
+    { id: 'metamask', name: 'MetaMask', icon: <Wallet className="w-4 h-4 text-warning-400" /> },
+    { id: 'coinbase', name: 'Coinbase Wallet', icon: <Circle className="w-4 h-4 text-primary-400" /> },
     { id: 'walletconnect', name: 'WalletConnect', icon: <Link className="w-4 h-4" /> },
-    { id: 'rainbow', name: 'Rainbow', icon: <Zap className="w-4 h-4 text-purple-500" /> }
+    { id: 'rainbow', name: 'Rainbow', icon: <Zap className="w-4 h-4 text-secondary-400" /> }
   ];
 
   // Execute transaction steps with timing
@@ -735,8 +735,8 @@ const Dashboard: React.FC = () => {
           </div>
           
           {/* Right: Connection Status */}
-          <div className="flex items-center text-yellow-400 text-xs">
-            <span className="w-2 h-2 rounded-full bg-yellow-400 mr-1"></span>
+          <div className="flex items-center text-warning-400 text-xs">
+            <span className="w-2 h-2 rounded-full bg-warning-400 mr-1"></span>
             Live
           </div>
         </div>
@@ -845,13 +845,13 @@ const Dashboard: React.FC = () => {
             // Returning user: Show Portfolio + Connected status
             <>
               <div className="flex items-center text-success-400"><PieChart className="inline w-4 h-4 mr-1" /> Portfolio: ${calculatePortfolioValue().toLocaleString()}</div>
-              <div className="flex items-center text-yellow-400"><span className="w-2 h-2 rounded-full bg-yellow-400 mr-2"></span> Connected Live Onchain (Demo Mode)</div>
+              <div className="flex items-center text-warning-400"><span className="w-2 h-2 rounded-full bg-warning-400 mr-2"></span> Connected Live Onchain (Demo Mode)</div>
             </>
           ) : (
             // New user: Show Activation countdown + Connected status  
             <>
               <div className="flex items-center text-warning-400"><Clock className="inline w-4 h-4 mr-1" /> Add Assets to activate your Sovereign Hut: {formatTime(timeRemaining)}</div>
-              <div className="flex items-center text-yellow-400"><span className="w-2 h-2 rounded-full bg-yellow-400 mr-2"></span> Connected Live Onchain (Demo Mode)</div>
+              <div className="flex items-center text-warning-400"><span className="w-2 h-2 rounded-full bg-warning-400 mr-2"></span> Connected Live Onchain (Demo Mode)</div>
             </>
           )}
         </div>

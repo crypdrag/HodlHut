@@ -37,15 +37,18 @@ const SmartSolutionModal: React.FC<SmartSolutionModalProps> = ({
   }
 
   return (
-    <div className="modal-overlay" onClick={onCancel}>
-      <div className="smart-solution-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="smart-solution-header">
-          <div className="smart-solution-icon">
-            <Lightbulb size={24} color="#f1760f" />
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={onCancel}>
+      <div className="bg-surface-1 border border-white/20 rounded-2xl max-w-md w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-warning-600/20 flex items-center justify-center">
+              <Lightbulb size={20} className="text-warning-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-text-primary">Approve Smart Solution</h3>
           </div>
-          <h3 className="smart-solution-title">Approve Smart Solution</h3>
           <button
-            className="modal-close-btn"
+            className="w-8 h-8 rounded-full bg-surface-3 hover:bg-surface-2 flex items-center justify-center text-text-muted hover:text-text-primary transition-colors"
             onClick={onCancel}
             aria-label="Close"
           >
@@ -53,39 +56,48 @@ const SmartSolutionModal: React.FC<SmartSolutionModalProps> = ({
           </button>
         </div>
 
-        <div className="smart-solution-content">
-          <div className="solution-details">
-            <h4>{formatTextWithNumbers(pendingApproval.title)}</h4>
-            <p className="solution-description">{formatTextWithNumbers(pendingApproval.description)}</p>
+        {/* Content */}
+        <div className="p-6">
+          <div className="mb-6">
+            <h4 className="text-lg font-semibold text-text-primary mb-2">
+              {formatTextWithNumbers(pendingApproval.title)}
+            </h4>
+            <p className="text-text-secondary leading-relaxed">
+              {formatTextWithNumbers(pendingApproval.description)}
+            </p>
+          </div>
 
-            <div className="solution-breakdown">
-              <div className="cost-item">
-                <span className="label">Cost:</span>
-                <span className="value cost">
+          {/* Cost Breakdown */}
+          <div className="bg-surface-2 rounded-xl p-4 mb-6 space-y-3">
+            <div className="flex justify-between items-start">
+              <span className="text-sm font-medium text-text-secondary">Cost:</span>
+              <div className="text-right">
+                <div className="text-sm font-semibold text-error-400">
                   {formatNumber(parseFloat(pendingApproval.cost.amount))} {pendingApproval.cost.asset}
-                  {pendingApproval.cost.description && (
-                    <div className="cost-description">{pendingApproval.cost.description}</div>
-                  )}
-                </span>
+                </div>
+                {pendingApproval.cost.description && (
+                  <div className="text-xs text-text-muted mt-1">{pendingApproval.cost.description}</div>
+                )}
               </div>
-              <div className="receive-item">
-                <span className="label">You'll receive:</span>
-                <span className="value receive">
-                  {formatNumber(pendingApproval.userReceives.amount)} {pendingApproval.userReceives.asset}
-                </span>
-              </div>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-text-secondary">You'll receive:</span>
+              <span className="text-sm font-semibold text-success-400">
+                {formatNumber(pendingApproval.userReceives.amount)} {pendingApproval.userReceives.asset}
+              </span>
             </div>
           </div>
 
-          <div className="solution-actions">
+          {/* Action Buttons */}
+          <div className="flex gap-3">
             <button
-              className="btn btn-decline"
+              className="flex-1 btn-secondary btn-text"
               onClick={onCancel}
             >
               Decline
             </button>
             <button
-              className="btn btn-approve"
+              className="flex-1 btn-primary btn-text"
               onClick={onConfirm}
             >
               Approve
