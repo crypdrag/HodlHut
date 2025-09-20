@@ -37,6 +37,8 @@ interface CompactDEXSelectorProps {
   // Transaction preview callback for ICP-only swaps
   onShowTransactionPreview?: () => void;
   swapAnalysis?: any; // For checking if it's ICP-only vs cross-chain
+  // Callback to trigger swap analysis generation with selected DEX
+  onDEXSelectedForICPSwap?: (dexId: string) => void;
 }
 
 const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
@@ -48,7 +50,8 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
   swapAmount,
   swapValueUSD,
   onShowTransactionPreview,
-  swapAnalysis
+  swapAnalysis,
+  onDEXSelectedForICPSwap
 }) => {
   const [expandedDEX, setExpandedDEX] = useState<string | null>(null);
 
@@ -168,6 +171,17 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
     setExpandedDEX(expandedDEX === dexId ? null : dexId);
   };
 
+  // Helper function to determine if transaction stays within ICP ecosystem
+  const isICPEcosystemTransaction = (from?: string, to?: string): boolean => {
+    if (!from || !to) return false;
+
+    // ICP ecosystem assets (no L1 withdrawal required)
+    const icpAssets = ['ICP', 'ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT'];
+
+    // Both assets must be in ICP ecosystem for DEX-only transaction
+    return icpAssets.includes(from) && icpAssets.includes(to);
+  };
+
   return (
     <div className="w-full max-w-lg">
       {/* Agent-Driven Smart Recommendation Header */}
@@ -246,11 +260,18 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
                   e.stopPropagation();
                   dex.onSelect();
 
-                  // If this is an ICP-only swap (not cross-chain), trigger Transaction Preview
-                  const isICPOnlySwap = swapAnalysis && !swapAnalysis.isL1Withdrawal;
-                  if (isICPOnlySwap && onShowTransactionPreview && fromAsset && toAsset) {
-                    // Trigger Transaction Preview with live DEX fee data
-                    onShowTransactionPreview();
+                  // For DEX-only transactions (ICP ecosystem), trigger swap analysis and Transaction Preview
+                  const isICPEcosystemSwap = isICPEcosystemTransaction(fromAsset, toAsset);
+                  if (isICPEcosystemSwap && fromAsset && toAsset && swapAmount) {
+                    console.log('🎯 DEX Selected for ICP ecosystem swap:', dex.id, fromAsset, '→', toAsset);
+
+                    // Trigger swap analysis generation with selected DEX, then Transaction Preview
+                    if (onDEXSelectedForICPSwap) {
+                      onDEXSelectedForICPSwap(dex.id);
+                    } else if (onShowTransactionPreview) {
+                      // Fallback to direct Transaction Preview if swap analysis already exists
+                      onShowTransactionPreview();
+                    }
                   }
                 }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${

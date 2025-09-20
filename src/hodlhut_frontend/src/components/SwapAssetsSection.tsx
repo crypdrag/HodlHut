@@ -89,6 +89,7 @@ interface SwapAssetsSectionProps {
   resetSolutionsView: () => void;
   formatNumber: (num: number) => string;
   onShowTransactionPreview: () => void;
+  onDEXSelectedForICPSwap?: (dexId: string) => void;
 }
 
 const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
@@ -120,7 +121,8 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
   handleRejectSolution,
   resetSolutionsView,
   formatNumber,
-  onShowTransactionPreview
+  onShowTransactionPreview,
+  onDEXSelectedForICPSwap
 }) => {
   // State for execution confirmation
   const [showExecutionConfirm, setShowExecutionConfirm] = useState<number | null>(null);
@@ -602,6 +604,7 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
             swapValueUSD={parseFloat(swapAmount || '0') * (ASSET_PRICES[fromAsset] || 0)}
             onShowTransactionPreview={onShowTransactionPreview}
             swapAnalysis={swapAnalysis}
+            onDEXSelectedForICPSwap={onDEXSelectedForICPSwap}
           />
 
           <div className="mt-6 p-4 bg-primary-600/5 rounded-lg border border-primary-600/20">
