@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import DepositModal from './DepositModal';
 import SmartSolutionModal from './SmartSolutionModal';
 import TransactionPreviewModal from './TransactionPreviewModal';
+import ExecutionProgressModal from './ExecutionProgressModal';
 import AuthenticationModal, { AuthStep, TransactionStep } from './AuthenticationModal';
 import StakingModal from './StakingModal';
 import UnstakingModal from './UnstakingModal';
@@ -204,6 +205,9 @@ const Dashboard: React.FC = () => {
 
   // Transaction Preview Modal State
   const [showTransactionPreviewModal, setShowTransactionPreviewModal] = useState(false);
+
+  // Execution Progress Modal State
+  const [showExecutionProgressModal, setShowExecutionProgressModal] = useState(false);
 
 
   // Update portfolio when scenario changes
@@ -655,14 +659,15 @@ const Dashboard: React.FC = () => {
 
   // Smart Solutions Approval Modal Handlers
   const handleConfirmApproval = () => {
-    if (pendingApproval) {
+    if (pendingApproval && swapAnalysis) {
       setSelectedSolution(smartSolutions.indexOf(pendingApproval));
       setShowAllSolutions(false);
-      
-      // Here you would normally execute the actual solution logic
-      // For now, we'll just close the modal and mark as approved
+
+      // Direct transition to Transaction Preview modal
+      setTransactionData(swapAnalysis);
+      setShowTransactionPreviewModal(true);
     }
-    
+
     setShowApprovalModal(false);
     setPendingApproval(null);
   };
@@ -670,6 +675,22 @@ const Dashboard: React.FC = () => {
   const handleCancelApproval = () => {
     setShowApprovalModal(false);
     setPendingApproval(null);
+  };
+
+  // Reset swap assets page to fresh state
+  const resetSwapAssetsPage = () => {
+    setFromAsset('');
+    setToAsset('');
+    setSwapAmount('');
+    setSwapAnalysis(null);
+    setShowRouteDetails(false);
+    setShowSmartSolutions(false);
+    setShowDEXSelection(false);
+    setSmartSolutions([]);
+    setSelectedSolution(null);
+    setShowAllSolutions(false);
+    setPendingApproval(null);
+    setTransactionData(null);
   };
 
 
@@ -1351,12 +1372,15 @@ const Dashboard: React.FC = () => {
       <TransactionPreviewModal
         isOpen={showTransactionPreviewModal}
         transactionData={transactionData}
-        onClose={() => setShowTransactionPreviewModal(false)}
+        onClose={() => {
+          setShowTransactionPreviewModal(false);
+          // Reset entire swap page when transaction is cancelled
+          resetSwapAssetsPage();
+        }}
         onExecute={() => {
           setShowTransactionPreviewModal(false);
-          // Execute swap directly without authentication modal
-          console.log('Executing swap:', transactionData);
-          // Here you would implement the actual swap execution logic
+          // Open ExecutionProgressModal to show transaction progress
+          setShowExecutionProgressModal(true);
         }}
       />
 
@@ -1521,6 +1545,18 @@ const Dashboard: React.FC = () => {
         stakedAmounts={stakedAmounts}
         onClose={closeUnstakingModal}
         onUnstakingConfirmation={openUnstakingConfirmation}
+      />
+
+      {/* Execution Progress Modal */}
+      <ExecutionProgressModal
+        isOpen={showExecutionProgressModal}
+        transactionData={transactionData}
+        onClose={() => setShowExecutionProgressModal(false)}
+        onComplete={() => {
+          setShowExecutionProgressModal(false);
+          // Reset entire swap page when execution is complete
+          resetSwapAssetsPage();
+        }}
       />
 
       {/* Unstaking Confirmation Modal */}

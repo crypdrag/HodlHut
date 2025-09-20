@@ -243,10 +243,20 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
     }
 
     if (hasRecommended) {
+      // Determine network-specific message based on destination
+      let networkMessage = '';
+      if (swapAnalysis && swapAnalysis.destinationChain) {
+        if (swapAnalysis.destinationChain === 'Bitcoin') {
+          networkMessage = 'Crosschaining to the Bitcoin mainnet requires ckBTC for gas.';
+        } else if (swapAnalysis.destinationChain === 'Ethereum') {
+          networkMessage = 'Crosschaining to Ethereum requires ckETH for gas.';
+        }
+      }
+
       return (
         <div className="mt-4 p-3 bg-primary-600/10 border border-primary-500/20 rounded-lg">
           <div className="text-sm text-primary-400">
-            ✅ <strong>Great news!</strong> We found easy solutions for your fee payments. The recommended option is usually the best choice.
+            {networkMessage || 'We found easy solutions for your fee payments. The recommended option is usually the best choice.'}
           </div>
         </div>
       );
@@ -590,6 +600,8 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
             toAsset={toAsset}
             swapAmount={swapAmount}
             swapValueUSD={parseFloat(swapAmount || '0') * (ASSET_PRICES[fromAsset] || 0)}
+            onShowTransactionPreview={onShowTransactionPreview}
+            swapAnalysis={swapAnalysis}
           />
 
           <div className="mt-6 p-4 bg-primary-600/5 rounded-lg border border-primary-600/20">

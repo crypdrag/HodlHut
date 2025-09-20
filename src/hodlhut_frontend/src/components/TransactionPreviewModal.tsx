@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, ArrowRight, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, ArrowRight, AlertTriangle, Wallet, ExternalLink, CheckCircle, Copy } from 'lucide-react';
 import { CompleteSwapAnalysis } from '../../assets/master_swap_logic';
 
 interface TransactionPreviewModalProps {
@@ -15,6 +15,82 @@ const TransactionPreviewModal: React.FC<TransactionPreviewModalProps> = ({
   onClose,
   onExecute
 }) => {
+  // Wallet connection state
+  const [walletConnectionMethod, setWalletConnectionMethod] = useState<'connect' | 'manual'>('connect');
+  const [connectedWallet, setConnectedWallet] = useState<string | null>(null);
+  const [manualAddress, setManualAddress] = useState<string>('');
+  const [addressValid, setAddressValid] = useState<boolean>(false);
+  const [destinationReady, setDestinationReady] = useState<boolean>(false);
+
+  // Reset wallet state when modal opens/closes
+  useEffect(() => {
+    if (!isOpen) {
+      setWalletConnectionMethod('connect');
+      setConnectedWallet(null);
+      setManualAddress('');
+      setAddressValid(false);
+      setDestinationReady(false);
+    }
+  }, [isOpen]);
+
+  // Validate address format
+  useEffect(() => {
+    if (walletConnectionMethod === 'manual' && manualAddress) {
+      // Basic validation (in production, use proper address validation libraries)
+      const isBTCAddress = manualAddress.match(/^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,87}$/);
+      const isETHAddress = manualAddress.match(/^0x[a-fA-F0-9]{40}$/);
+      setAddressValid(!!(isBTCAddress || isETHAddress));
+    } else {
+      setAddressValid(false);
+    }
+  }, [manualAddress, walletConnectionMethod]);
+
+  // Update destination ready status
+  useEffect(() => {
+    const isWalletReady = walletConnectionMethod === 'connect' && connectedWallet;
+    const isManualReady = walletConnectionMethod === 'manual' && addressValid;
+    setDestinationReady(!!(isWalletReady || isManualReady));
+  }, [walletConnectionMethod, connectedWallet, addressValid]);
+
+  // Get destination network info
+  const getDestinationInfo = () => {
+    if (!transactionData) return null;
+
+    const { toAsset } = transactionData;
+    if (toAsset === 'BTC') {
+      return {
+        network: 'Bitcoin',
+        wallets: [
+          { id: 'unisat', name: 'Unisat', icon: '🟠' },
+          { id: 'xverse', name: 'Xverse', icon: '⚫' },
+          { id: 'okx', name: 'OKX Wallet', icon: '🔵' }
+        ],
+        addressPlaceholder: 'bc1q... or 1... or 3...'
+      };
+    } else if (['ETH', 'USDC', 'USDT'].includes(toAsset)) {
+      return {
+        network: 'Ethereum',
+        wallets: [
+          { id: 'metamask', name: 'MetaMask', icon: '🦊' },
+          { id: 'coinbase', name: 'Coinbase Wallet', icon: '🔷' },
+          { id: 'walletconnect', name: 'WalletConnect', icon: '🔗' }
+        ],
+        addressPlaceholder: '0x...'
+      };
+    }
+    return null;
+  };
+
+  // Mock wallet connection (in production, integrate with actual wallet APIs)
+  const handleWalletConnect = async (walletId: string) => {
+    // Simulate connection
+    setConnectedWallet(walletId);
+    // In production:
+    // - Call wallet.connect()
+    // - Get user's address
+    // - Validate network
+  };
+
   // Format amount utility
   const formatAmount = (amount: number | string): string => {
     const num = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -131,6 +207,131 @@ const TransactionPreviewModal: React.FC<TransactionPreviewModalProps> = ({
             </div>
           )}
 
+          {/* Destination Wallet Section */}
+          {transactionData.isL1Withdrawal && getDestinationInfo() && (
+            <div className="bg-warning-600/10 border border-warning-500/20 rounded-xl p-4 mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <AlertTriangle size={16} className="text-warning-400" />
+                <span className="text-sm font-semibold text-warning-400">Destination Required</span>
+              </div>
+
+              <div className="text-xs text-text-secondary mb-4">
+                Where should your {transactionData.toAsset} be sent on {getDestinationInfo()?.network}?
+              </div>
+
+              {/* Connection Method Toggle */}
+              <div className="flex bg-surface-2 rounded-lg p-1 mb-4">
+                <button
+                  className={`flex-1 text-xs font-medium py-2 px-3 rounded-md transition-colors ${
+                    walletConnectionMethod === 'connect'
+                      ? 'bg-primary-600 text-white'
+                      : 'text-text-muted hover:text-text-primary'
+                  }`}
+                  onClick={() => setWalletConnectionMethod('connect')}
+                >
+                  Connect Wallet
+                </button>
+                <button
+                  className={`flex-1 text-xs font-medium py-2 px-3 rounded-md transition-colors ${
+                    walletConnectionMethod === 'manual'
+                      ? 'bg-primary-600 text-white'
+                      : 'text-text-muted hover:text-text-primary'
+                  }`}
+                  onClick={() => setWalletConnectionMethod('manual')}
+                >
+                  Enter Address
+                </button>
+              </div>
+
+              {/* Wallet Connection Options */}
+              {walletConnectionMethod === 'connect' && (
+                <div className="space-y-2">
+                  {getDestinationInfo()?.wallets.map((wallet) => (
+                    <button
+                      key={wallet.id}
+                      className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                        connectedWallet === wallet.id
+                          ? 'border-success-500 bg-success-600/10'
+                          : 'border-white/10 bg-surface-2 hover:bg-surface-3'
+                      }`}
+                      onClick={() => handleWalletConnect(wallet.id)}
+                    >
+                      <span className="text-lg">{wallet.icon}</span>
+                      <span className="text-sm font-medium text-text-primary">{wallet.name}</span>
+                      <div className="ml-auto">
+                        {connectedWallet === wallet.id ? (
+                          <CheckCircle size={16} className="text-success-400" />
+                        ) : (
+                          <ExternalLink size={14} className="text-text-muted" />
+                        )}
+                      </div>
+                    </button>
+                  ))}
+
+                  {connectedWallet && (
+                    <div className="mt-3 p-3 bg-success-600/10 border border-success-500/20 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle size={16} className="text-success-400" />
+                        <span className="text-xs font-medium text-success-400">Wallet Connected</span>
+                      </div>
+                      <div className="text-xs text-text-secondary mt-1">
+                        Ready to receive {transactionData.toAsset}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Manual Address Input */}
+              {walletConnectionMethod === 'manual' && (
+                <div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={manualAddress}
+                      onChange={(e) => setManualAddress(e.target.value)}
+                      placeholder={getDestinationInfo()?.addressPlaceholder}
+                      className={`w-full p-3 bg-surface-2 border rounded-lg text-sm transition-colors ${
+                        manualAddress && addressValid
+                          ? 'border-success-500 text-success-400'
+                          : manualAddress && !addressValid
+                          ? 'border-error-500 text-error-400'
+                          : 'border-white/10 text-text-primary'
+                      }`}
+                    />
+                    {manualAddress && (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        {addressValid ? (
+                          <CheckCircle size={16} className="text-success-400" />
+                        ) : (
+                          <AlertTriangle size={16} className="text-error-400" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {manualAddress && !addressValid && (
+                    <div className="mt-2 text-xs text-error-400">
+                      Please enter a valid {getDestinationInfo()?.network} address
+                    </div>
+                  )}
+
+                  {addressValid && (
+                    <div className="mt-2 p-3 bg-success-600/10 border border-success-500/20 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle size={16} className="text-success-400" />
+                        <span className="text-xs font-medium text-success-400">Valid Address</span>
+                      </div>
+                      <div className="text-xs text-text-secondary mt-1">
+                        {transactionData.toAsset} will be sent to this address
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="flex gap-3 sticky bottom-0 bg-surface-1 pt-4">
             <button
@@ -140,10 +341,29 @@ const TransactionPreviewModal: React.FC<TransactionPreviewModalProps> = ({
               Cancel
             </button>
             <button
-              className="flex-1 btn-primary btn-text"
-              onClick={onExecute}
+              className={`flex-1 btn-text transition-colors ${
+                transactionData.isL1Withdrawal && !destinationReady
+                  ? 'bg-surface-3 text-text-muted cursor-not-allowed'
+                  : 'btn-primary'
+              }`}
+              onClick={() => {
+                if (transactionData.isL1Withdrawal && !destinationReady) return;
+                // Pass destination info to execution
+                const destinationInfo = {
+                  method: walletConnectionMethod,
+                  wallet: connectedWallet,
+                  address: manualAddress,
+                  network: getDestinationInfo()?.network
+                };
+                console.log('Executing with destination:', destinationInfo);
+                onExecute();
+              }}
+              disabled={transactionData.isL1Withdrawal && !destinationReady}
             >
-              Execute Swap
+              {transactionData.isL1Withdrawal && !destinationReady
+                ? 'Select Destination First'
+                : 'Execute Swap'
+              }
             </button>
           </div>
         </div>
