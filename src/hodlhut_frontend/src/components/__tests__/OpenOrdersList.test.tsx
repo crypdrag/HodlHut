@@ -1,0 +1,647 @@
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import '@testing-library/jest-dom';
+import OpenOrdersList from '../OpenOrdersList';
+import { ToastProvider } from '../../contexts/ToastContext';
+import { LimitOrder } from '../../types/orderbook';
+
+// Mock data for testing
+const mockOrders: LimitOrder[] = [
+  {
+    id: 'order_1',
+    userId: 'user_123',
+    side: 'buy',
+    type: 'limit',
+    fromAsset: 'ckBTC',
+    toAsset: 'ICP',
+    price: 12.5,
+    amount: 0.1,
+    filled: 0.05,
+    remaining: 0.05,
+    status: 'partial',
+    createdAt: Date.now() - 3600000, // 1 hour ago
+    updatedAt: Date.now() - 1800000, // 30 minutes ago
+    slippage: 1.0,
+    fees: {
+      estimated: 2.50,
+      actual: 1.25
+    }
+  },
+  {
+    id: 'order_2',
+    userId: 'user_123',
+    side: 'sell',
+    type: 'limit',
+    fromAsset: 'ICP',
+    toAsset: 'ckUSDC',
+    price: 8.75,
+    amount: 100,
+    filled: 0,
+    remaining: 100,
+    status: 'pending',
+    createdAt: Date.now() - 1800000, // 30 minutes ago
+    updatedAt: Date.now() - 1800000,
+    slippage: 0.5,
+    fees: {
+      estimated: 4.20
+    }
+  },
+  {
+    id: 'order_3',
+    userId: 'user_123',
+    side: 'buy',
+    type: 'limit',
+    fromAsset: 'ckUSDC',
+    toAsset: 'ckBTC',
+    price: 65000,
+    amount: 1000,
+    filled: 1000,
+    remaining: 0,
+    status: 'filled',
+    createdAt: Date.now() - 7200000, // 2 hours ago
+    updatedAt: Date.now() - 3600000, // 1 hour ago
+    slippage: 2.0,
+    fees: {
+      estimated: 15.00,
+      actual: 12.80
+    }
+  }
+];
+
+const mockMarketPrices = {
+  'ckBTC/ICP': 13.2,
+  'ICP/ckUSDC': 8.9,
+  'ckUSDC/ckBTC': 64500
+};
+
+// Test wrapper component
+const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <ToastProvider>
+    {children}
+  </ToastProvider>
+);
+
+// Default props for testing
+const defaultProps = {
+  orders: mockOrders,
+  onCancelOrder: jest.fn(),
+  onRefreshOrders: jest.fn(),
+  marketPrices: mockMarketPrices
+};
+
+describe('OpenOrdersList Component', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('Mock Backend Integration', () => {
+    it('should render orders from mock backend data', () => {
+      render(
+        <TestWrapper>
+          <OpenOrdersList {...defaultProps} />
+        </TestWrapper>
+      );
+
+      // Check header
+      expect(screen.getByText('Open Orders')).toBeInTheDocument();
+      expect(screen.getByText('3 orders')).toBeInTheDocument();
+
+      // Check all orders are displayed
+      expect(screen.getByText('ckBTC/ICP')).toBeInTheDocument();
+      expect(screen.getByText('ICP/ckUSDC')).toBeInTheDocument();
+      expect(screen.getByText('ckUSDC/ckBTC')).toBeInTheDocument();
+
+      // Check order sides
+      expect(screen.getAllByText('BUY')).toHaveLength(2);
+      expect(screen.getAllByText('SELL')).toHaveLength(1);
+
+      // Check order statuses (using getAllByText to handle multiple instances)
+      const partialElements = screen.getAllByText('Partial');
+      const pendingElements = screen.getAllByText('Pending');
+      const filledElements = screen.getAllByText('Filled');
+
+      expect(partialElements.length).toBeGreaterThan(0);
+      expect(pendingElements.length).toBeGreaterThan(0);
+      expect(filledElements.length).toBeGreaterThan(0);
+    });
+
+    it('should display correct order details from backend', () => {
+      render(
+        <TestWrapper>
+          <OpenOrdersList {...defaultProps} />
+        </TestWrapper>
+      );
+
+      // Check prices
+      expect(screen.getByText('12.500000')).toBeInTheDocument(); // order_1 price
+      expect(screen.getByText('8.750000')).toBeInTheDocument();  // order_2 price
+
+      // Check amounts and progress
+      expect(screen.getByText('0.0500 / 0.1000')).toBeInTheDocument(); // order_1 progress
+      expect(screen.getByText('0.0000 / 100.0000')).toBeInTheDocument(); // order_2 progress
+      expect(screen.getByText('1000.0000 / 1000.0000')).toBeInTheDocument(); // order_3 progress
+
+      // Check fees
+      expect(screen.getByText('$1.25')).toBeInTheDocument(); // actual fee
+      expect(screen.getByText('$4.20')).toBeInTheDocument(); // estimated fee
+      expect(screen.getByText('$12.80')).toBeInTheDocument(); // actual fee for filled order
+    });
+
+    it('should show market price comparison from backend data', () => {
+      render(
+        <TestWrapper>
+          <OpenOrdersList {...defaultProps} />
+        </TestWrapper>
+      );
+
+      // Market comparison indicators should be present
+      // order_1: price 12.5 vs market 13.2 = favorable for buy order
+      // order_2: price 8.75 vs market 8.9 = favorable for sell order
+
+      // Check for percentage differences (calculated from mock data)
+      const percentageElements = screen.getAllByText(/-?\d+\.\d%/);
+      expect(percentageElements.length).toBeGreaterThan(0);
+    });
+
+    it('should handle empty orders list from backend', () => {
+      render(
+        <TestWrapper>
+          <OpenOrdersList {...defaultProps} orders={[]} />
+        </TestWrapper>
+      );
+
+      expect(screen.getByText('No Orders Found')).toBeInTheDocument();
+      expect(screen.getByText("You don't have any open orders yet.")).toBeInTheDocument();
+      expect(screen.getByText('0 orders')).toBeInTheDocument();
+    });
+
+    it('should handle backend loading state', () => {
+      render(
+        <TestWrapper>
+          <OpenOrdersList
+            {...defaultProps}
+            loading={{ orders: true }}
+          />
+        </TestWrapper>
+      );
+
+      expect(screen.getByText('Loading orders...')).toBeInTheDocument();
+      expect(screen.getByRole('status', { hidden: true })).toBeInTheDocument(); // spinner
+    });
+
+    it('should auto-refresh orders from backend every 30 seconds', async () => {
+      jest.useFakeTimers();
+      const mockRefresh = jest.fn();
+
+      render(
+        <TestWrapper>
+          <OpenOrdersList
+            {...defaultProps}
+            onRefreshOrders={mockRefresh}
+          />
+        </TestWrapper>
+      );
+
+      // Fast-forward 30 seconds
+      jest.advanceTimersByTime(30000);
+
+      await waitFor(() => {
+        expect(mockRefresh).toHaveBeenCalledTimes(1);
+      });
+
+      // Fast-forward another 30 seconds
+      jest.advanceTimersByTime(30000);
+
+      await waitFor(() => {
+        expect(mockRefresh).toHaveBeenCalledTimes(2);
+      });
+
+      jest.useRealTimers();
+    });
+
+    it('should not auto-refresh when loading', () => {
+      jest.useFakeTimers();
+      const mockRefresh = jest.fn();
+
+      render(
+        <TestWrapper>
+          <OpenOrdersList
+            {...defaultProps}
+            onRefreshOrders={mockRefresh}
+            loading={{ orders: true }}
+          />
+        </TestWrapper>
+      );
+
+      // Fast-forward 30 seconds
+      jest.advanceTimersByTime(30000);
+
+      // Should not call refresh while loading
+      expect(mockRefresh).not.toHaveBeenCalled();
+
+      jest.useRealTimers();
+    });
+  });
+
+  describe('Filtering and Sorting', () => {
+    it('should filter orders by status', async () => {
+      const user = userEvent.setup();
+
+      render(
+        <TestWrapper>
+          <OpenOrdersList {...defaultProps} />
+        </TestWrapper>
+      );
+
+      // Filter by pending orders only
+      const filterSelect = screen.getByLabelText(/filter/i);
+      await user.selectOptions(filterSelect, 'pending');
+
+      // Should only show pending order
+      expect(screen.getByText('ICP/ckUSDC')).toBeInTheDocument();
+      expect(screen.queryByText('ckBTC/ICP')).not.toBeInTheDocument();
+      expect(screen.queryByText('ckUSDC/ckBTC')).not.toBeInTheDocument();
+    });
+
+    it('should sort orders by different criteria', async () => {
+      const user = userEvent.setup();
+
+      render(
+        <TestWrapper>
+          <OpenOrdersList {...defaultProps} />
+        </TestWrapper>
+      );
+
+      const sortSelect = screen.getByLabelText(/sort/i);
+
+      // Sort by price
+      await user.selectOptions(sortSelect, 'price');
+
+      // Verify sorting (highest price first)
+      const priceElements = screen.getAllByText(/\d+\.\d{6}/);
+      expect(priceElements[0]).toHaveTextContent('65000.000000'); // ckUSDC/ckBTC
+      expect(priceElements[1]).toHaveTextContent('12.500000');    // ckBTC/ICP
+      expect(priceElements[2]).toHaveTextContent('8.750000');     // ICP/ckUSDC
+    });
+  });
+
+  describe('Order Expansion', () => {
+    it('should expand order details when clicking more button', async () => {
+      const user = userEvent.setup();
+
+      render(
+        <TestWrapper>
+          <OpenOrdersList {...defaultProps} />
+        </TestWrapper>
+      );
+
+      // Click the more button for the first order
+      const moreButtons = screen.getAllByRole('button', { name: /more/i });
+      await user.click(moreButtons[0]);
+
+      // Should show expanded details
+      expect(screen.getByText('Order ID')).toBeInTheDocument();
+      expect(screen.getByText('order_1')).toBeInTheDocument();
+      expect(screen.getByText('Time in Force')).toBeInTheDocument();
+      expect(screen.getByText('GTC')).toBeInTheDocument();
+    });
+
+    it('should collapse expanded order when clicking more button again', async () => {
+      const user = userEvent.setup();
+
+      render(
+        <TestWrapper>
+          <OpenOrdersList {...defaultProps} />
+        </TestWrapper>
+      );
+
+      const moreButtons = screen.getAllByRole('button', { name: /more/i });
+
+      // Expand
+      await user.click(moreButtons[0]);
+      expect(screen.getByText('Order ID')).toBeInTheDocument();
+
+      // Collapse
+      await user.click(moreButtons[0]);
+      expect(screen.queryByText('Order ID')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Manual Refresh', () => {
+    it('should call refresh when refresh button is clicked', async () => {
+      const user = userEvent.setup();
+      const mockRefresh = jest.fn();
+
+      render(
+        <TestWrapper>
+          <OpenOrdersList
+            {...defaultProps}
+            onRefreshOrders={mockRefresh}
+          />
+        </TestWrapper>
+      );
+
+      const refreshButton = screen.getByRole('button', { name: /refresh orders/i });
+      await user.click(refreshButton);
+
+      expect(mockRefresh).toHaveBeenCalledTimes(1);
+    });
+
+    it('should disable refresh button when loading', () => {
+      render(
+        <TestWrapper>
+          <OpenOrdersList
+            {...defaultProps}
+            loading={{ orders: true }}
+          />
+        </TestWrapper>
+      );
+
+      const refreshButton = screen.getByRole('button', { name: /refresh orders/i });
+      expect(refreshButton).toBeDisabled();
+    });
+  });
+
+  describe('Progress Indicators', () => {
+    it('should display correct progress bars for orders', () => {
+      render(
+        <TestWrapper>
+          <OpenOrdersList {...defaultProps} />
+        </TestWrapper>
+      );
+
+      // Check progress bars are rendered
+      const progressBars = screen.getAllByRole('progressbar');
+      expect(progressBars).toHaveLength(3);
+
+      // order_1: 0.05/0.1 = 50% progress
+      // order_2: 0/100 = 0% progress
+      // order_3: 1000/1000 = 100% progress
+
+      // Verify progress values are displayed correctly
+      expect(screen.getByText('0.0500 / 0.1000')).toBeInTheDocument();
+      expect(screen.getByText('0.0000 / 100.0000')).toBeInTheDocument();
+      expect(screen.getByText('1000.0000 / 1000.0000')).toBeInTheDocument();
+    });
+  });
+
+  describe('Time Display', () => {
+    it('should show relative time for order creation', () => {
+      render(
+        <TestWrapper>
+          <OpenOrdersList {...defaultProps} />
+        </TestWrapper>
+      );
+
+      // Check for time ago displays (based on mock data timestamps)
+      expect(screen.getByText('1h ago')).toBeInTheDocument(); // order_1
+      expect(screen.getByText(/\d+m ago/)).toBeInTheDocument(); // order_2
+      expect(screen.getByText('2h ago')).toBeInTheDocument(); // order_3
+    });
+  });
+
+  describe('Order Cancellation with Wallet Signature', () => {
+    it('should show cancel button only for cancellable orders', () => {
+      render(
+        <TestWrapper>
+          <OpenOrdersList {...defaultProps} />
+        </TestWrapper>
+      );
+
+      // Should show cancel buttons for pending and partial orders
+      const cancelButtons = screen.getAllByText('Cancel');
+      expect(cancelButtons).toHaveLength(2); // order_1 (partial) and order_2 (pending)
+
+      // Should not show cancel button for filled order
+      // The filled order should not have a cancel button
+      expect(cancelButtons).toHaveLength(2);
+    });
+
+    it('should open confirmation modal when cancel button is clicked', async () => {
+      const user = userEvent.setup();
+
+      render(
+        <TestWrapper>
+          <OpenOrdersList {...defaultProps} />
+        </TestWrapper>
+      );
+
+      // Click cancel on the first cancellable order
+      const cancelButtons = screen.getAllByText('Cancel');
+      await user.click(cancelButtons[0]);
+
+      // Should show confirmation modal
+      expect(screen.getByText('Cancel Order')).toBeInTheDocument();
+      expect(screen.getByText('Are you sure you want to cancel this order? This action cannot be undone.')).toBeInTheDocument();
+      expect(screen.getByText('Keep Order')).toBeInTheDocument();
+      expect(screen.getByText('Cancel Order')).toBeInTheDocument();
+    });
+
+    it('should close confirmation modal when Keep Order is clicked', async () => {
+      const user = userEvent.setup();
+
+      render(
+        <TestWrapper>
+          <OpenOrdersList {...defaultProps} />
+        </TestWrapper>
+      );
+
+      // Open modal
+      const cancelButtons = screen.getAllByText('Cancel');
+      await user.click(cancelButtons[0]);
+
+      // Click Keep Order
+      await user.click(screen.getByText('Keep Order'));
+
+      // Modal should be closed
+      expect(screen.queryByText('Cancel Order')).not.toBeInTheDocument();
+    });
+
+    it('should call onCancelOrder with correct wallet signature when confirmed', async () => {
+      const user = userEvent.setup();
+      const mockCancelOrder = jest.fn().mockResolvedValue(undefined);
+
+      render(
+        <TestWrapper>
+          <OpenOrdersList
+            {...defaultProps}
+            onCancelOrder={mockCancelOrder}
+          />
+        </TestWrapper>
+      );
+
+      // Open modal for first order (order_1)
+      const cancelButtons = screen.getAllByText('Cancel');
+      await user.click(cancelButtons[0]);
+
+      // Confirm cancellation
+      const confirmButton = screen.getByRole('button', { name: 'Cancel Order' });
+      await user.click(confirmButton);
+
+      // Should call onCancelOrder with the correct order ID
+      expect(mockCancelOrder).toHaveBeenCalledWith('order_1');
+    });
+
+    it('should show success toast after successful cancellation', async () => {
+      const user = userEvent.setup();
+      const mockCancelOrder = jest.fn().mockResolvedValue(undefined);
+
+      render(
+        <TestWrapper>
+          <OpenOrdersList
+            {...defaultProps}
+            onCancelOrder={mockCancelOrder}
+          />
+        </TestWrapper>
+      );
+
+      // Cancel order
+      const cancelButtons = screen.getAllByText('Cancel');
+      await user.click(cancelButtons[0]);
+
+      const confirmButton = screen.getByRole('button', { name: 'Cancel Order' });
+      await user.click(confirmButton);
+
+      // Wait for success toast
+      await waitFor(() => {
+        expect(screen.getByText('Order Cancelled')).toBeInTheDocument();
+        expect(screen.getByText('Your order has been successfully cancelled')).toBeInTheDocument();
+      });
+    });
+
+    it('should show error toast when cancellation fails', async () => {
+      const user = userEvent.setup();
+      const mockCancelOrder = jest.fn().mockRejectedValue(new Error('Wallet signature failed'));
+
+      render(
+        <TestWrapper>
+          <OpenOrdersList
+            {...defaultProps}
+            onCancelOrder={mockCancelOrder}
+          />
+        </TestWrapper>
+      );
+
+      // Cancel order
+      const cancelButtons = screen.getAllByText('Cancel');
+      await user.click(cancelButtons[0]);
+
+      const confirmButton = screen.getByRole('button', { name: 'Cancel Order' });
+      await user.click(confirmButton);
+
+      // Wait for error toast
+      await waitFor(() => {
+        expect(screen.getByText('Cancellation Failed')).toBeInTheDocument();
+        expect(screen.getByText('Unable to cancel order. Please try again.')).toBeInTheDocument();
+      });
+    });
+
+    it('should show loading state during cancellation', async () => {
+      const user = userEvent.setup();
+      let resolveCancellation: (value: unknown) => void;
+      const mockCancelOrder = jest.fn(() =>
+        new Promise(resolve => { resolveCancellation = resolve; })
+      );
+
+      render(
+        <TestWrapper>
+          <OpenOrdersList
+            {...defaultProps}
+            onCancelOrder={mockCancelOrder}
+            loading={{ cancelling: 'order_1' }}
+          />
+        </TestWrapper>
+      );
+
+      // Should show "Cancelling..." text instead of "Cancel"
+      expect(screen.getByText('Cancelling...')).toBeInTheDocument();
+      expect(screen.queryByText('Cancel')).not.toBeInTheDocument();
+    });
+
+    it('should disable cancel button during cancellation', async () => {
+      const user = userEvent.setup();
+      const mockCancelOrder = jest.fn().mockImplementation(() =>
+        new Promise(resolve => setTimeout(resolve, 1000))
+      );
+
+      render(
+        <TestWrapper>
+          <OpenOrdersList
+            {...defaultProps}
+            onCancelOrder={mockCancelOrder}
+          />
+        </TestWrapper>
+      );
+
+      // Start cancellation
+      const cancelButtons = screen.getAllByText('Cancel');
+      await user.click(cancelButtons[0]);
+
+      const confirmButton = screen.getByRole('button', { name: 'Cancel Order' });
+      await user.click(confirmButton);
+
+      // Button should be disabled during processing
+      await waitFor(() => {
+        const processingButton = screen.getByText('Cancelling...');
+        expect(processingButton).toBeDisabled();
+      });
+    });
+
+    it('should handle multiple order cancellations independently', async () => {
+      const user = userEvent.setup();
+      const mockCancelOrder = jest.fn()
+        .mockResolvedValueOnce(undefined) // First call succeeds
+        .mockRejectedValueOnce(new Error('Second call fails')); // Second call fails
+
+      render(
+        <TestWrapper>
+          <OpenOrdersList {...defaultProps} onCancelOrder={mockCancelOrder} />
+        </TestWrapper>
+      );
+
+      // Cancel first order (should succeed)
+      const cancelButtons = screen.getAllByText('Cancel');
+      await user.click(cancelButtons[0]);
+      await user.click(screen.getByRole('button', { name: 'Cancel Order' }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Order Cancelled')).toBeInTheDocument();
+      });
+
+      // Cancel second order (should fail)
+      const remainingCancelButtons = screen.getAllByText('Cancel');
+      await user.click(remainingCancelButtons[0]);
+      await user.click(screen.getByRole('button', { name: 'Cancel Order' }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Cancellation Failed')).toBeInTheDocument();
+      });
+
+      // Should have called cancel twice with different order IDs
+      expect(mockCancelOrder).toHaveBeenCalledTimes(2);
+      expect(mockCancelOrder).toHaveBeenNthCalledWith(1, 'order_1');
+      expect(mockCancelOrder).toHaveBeenNthCalledWith(2, 'order_2');
+    });
+
+    it('should not show cancel button for filled or cancelled orders', () => {
+      const ordersWithDifferentStatuses: LimitOrder[] = [
+        { ...mockOrders[0], status: 'filled' },
+        { ...mockOrders[1], status: 'cancelled' },
+        { ...mockOrders[2], status: 'failed' }
+      ];
+
+      render(
+        <TestWrapper>
+          <OpenOrdersList
+            {...defaultProps}
+            orders={ordersWithDifferentStatuses}
+          />
+        </TestWrapper>
+      );
+
+      // Should not show any cancel buttons for non-cancellable orders
+      expect(screen.queryByText('Cancel')).not.toBeInTheDocument();
+    });
+  });
+});

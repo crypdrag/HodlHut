@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, CheckCircle, Circle, AlertTriangle, Clock } from 'lucide-react';
 import { CompleteSwapAnalysis } from '../../assets/master_swap_logic';
+import ResultIndicator from './ResultIndicator';
 
 interface ProgressStep {
   id: string;
@@ -258,18 +259,15 @@ const ExecutionProgressModal: React.FC<ExecutionProgressModalProps> = ({
             ))}
           </div>
 
-          {/* Completion Message */}
+          {/* Completion Message with SIMULATED/REAL indicator */}
           {allCompleted && (
-            <div className="mt-6 p-4 bg-success-600/10 border border-success-500/20 rounded-xl">
-              <div className="flex items-center gap-2">
-                <CheckCircle size={16} className="text-success-400" />
-                <span className="text-sm font-semibold text-success-400">
-                  Transaction completed successfully!
-                </span>
-              </div>
-              <p className="text-xs text-text-secondary mt-1">
-                Your {transactionData.toAsset} has been delivered to your wallet.
-              </p>
+            <div className="mt-6">
+              <ResultIndicator
+                transactionId={`tx_${Date.now()}_swap_${transactionData.fromAsset}_${transactionData.toAsset}`}
+                receivedAmount={transactionData.outputAmount?.toString() || '0'}
+                assetSymbol={transactionData.toAsset}
+                details={`Swap executed via ${transactionData.route?.steps?.[0] || 'DEX'} routing. Transaction completed successfully.`}
+              />
             </div>
           )}
 

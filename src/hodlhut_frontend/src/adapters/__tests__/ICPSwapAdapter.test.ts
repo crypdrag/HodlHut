@@ -211,7 +211,7 @@ describe('ICPSwapAdapter', () => {
       const largeTrade = await adapter.getQuote('ckETH', 'ckUSDC', 100_000_000_000_000_000_000n as any); // ~$320k
 
       // Medium trade should get RECOMMENDED badge
-      expect(['RECOMMENDED', 'MOST_LIQUID', 'LOWEST_COST']).toContain(mediumTrade.badge);
+      expect(['RECOMMENDED', 'MOST_LIQUID', 'CHEAPEST']).toContain(mediumTrade.badge);
 
       // Medium trade should have competitive scoring
       expect(mediumTrade.score).toBeGreaterThanOrEqual(smallTrade.score * 0.8);

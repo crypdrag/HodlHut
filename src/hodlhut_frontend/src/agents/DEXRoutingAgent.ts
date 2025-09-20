@@ -201,7 +201,7 @@ export class DEXRoutingAgent implements IDEXRoutingAgent {
     } else if (quote.fee === lowestFee) {
       quote.badge = 'CHEAPEST';
     } else if (quote.slippage === lowestSlippage) {
-      quote.badge = 'LOWEST_COST';
+      quote.badge = 'CHEAPEST';
     } else if (quote.liquidityUsd === highestLiquidity) {
       quote.badge = 'ADVANCED';
     } else if (quote.estimatedSpeed.includes('1.') || quote.estimatedSpeed.includes('0.')) {

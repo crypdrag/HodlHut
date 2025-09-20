@@ -94,7 +94,7 @@ describe('ICDEXAdapter', () => {
       expect(largeTradeQuote.slippage).toBeLessThanOrEqual(smallTradeQuote.slippage);
 
       // Large trades should get professional badge
-      expect(['RECOMMENDED', 'ADVANCED', 'LOWEST_COST']).toContain(largeTradeQuote.badge);
+      expect(['RECOMMENDED', 'ADVANCED', 'CHEAPEST']).toContain(largeTradeQuote.badge);
     });
 
     it('should assign appropriate badges for different trade sizes', async () => {
@@ -107,7 +107,7 @@ describe('ICDEXAdapter', () => {
       const largeTrade = await adapter.getQuote('ckBTC', 'ckUSDC', 50_000_000); // ~$32.5k
       expect(['ADVANCED', 'RECOMMENDED']).toContain(largeTrade.badge);
 
-      // High liquidity scenarios should get LOWEST_COST
+      // High liquidity scenarios should get CHEAPEST
       // This depends on the mock liquidity data for specific pairs
     });
 

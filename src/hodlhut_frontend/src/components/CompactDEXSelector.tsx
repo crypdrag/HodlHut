@@ -304,7 +304,6 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
                           dex.badge.text === 'RECOMMENDED' ? 'bg-success-400/15 text-success-300' :
                           dex.badge.text === 'FASTEST' ? 'bg-warning-400/15 text-warning-300' :
                           dex.badge.text === 'CHEAPEST' ? 'bg-primary-600/15 text-primary-400' :
-                          dex.badge.text === 'LOWEST_COST' ? 'bg-primary-600/15 text-primary-400' :
                           dex.badge.type === 'speed'
                             ? 'bg-warning-400/15 text-warning-300'
                             : 'bg-primary-600/15 text-primary-400'
