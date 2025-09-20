@@ -65,3 +65,137 @@ export interface EnhancedDEXData {
   maxTradeUsd?: number;     // maximum recommended trade size
   orderTypes?: string[];    // e.g., ["Market", "Limit"] for ICDEX
 }
+
+// Mock data for stub implementations
+export const MOCK_EXCHANGE_RATES: Record<string, Record<string, number>> = {
+  'ICP': {
+    'ckBTC': 0.000002,
+    'ckETH': 0.00003,
+    'ckUSDC': 12.0,
+    'ckUSDT': 12.0
+  },
+  'ckBTC': {
+    'ICP': 500000.0,
+    'ckETH': 15.0,
+    'ckUSDC': 65000.0,
+    'ckUSDT': 65000.0
+  },
+  'ckETH': {
+    'ICP': 33333.0,
+    'ckBTC': 0.067,
+    'ckUSDC': 3200.0,
+    'ckUSDT': 3200.0
+  },
+  'ckUSDC': {
+    'ICP': 0.083,
+    'ckBTC': 0.0000154,
+    'ckETH': 0.0003125,
+    'ckUSDT': 1.0
+  },
+  'ckUSDT': {
+    'ICP': 0.083,
+    'ckBTC': 0.0000154,
+    'ckETH': 0.0003125,
+    'ckUSDC': 1.0
+  }
+};
+
+// Mock liquidity data (in USD)
+export const MOCK_LIQUIDITY_USD: Record<string, Record<string, number>> = {
+  'ICP': {
+    'ckBTC': 2500000,  // $2.5M
+    'ckETH': 1800000,   // $1.8M
+    'ckUSDC': 5000000,  // $5M
+    'ckUSDT': 3200000   // $3.2M
+  },
+  'ckBTC': {
+    'ICP': 2500000,
+    'ckETH': 8500000,   // $8.5M
+    'ckUSDC': 12000000, // $12M
+    'ckUSDT': 9000000   // $9M
+  },
+  'ckETH': {
+    'ICP': 1800000,
+    'ckBTC': 8500000,
+    'ckUSDC': 15000000, // $15M
+    'ckUSDT': 11000000  // $11M
+  },
+  'ckUSDC': {
+    'ICP': 5000000,
+    'ckBTC': 12000000,
+    'ckETH': 15000000,
+    'ckUSDT': 25000000  // $25M
+  },
+  'ckUSDT': {
+    'ICP': 3200000,
+    'ckBTC': 9000000,
+    'ckETH': 11000000,
+    'ckUSDC': 25000000
+  }
+};
+
+// Utility functions for stub implementations
+export class DEXUtils {
+  // Calculate slippage based on trade size and liquidity
+  static calculateSlippage(tradeAmountUsd: number, liquidityUsd: number): number {
+    const impactRatio = tradeAmountUsd / liquidityUsd;
+
+    if (impactRatio < 0.001) return 0.05; // 0.05% for small trades
+    if (impactRatio < 0.01) return 0.1;   // 0.1% for medium trades
+    if (impactRatio < 0.05) return 0.5;   // 0.5% for large trades
+    if (impactRatio < 0.1) return 1.0;    // 1% for very large trades
+    return 2.5; // 2.5% for huge trades
+  }
+
+  // Convert amount to USD for calculations
+  static convertToUSD(amount: number, token: string): number {
+    const usdRates: Record<string, number> = {
+      'ICP': 12.0,
+      'ckBTC': 65000.0,
+      'ckETH': 3200.0,
+      'ckUSDC': 1.0,
+      'ckUSDT': 1.0
+    };
+
+    const decimals = this.getTokenDecimals(token);
+    const humanAmount = amount / Math.pow(10, decimals);
+    return humanAmount * (usdRates[token] || 1.0);
+  }
+
+  // Get decimal places for token
+  static getTokenDecimals(token: string): number {
+    switch (token) {
+      case 'ICP':
+      case 'ckBTC':
+        return 8;
+      case 'ckETH':
+        return 18;
+      case 'ckUSDC':
+      case 'ckUSDT':
+        return 6;
+      default:
+        return 8;
+    }
+  }
+
+  // Calculate score based on slippage, fee, and liquidity
+  static calculateScore(slippage: number, fee: number, liquidityUsd: number, speed: string): number {
+    let score = 100;
+
+    // Penalize high slippage (weight: 40%)
+    score -= (slippage * 8); // 1% slippage = -8 points
+
+    // Penalize high fees (weight: 30%)
+    score -= (fee * 10); // 0.3% fee = -3 points
+
+    // Reward high liquidity (weight: 20%)
+    const liquidityScore = Math.min(liquidityUsd / 1000000, 10); // Cap at 10M
+    score += liquidityScore * 2;
+
+    // Speed bonus (weight: 10%)
+    if (speed.includes('1.5s') || speed.includes('5-15')) score += 5;
+    else if (speed.includes('orderbook')) score += 3;
+
+    return Math.max(0, Math.min(100, score));
+  }
+}

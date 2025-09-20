@@ -17,6 +17,14 @@
     "hodlhut_backend": {
       "main": "src/hodlhut_backend/main.mo",
       "type": "motoko"
+    },
+    "hutfactory": {
+      "main": "src/hutfactory/main.mo",
+      "type": "motoko"
+    },
+    "myhut": {
+      "main": "src/myhut/main.mo",
+      "type": "motoko"
     }
   },
   "defaults": {
