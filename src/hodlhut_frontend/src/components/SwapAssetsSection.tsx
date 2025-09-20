@@ -340,13 +340,51 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
   };
 
   const renderGasOptimization = () => {
+    // Only show for L1 withdrawals - hide for ICP-only transactions
+    if (!swapAnalysis || !swapAnalysis.isL1Withdrawal || !swapAnalysis.destinationChain) {
+      return null;
+    }
+
+    const destinationChain = swapAnalysis.destinationChain;
     let recommendation = '';
-    if (currentGasPrice < 20) {
-      recommendation = 'Gas is 15% lower than average. Good time to transact!';
-    } else if (currentGasPrice < 30) {
-      recommendation = 'Gas is average. Consider waiting for lower fees.';
+    let colorClass = '';
+    let currentFeeDisplay = '';
+    let optimizationTitle = '';
+
+    if (destinationChain === 'Bitcoin') {
+      // Bitcoin fee logic (sats/vB or BTC)
+      const btcFeeRate = Math.floor(Math.random() * 20) + 10; // 10-30 sats/vB simulation
+      optimizationTitle = 'Bitcoin Fee Optimization';
+      currentFeeDisplay = `Current: ${btcFeeRate} sats/vB`;
+
+      if (btcFeeRate < 15) {
+        recommendation = 'Bitcoin fees are low. Good time to transact!';
+        colorClass = 'text-success-400';
+      } else if (btcFeeRate < 25) {
+        recommendation = 'Bitcoin fees are average';
+        colorClass = 'text-warning-400';
+      } else {
+        recommendation = 'Bitcoin fees are high';
+        colorClass = 'text-error-400';
+      }
+    } else if (destinationChain === 'Ethereum') {
+      // Ethereum gwei logic (existing logic)
+      optimizationTitle = 'Ethereum Gas Optimization';
+      currentFeeDisplay = `Current: ${currentGasPrice} gwei`;
+
+      if (currentGasPrice < 20) {
+        recommendation = 'Gas is 15% lower than average. Good time to transact!';
+        colorClass = 'text-success-400';
+      } else if (currentGasPrice < 30) {
+        recommendation = 'Gas is average';
+        colorClass = 'text-warning-400';
+      } else {
+        recommendation = 'Gas is high';
+        colorClass = 'text-error-400';
+      }
     } else {
-      recommendation = 'Gas is high. Consider delaying or using smart solutions.';
+      // Fallback for other chains or hide
+      return null;
     }
 
     return (
@@ -354,11 +392,11 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
         <div className="flex items-center justify-between mb-2">
           <span className="flex items-center gap-2 font-semibold text-text-primary">
             <Fuel size={16} />
-            Gas Optimization
+            {optimizationTitle}
           </span>
-          <span className="text-sm font-medium text-text-secondary">Current: {currentGasPrice} gwei</span>
+          <span className="text-sm font-medium text-text-secondary">{currentFeeDisplay}</span>
         </div>
-        <div className="text-sm text-text-secondary">
+        <div className={`text-sm font-medium ${colorClass}`}>
           {recommendation}
         </div>
       </div>
