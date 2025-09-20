@@ -2,19 +2,34 @@
 // Implements scoring logic and quote aggregation based on your specifications
 
 import { DEXQuote, RouteInput, ScoringWeights, DEXAdapter, DEXRoutingAgent as IDEXRoutingAgent } from '../types/dex';
+import { ICDEXAdapter } from '../adapters/ICDEXAdapter';
+import { ICPSwapAdapter } from '../adapters/ICPSwapAdapter';
+import { KongSwapAdapter } from '../adapters/KongSwapAdapter';
 
 export class DEXRoutingAgent implements IDEXRoutingAgent {
   private adapters: Map<string, DEXAdapter> = new Map();
+  private readonly QUOTE_TIMEOUT_MS = 3000; // 3-second timeout for parallel calls
   private scoringWeights: ScoringWeights = {
-    slippage: 0.40,        // 40% weight - direct impact on trade value
-    fee: 0.30,             // 30% weight - AMM fee or taker fee
-    speed: 0.15,           // 15% weight - swap execution latency
-    liquidityDepth: 0.10,  // 10% weight - pool depth or book size
+    slippage: 0.35,        // 35% weight - price impact (reduced for speed focus)
+    fee: 0.35,             // 35% weight - direct cost impact
+    speed: 0.20,           // 20% weight - execution speed (increased priority)
+    liquidityDepth: 0.05,  // 5% weight - pool depth
     availability: 0.05     // 5% weight - error/timeout history
   };
 
+  // Performance tracking
+  private performanceMetrics = {
+    totalRequests: 0,
+    timeouts: 0,
+    averageResponseTime: 0,
+    lastRequestTime: 0
+  };
+
   constructor() {
-    // Adapters will be registered by individual agent stubs
+    // Initialize with our stub adapters
+    this.registerAdapter(new ICDEXAdapter());
+    this.registerAdapter(new ICPSwapAdapter());
+    this.registerAdapter(new KongSwapAdapter());
   }
 
   // Register a DEX adapter
@@ -32,34 +47,31 @@ export class DEXRoutingAgent implements IDEXRoutingAgent {
     this.scoringWeights = { ...this.scoringWeights, ...weights };
   }
 
-  // Main routing method - returns sorted quotes based on your scoring algorithm
+  // Main routing method - returns sorted quotes based on price and speed scoring
   async getBestRoutes(input: RouteInput): Promise<DEXQuote[]> {
+    const startTime = Date.now();
+    this.performanceMetrics.totalRequests++;
+    this.performanceMetrics.lastRequestTime = startTime;
+
     const quotes: DEXQuote[] = [];
 
-    // STEP 1: Pull quotes in parallel from active DEXs
-    const quotePromises = Array.from(this.adapters.entries()).map(async ([dexName, adapter]) => {
-      try {
-        // Apply threshold logic - ICDEX only for trades >$500 equivalent
-        const shouldIncludeICDEX = input.amount > 500_000_000; // 500M in token decimals
-        if (dexName === 'ICDEX' && !shouldIncludeICDEX) {
-          return null;
-        }
+    // STEP 1: Execute all adapter calls in parallel with 3-second timeout
+    const quotePromises = Array.from(this.adapters.entries()).map(([dexName, adapter]) =>
+      this.getQuoteWithTimeout(dexName, adapter, input)
+    );
 
-        const isAvailable = await adapter.isAvailable();
-        if (!isAvailable) {
-          return this.createErrorQuote(dexName, 'DEX unavailable');
-        }
+    // Wait for all quotes with individual timeouts
+    const results = await Promise.allSettled(quotePromises);
 
-        return await adapter.getQuote(input.fromToken, input.toToken, input.amount);
-      } catch (error) {
-        return this.createErrorQuote(dexName, `Quote failed: ${error}`);
+    // Process results and collect quotes
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled' && result.value !== null) {
+        quotes.push(result.value);
       }
+      // Timeouts and errors are already handled in getQuoteWithTimeout
     });
 
-    const results = await Promise.all(quotePromises);
-    quotes.push(...results.filter(quote => quote !== null) as DEXQuote[]);
-
-    // STEP 2: Attach scoring metadata to each quote
+    // STEP 2: Score all quotes prioritizing price and speed
     for (const quote of quotes) {
       if (!quote.quoteError) {
         quote.score = this.scoreQuote(quote, input);
@@ -72,10 +84,49 @@ export class DEXRoutingAgent implements IDEXRoutingAgent {
     // STEP 3: Sort by score descending (highest score first)
     quotes.sort((a, b) => b.score - a.score);
 
-    // STEP 4: Apply dynamic weight adjustments based on user preferences
+    // STEP 4: Apply user preference adjustments
     this.adjustScoresForPreferences(quotes, input);
 
+    // Update performance metrics
+    const responseTime = Date.now() - startTime;
+    this.updatePerformanceMetrics(responseTime);
+
     return quotes;
+  }
+
+  // Execute quote request with timeout protection
+  private async getQuoteWithTimeout(dexName: string, adapter: DEXAdapter, input: RouteInput): Promise<DEXQuote | null> {
+    try {
+      // Apply threshold logic - ICDEX only for trades >$500 equivalent
+      const shouldIncludeICDEX = input.amount > 500_000_000; // 500M in token decimals
+      if (dexName === 'ICDEX' && !shouldIncludeICDEX) {
+        return null;
+      }
+
+      // Create timeout promise
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Quote request timeout')), this.QUOTE_TIMEOUT_MS);
+      });
+
+      // Create adapter calls promise
+      const quotePromise = (async () => {
+        const isAvailable = await adapter.isAvailable();
+        if (!isAvailable) {
+          return this.createErrorQuote(dexName, 'DEX unavailable');
+        }
+        return await adapter.getQuote(input.fromToken, input.toToken, input.amount);
+      })();
+
+      // Race between quote and timeout
+      return await Promise.race([quotePromise, timeoutPromise]);
+
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Quote request timeout') {
+        this.performanceMetrics.timeouts++;
+        return this.createErrorQuote(dexName, `Request timeout (>${this.QUOTE_TIMEOUT_MS}ms)`);
+      }
+      return this.createErrorQuote(dexName, `Quote failed: ${error}`);
+    }
   }
 
   // Get quote from specific DEX
@@ -200,6 +251,47 @@ export class DEXRoutingAgent implements IDEXRoutingAgent {
       score: 0,
       reason: `${dexName} unavailable`,
       quoteError: error
+    };
+  }
+
+  // Update performance tracking metrics
+  private updatePerformanceMetrics(responseTime: number): void {
+    const alpha = 0.1; // Exponential smoothing factor
+    this.performanceMetrics.averageResponseTime =
+      this.performanceMetrics.averageResponseTime === 0
+        ? responseTime
+        : (1 - alpha) * this.performanceMetrics.averageResponseTime + alpha * responseTime;
+  }
+
+  // Get performance metrics for monitoring
+  getPerformanceMetrics() {
+    return {
+      ...this.performanceMetrics,
+      timeoutRate: this.performanceMetrics.totalRequests > 0
+        ? (this.performanceMetrics.timeouts / this.performanceMetrics.totalRequests) * 100
+        : 0,
+      uptime: this.performanceMetrics.totalRequests > 0
+        ? ((this.performanceMetrics.totalRequests - this.performanceMetrics.timeouts) / this.performanceMetrics.totalRequests) * 100
+        : 100
+    };
+  }
+
+  // Enhanced liquidity-aware routing status
+  getRoutingStatus() {
+    const availableDEXs = this.getAvailableDEXs();
+    const metrics = this.getPerformanceMetrics();
+
+    return {
+      activeDEXs: availableDEXs.length,
+      dexNames: availableDEXs,
+      performanceMetrics: metrics,
+      routingFeatures: {
+        parallelExecution: true,
+        timeoutProtection: `${this.QUOTE_TIMEOUT_MS}ms`,
+        liquidityAwareSlippage: true,
+        dynamicScoring: true,
+        tradeSizeOptimization: true
+      }
     };
   }
 }

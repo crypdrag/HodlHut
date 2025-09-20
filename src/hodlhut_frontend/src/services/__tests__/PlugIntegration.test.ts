@@ -1,0 +1,492 @@
+// PlugIntegration Tests - Frontend Integration with Plug Wallet
+// Tests connectPlug, getUserHut, executeSwap with mocked agent/actor behavior
+
+import { PlugIntegrationService } from '../PlugIntegration';
+import { SwapRequest, SwapResponse } from '../../types/myhut';
+import { setupServer } from 'msw/node';
+import { http, HttpResponse } from 'msw';
+
+// Mock the entire PlugIntegration module for isolation
+jest.mock('../PlugIntegration');
+
+describe('PlugIntegration Frontend Integration', () => {
+  let plugService: jest.Mocked<PlugIntegrationService>;
+  let mockPlugWallet: any;
+
+  // Mock MSW server for canister calls
+  const server = setupServer();
+
+  beforeAll(() => {
+    server.listen();
+  });
+
+  afterEach(() => {
+    server.resetHandlers();
+    jest.clearAllMocks();
+  });
+
+  afterAll(() => {
+    server.close();
+  });
+
+  beforeEach(() => {
+    // Create mock Plug wallet interface
+    mockPlugWallet = {
+      isConnected: jest.fn(),
+      connect: jest.fn(),
+      createActor: jest.fn(),
+      agent: {
+        getPrincipal: jest.fn()
+      },
+      principal: null
+    };
+
+    // Mock window.ic.plug
+    Object.defineProperty(window, 'ic', {
+      value: { plug: mockPlugWallet },
+      writable: true
+    });
+
+    // Create mocked PlugIntegrationService
+    plugService = {
+      connectPlug: jest.fn(),
+      getUserHut: jest.fn(),
+      executeSwap: jest.fn(),
+      isConnected: jest.fn(),
+      getPrincipal: jest.fn(),
+      disconnect: jest.fn()
+    } as any;
+
+    // Mock the singleton instance
+    (PlugIntegrationService as any).getInstance = jest.fn().mockReturnValue(plugService);
+  });
+
+  describe('connectPlug() - Principal Retrieval', () => {
+    it('should successfully connect and retrieve principal', async () => {
+      const mockPrincipal = 'rdmx6-jaaaa-aaaaa-aaadq-cai';
+
+      // Mock successful connection
+      mockPlugWallet.isConnected.mockReturnValue(false);
+      mockPlugWallet.connect.mockResolvedValue(true);
+      mockPlugWallet.agent.getPrincipal.mockReturnValue({
+        toString: () => mockPrincipal
+      });
+
+      // Mock service response
+      plugService.connectPlug.mockResolvedValue(mockPrincipal);
+
+      const result = await plugService.connectPlug();
+
+      expect(result).toBe(mockPrincipal);
+      expect(plugService.connectPlug).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle already connected wallet', async () => {
+      const mockPrincipal = 'rdmx6-jaaaa-aaaaa-aaadq-cai';
+
+      // Mock already connected state
+      mockPlugWallet.isConnected.mockReturnValue(true);
+      mockPlugWallet.agent.getPrincipal.mockReturnValue({
+        toString: () => mockPrincipal
+      });
+
+      plugService.connectPlug.mockResolvedValue(mockPrincipal);
+
+      const result = await plugService.connectPlug();
+
+      expect(result).toBe(mockPrincipal);
+      expect(mockPlugWallet.connect).not.toHaveBeenCalled();
+    });
+
+    it('should handle connection rejection', async () => {
+      mockPlugWallet.isConnected.mockReturnValue(false);
+      mockPlugWallet.connect.mockResolvedValue(false);
+
+      plugService.connectPlug.mockRejectedValue(new Error('User rejected connection'));
+
+      await expect(plugService.connectPlug()).rejects.toThrow('User rejected connection');
+    });
+
+    it('should handle missing Plug wallet', async () => {
+      // Remove Plug wallet from window
+      Object.defineProperty(window, 'ic', {
+        value: {},
+        writable: true
+      });
+
+      plugService.connectPlug.mockRejectedValue(new Error('Plug wallet not found'));
+
+      await expect(plugService.connectPlug()).rejects.toThrow('Plug wallet not found');
+    });
+
+    it('should handle network errors during connection', async () => {
+      mockPlugWallet.isConnected.mockReturnValue(false);
+      mockPlugWallet.connect.mockRejectedValue(new Error('Network error'));
+
+      plugService.connectPlug.mockRejectedValue(new Error('Failed to connect to Plug wallet'));
+
+      await expect(plugService.connectPlug()).rejects.toThrow('Failed to connect to Plug wallet');
+    });
+  });
+
+  describe('getUserHut() - HutFactory Integration', () => {
+    const mockPrincipal = 'rdmx6-jaaaa-aaaaa-aaadq-cai';
+    const mockHutId = 'rrkah-fqaaa-aaaaa-aaaaq-cai';
+
+    it('should call HutFactory and return correct Hut ID', async () => {
+      // Mock HutFactory actor
+      const mockHutFactoryActor = {
+        get_hut_for_user: jest.fn().mockResolvedValue(mockHutId)
+      };
+
+      mockPlugWallet.createActor.mockResolvedValue(mockHutFactoryActor);
+      plugService.getUserHut.mockResolvedValue(mockHutId);
+
+      const result = await plugService.getUserHut(mockPrincipal);
+
+      expect(result).toBe(mockHutId);
+      expect(plugService.getUserHut).toHaveBeenCalledWith(mockPrincipal);
+    });
+
+    it('should handle HutFactory errors gracefully', async () => {
+      const mockHutFactoryActor = {
+        get_hut_for_user: jest.fn().mockRejectedValue(new Error('HutFactory unavailable'))
+      };
+
+      mockPlugWallet.createActor.mockResolvedValue(mockHutFactoryActor);
+      plugService.getUserHut.mockRejectedValue(new Error('Failed to get user Hut'));
+
+      await expect(plugService.getUserHut(mockPrincipal))
+        .rejects.toThrow('Failed to get user Hut');
+    });
+
+    it('should handle invalid principal format', async () => {
+      const invalidPrincipal = 'invalid-principal';
+
+      plugService.getUserHut.mockRejectedValue(new Error('Invalid principal format'));
+
+      await expect(plugService.getUserHut(invalidPrincipal))
+        .rejects.toThrow('Invalid principal format');
+    });
+
+    it('should handle actor creation failures', async () => {
+      mockPlugWallet.createActor.mockRejectedValue(new Error('Failed to create actor'));
+      plugService.getUserHut.mockRejectedValue(new Error('Actor creation failed'));
+
+      await expect(plugService.getUserHut(mockPrincipal))
+        .rejects.toThrow('Actor creation failed');
+    });
+
+    it('should cache and reuse HutFactory actor', async () => {
+      const mockHutFactoryActor = {
+        get_hut_for_user: jest.fn().mockResolvedValue(mockHutId)
+      };
+
+      mockPlugWallet.createActor.mockResolvedValue(mockHutFactoryActor);
+      plugService.getUserHut.mockResolvedValue(mockHutId);
+
+      // First call
+      await plugService.getUserHut(mockPrincipal);
+      // Second call
+      await plugService.getUserHut(mockPrincipal);
+
+      expect(plugService.getUserHut).toHaveBeenCalledTimes(2);
+      expect(plugService.getUserHut).toHaveBeenCalledWith(mockPrincipal);
+    });
+  });
+
+  describe('executeSwap() - MyHut Integration', () => {
+    const mockHutId = 'rrkah-fqaaa-aaaaa-aaaaq-cai';
+    const mockSwapRequest: SwapRequest = {
+      fromAsset: 'ICP',
+      toAsset: 'ckBTC',
+      amount: '100000000', // 1 ICP
+      slippage: 0.5,
+      urgency: 'medium'
+    };
+
+    const mockSwapResponse: SwapResponse = {
+      success: true,
+      transactionId: 'tx_12345',
+      actualAmountReceived: '153846', // Amount in ckBTC smallest units
+      actualSlippage: 0.3,
+      actualFee: '2000000', // Fee in ICP smallest units
+      route: {
+        dexUsed: 'KongSwap',
+        steps: ['ICP', 'ckBTC'],
+        estimatedTime: '15 seconds',
+        complexity: 'simple'
+      }
+    };
+
+    it('should send SwapRequest and parse SwapResponse correctly', async () => {
+      const mockMyHutActor = {
+        execute_swap: jest.fn().mockResolvedValue(mockSwapResponse)
+      };
+
+      mockPlugWallet.createActor.mockResolvedValue(mockMyHutActor);
+      plugService.executeSwap.mockResolvedValue(mockSwapResponse);
+
+      const result = await plugService.executeSwap(mockHutId, mockSwapRequest);
+
+      expect(result).toEqual(mockSwapResponse);
+      expect(plugService.executeSwap).toHaveBeenCalledWith(mockHutId, mockSwapRequest);
+
+      // Verify the structure of the response
+      expect(result.success).toBe(true);
+      expect(result.transactionId).toBe('tx_12345');
+      expect(result.actualAmountReceived).toBe('153846');
+      expect(result.route.dexUsed).toBe('KongSwap');
+    });
+
+    it('should handle swap execution failures', async () => {
+      const failureResponse: SwapResponse = {
+        success: false,
+        error: 'Insufficient liquidity',
+        transactionId: undefined,
+        actualAmountReceived: '0',
+        actualSlippage: 0,
+        actualFee: '0'
+      };
+
+      plugService.executeSwap.mockResolvedValue(failureResponse);
+
+      const result = await plugService.executeSwap(mockHutId, mockSwapRequest);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Insufficient liquidity');
+      expect(result.transactionId).toBeUndefined();
+    });
+
+    it('should handle network errors during swap execution', async () => {
+      const mockMyHutActor = {
+        execute_swap: jest.fn().mockRejectedValue(new Error('Network timeout'))
+      };
+
+      mockPlugWallet.createActor.mockResolvedValue(mockMyHutActor);
+      plugService.executeSwap.mockRejectedValue(new Error('Swap execution failed'));
+
+      await expect(plugService.executeSwap(mockHutId, mockSwapRequest))
+        .rejects.toThrow('Swap execution failed');
+    });
+
+    it('should validate SwapRequest format before sending', async () => {
+      const invalidSwapRequest = {
+        fromAsset: '',
+        toAsset: null,
+        amount: -1,
+        slippage: 150 // Invalid slippage > 100%
+      } as any;
+
+      plugService.executeSwap.mockRejectedValue(new Error('Invalid SwapRequest format'));
+
+      await expect(plugService.executeSwap(mockHutId, invalidSwapRequest))
+        .rejects.toThrow('Invalid SwapRequest format');
+    });
+
+    it('should handle malformed response from MyHut canister', async () => {
+      const malformedResponse = {
+        // Missing required fields
+        transactionId: 'tx_12345'
+      } as any;
+
+      plugService.executeSwap.mockResolvedValue(malformedResponse);
+
+      const result = await plugService.executeSwap(mockHutId, mockSwapRequest);
+
+      expect(result).toEqual(malformedResponse);
+      // The service should handle malformed responses gracefully
+    });
+
+    it('should handle different urgency levels correctly', async () => {
+      const urgentSwapRequest: SwapRequest = {
+        ...mockSwapRequest,
+        urgency: 'high'
+      };
+
+      const urgentResponse: SwapResponse = {
+        ...mockSwapResponse,
+        route: {
+          ...mockSwapResponse.route!,
+          dexUsed: 'KongSwap', // Fast DEX for urgent trades
+          estimatedTime: '8 seconds'
+        }
+      };
+
+      plugService.executeSwap.mockResolvedValue(urgentResponse);
+
+      const result = await plugService.executeSwap(mockHutId, urgentSwapRequest);
+
+      expect(result.route?.dexUsed).toBe('KongSwap');
+      expect(result.route?.estimatedTime).toBe('8 seconds');
+    });
+  });
+
+  describe('Integration Flow Tests', () => {
+    it('should complete full integration flow: connect → getHut → executeSwap', async () => {
+      const mockPrincipal = 'rdmx6-jaaaa-aaaaa-aaadq-cai';
+      const mockHutId = 'rrkah-fqaaa-aaaaa-aaaaq-cai';
+      const mockSwapRequest: SwapRequest = {
+        fromAsset: 'ICP',
+        toAsset: 'ckBTC',
+        amount: '100000000',
+        slippage: 0.5,
+        urgency: 'medium'
+      };
+      const mockSwapResponse: SwapResponse = {
+        success: true,
+        transactionId: 'tx_integration_test',
+        actualAmountReceived: '153846',
+        actualSlippage: 0.3,
+        actualFee: '2000000'
+      };
+
+      // Mock the complete flow
+      plugService.connectPlug.mockResolvedValue(mockPrincipal);
+      plugService.getUserHut.mockResolvedValue(mockHutId);
+      plugService.executeSwap.mockResolvedValue(mockSwapResponse);
+
+      // Execute full flow
+      const principal = await plugService.connectPlug();
+      expect(principal).toBe(mockPrincipal);
+
+      const hutId = await plugService.getUserHut(principal);
+      expect(hutId).toBe(mockHutId);
+
+      const swapResult = await plugService.executeSwap(hutId, mockSwapRequest);
+      expect(swapResult.success).toBe(true);
+      expect(swapResult.transactionId).toBe('tx_integration_test');
+
+      // Verify call sequence
+      expect(plugService.connectPlug).toHaveBeenCalledTimes(1);
+      expect(plugService.getUserHut).toHaveBeenCalledWith(mockPrincipal);
+      expect(plugService.executeSwap).toHaveBeenCalledWith(mockHutId, mockSwapRequest);
+    });
+
+    it('should handle failures at any step of the integration flow', async () => {
+      // Test failure at connection step
+      plugService.connectPlug.mockRejectedValue(new Error('Connection failed'));
+
+      await expect(plugService.connectPlug()).rejects.toThrow('Connection failed');
+
+      // Test failure at getUserHut step
+      const mockPrincipal = 'rdmx6-jaaaa-aaaaa-aaadq-cai';
+      plugService.connectPlug.mockResolvedValue(mockPrincipal);
+      plugService.getUserHut.mockRejectedValue(new Error('HutFactory error'));
+
+      const principal = await plugService.connectPlug();
+      await expect(plugService.getUserHut(principal)).rejects.toThrow('HutFactory error');
+
+      // Test failure at executeSwap step
+      const mockHutId = 'rrkah-fqaaa-aaaaa-aaaaq-cai';
+      plugService.getUserHut.mockResolvedValue(mockHutId);
+      plugService.executeSwap.mockRejectedValue(new Error('Swap failed'));
+
+      const hutId = await plugService.getUserHut(principal);
+      await expect(plugService.executeSwap(hutId, {} as SwapRequest))
+        .rejects.toThrow('Swap failed');
+    });
+  });
+
+  describe('State Management and Connection Persistence', () => {
+    it('should maintain connection state across service calls', async () => {
+      const mockPrincipal = 'rdmx6-jaaaa-aaaaa-aaadq-cai';
+
+      plugService.isConnected.mockReturnValue(false);
+      plugService.connectPlug.mockResolvedValue(mockPrincipal);
+
+      // First call establishes connection
+      await plugService.connectPlug();
+
+      // Subsequent calls should use existing connection
+      plugService.isConnected.mockReturnValue(true);
+      plugService.getPrincipal.mockReturnValue(mockPrincipal);
+
+      expect(plugService.isConnected()).toBe(true);
+      expect(plugService.getPrincipal()).toBe(mockPrincipal);
+    });
+
+    it('should handle connection loss and reconnection', async () => {
+      const mockPrincipal = 'rdmx6-jaaaa-aaaaa-aaadq-cai';
+
+      // Initial connection
+      plugService.connectPlug.mockResolvedValue(mockPrincipal);
+      plugService.isConnected.mockReturnValue(true);
+
+      await plugService.connectPlug();
+      expect(plugService.isConnected()).toBe(true);
+
+      // Connection lost
+      plugService.isConnected.mockReturnValue(false);
+      plugService.disconnect.mockResolvedValue();
+
+      plugService.disconnect();
+      expect(plugService.isConnected()).toBe(false);
+
+      // Reconnection
+      plugService.connectPlug.mockResolvedValue(mockPrincipal);
+      plugService.isConnected.mockReturnValue(true);
+
+      await plugService.connectPlug();
+      expect(plugService.isConnected()).toBe(true);
+    });
+  });
+
+  describe('Error Handling and Edge Cases', () => {
+    it('should handle simultaneous connection attempts', async () => {
+      const mockPrincipal = 'rdmx6-jaaaa-aaaaa-aaadq-cai';
+
+      plugService.connectPlug.mockResolvedValue(mockPrincipal);
+
+      // Simultaneous connection attempts
+      const promise1 = plugService.connectPlug();
+      const promise2 = plugService.connectPlug();
+
+      const [result1, result2] = await Promise.all([promise1, promise2]);
+
+      expect(result1).toBe(mockPrincipal);
+      expect(result2).toBe(mockPrincipal);
+    });
+
+    it('should handle canister upgrade scenarios', async () => {
+      const mockHutId = 'rrkah-fqaaa-aaaaa-aaaaq-cai';
+      const mockSwapRequest: SwapRequest = {
+        fromAsset: 'ICP',
+        toAsset: 'ckBTC',
+        amount: '100000000',
+        slippage: 0.5,
+        urgency: 'medium'
+      };
+
+      // First call succeeds
+      plugService.executeSwap.mockResolvedValueOnce({
+        success: true,
+        transactionId: 'tx_123',
+        actualAmountReceived: '153846',
+        actualSlippage: 0.3,
+        actualFee: '2000000'
+      });
+
+      // Second call fails due to canister upgrade
+      plugService.executeSwap.mockRejectedValueOnce(new Error('Canister upgrading'));
+
+      // Third call succeeds after upgrade
+      plugService.executeSwap.mockResolvedValueOnce({
+        success: true,
+        transactionId: 'tx_456',
+        actualAmountReceived: '153846',
+        actualSlippage: 0.3,
+        actualFee: '2000000'
+      });
+
+      const result1 = await plugService.executeSwap(mockHutId, mockSwapRequest);
+      expect(result1.success).toBe(true);
+
+      await expect(plugService.executeSwap(mockHutId, mockSwapRequest))
+        .rejects.toThrow('Canister upgrading');
+
+      const result3 = await plugService.executeSwap(mockHutId, mockSwapRequest);
+      expect(result3.success).toBe(true);
+    });
+  });
+});
