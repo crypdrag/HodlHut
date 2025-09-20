@@ -34,6 +34,9 @@ interface CompactDEXSelectorProps {
   toAsset?: string;
   swapAmount?: string;
   swapValueUSD?: number;
+  // Transaction preview callback for ICP-only swaps
+  onShowTransactionPreview?: () => void;
+  swapAnalysis?: any; // For checking if it's ICP-only vs cross-chain
 }
 
 const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
@@ -43,7 +46,9 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
   fromAsset,
   toAsset,
   swapAmount,
-  swapValueUSD
+  swapValueUSD,
+  onShowTransactionPreview,
+  swapAnalysis
 }) => {
   const [expandedDEX, setExpandedDEX] = useState<string | null>(null);
 
@@ -240,6 +245,13 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
                 onClick={(e) => {
                   e.stopPropagation();
                   dex.onSelect();
+
+                  // If this is an ICP-only swap (not cross-chain), trigger Transaction Preview
+                  const isICPOnlySwap = swapAnalysis && !swapAnalysis.isL1Withdrawal;
+                  if (isICPOnlySwap && onShowTransactionPreview && fromAsset && toAsset) {
+                    // Trigger Transaction Preview with live DEX fee data
+                    onShowTransactionPreview();
+                  }
                 }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   dex.isSelected
