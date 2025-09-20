@@ -61,8 +61,8 @@ export function getUniversalFeeRules(
       shouldShowSmartSolutions: true,
       primarySolution: {
         type: 'deduct_from_final',
-        title: `✅ ${networkName} gas fees can be deducted from your final ${toAsset} balance. Deduct gas fees from ${toAsset}?`,
-        description: `The ${gasAmount} ${fromAsset} network fee will be automatically deducted from your withdrawal. You'll receive ${formatCleanNumber(amount - gasAmount)} ${toAsset} (instead of ${formatCleanNumber(amount)} ${toAsset}).`,
+        title: ``,
+        description: `${fromAsset} gas fee will be deducted from your final ${toAsset} amount.`,
         feeAmount: gasAmount,
         feeToken: fromAsset
       },
@@ -83,8 +83,8 @@ export function getUniversalFeeRules(
       shouldShowSmartSolutions: true,
       primarySolution: {
         type: 'deduct_from_final',
-        title: `✅ ${networkName} gas fees can be deducted from your final ${toAsset} balance. Deduct gas fees from ${toAsset}?`,
-        description: `After your ${fromAsset} → ${bridgeToken} → ${toAsset} swap, the ${formatCleanNumber(gasAmount)} ${bridgeToken} network fee will be deducted from your final ${toAsset} amount.`,
+        title: ``,
+        description: `${bridgeToken} gas fee will be deducted from your final ${toAsset} amount.`,
         feeAmount: gasAmount,
         feeToken: bridgeToken
       },
@@ -130,8 +130,8 @@ export function getUniversalFeeRules(
       shouldShowSmartSolutions: true, // Always show Smart Solutions for these withdrawals
       primarySolution: userHasGasToken ? {
         type: 'use_existing',
-        title: `Use ${gasToken} $${Math.round(gasAmount * gasPrice)} for ${networkName} gas fees?`,
-        description: `You have ${formatCleanNumber(portfolio[gasToken] || 0)} ${gasToken}. Use ${formatCleanNumber(gasAmount)} ${gasToken} for ${getNetworkName(toAsset)} gas fees to withdraw ${toAsset}.`,
+        title: ``,
+        description: `Deduct ${gasToken} from your Hut for gas fees to withdraw ${toAsset}.`,
         feeAmount: gasAmount,
         feeToken: gasToken
       } : {

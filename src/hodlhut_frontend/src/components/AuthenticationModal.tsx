@@ -153,7 +153,7 @@ const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
         {authStep === 'confirming' && (
           <div className="auth-modal-content">
             <div className="transaction-status">
-              <div className="status-icon spinning"><Lock className="w-12 h-12 text-blue-500" /></div>
+              <div className="status-icon spinning"><Lock className="w-12 h-12 text-primary-400" /></div>
               <h3>Authenticating...</h3>
               <p>Please complete the Internet Identity authentication in the popup window.</p>
             </div>
@@ -190,7 +190,7 @@ const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
                 {transactionSteps.map((step, index) => (
                   <div key={index} className={`step ${step.completed ? 'completed' : ''} ${step.current ? 'current' : ''}`}>
                     <div className="step-icon">
-                      {step.completed ? <CheckCircle className="w-4 h-4 text-green-500" /> :
+                      {step.completed ? <CheckCircle className="w-4 h-4 text-success-400" /> :
                        step.current ? <div className="spinner"></div> :
                        <div className="step-number">{index + 1}</div>}
                     </div>
@@ -206,7 +206,7 @@ const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
           <div className="auth-modal-content">
             <div className="transaction-success">
               <div className="success-icon">
-                <CheckCircle className="w-16 h-16 text-green-500" />
+                <CheckCircle className="w-16 h-16 text-success-400" />
               </div>
               <h3>Transaction Complete!</h3>
               <p>Your swap has been executed successfully.</p>
