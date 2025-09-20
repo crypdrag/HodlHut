@@ -14,7 +14,7 @@ export interface DEXQuote {
 
   // Scoring and UX
   score: number;            // agent-generated score for ranking (0-100)
-  badge?: "RECOMMENDED" | "ADVANCED" | "FASTEST" | "CHEAPEST" | "LOWEST_COST";
+  badge?: "RECOMMENDED" | "ADVANCED" | "FASTEST" | "CHEAPEST";
   reason: string;           // human-readable rationale, e.g., "Lowest slippage + good liquidity"
 
   // Optional Fallback Metadata

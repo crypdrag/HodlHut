@@ -107,7 +107,7 @@ export class ICDEXAdapter implements DEXAdapter {
         badge = "ADVANCED";
         reason = "Orderbook liquidity provides best execution";
       } else if (liquidityUsd > 15000000) {
-        badge = "LOWEST_COST";
+        badge = "CHEAPEST";
         reason = "Deep liquidity minimizes price impact";
       } else {
         reason = "Professional orderbook trading with competitive fees";

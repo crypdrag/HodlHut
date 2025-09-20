@@ -106,7 +106,7 @@ export class ICPSwapAdapter implements DEXAdapter {
         badge = "MOST_LIQUID";
         reason = "Strong liquidity pools provide reliable execution";
       } else if (finalSlippage < 0.15) {
-        badge = "LOWEST_COST";
+        badge = "CHEAPEST";
         reason = "Competitive slippage for this trade size";
       } else {
         reason = "Balanced AMM with consistent execution and fees";

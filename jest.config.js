@@ -7,10 +7,18 @@ module.exports = {
     '**/*.(test|spec).+(ts|tsx|js)'
   ],
   transform: {
-    '^.+\\.(ts|tsx)$': 'ts-jest',
+    '^.+\\.(ts|tsx)$': ['ts-jest', {
+      useESM: true
+    }],
+    '^.+\\.(js|jsx)$': ['ts-jest', {
+      useESM: true
+    }],
     '^.+\\.svg$': 'jest-transform-stub'
   },
-  moduleNameMapping: {
+  transformIgnorePatterns: [
+    'node_modules/(?!(msw|@mswjs|@bundled-es-modules)/)'
+  ],
+  moduleNameMapper: {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
     '\\.(gif|ttf|eot|svg|png|jpg|jpeg)$': 'jest-transform-stub'
   },
@@ -30,11 +38,6 @@ module.exports = {
   },
   // Handle MSW and other ES modules
   extensionsToTreatAsEsm: ['.ts', '.tsx'],
-  globals: {
-    'ts-jest': {
-      useESM: true
-    }
-  },
   // Mock globals for JSDOM environment
   setupFiles: ['<rootDir>/src/jestSetup.js']
 };

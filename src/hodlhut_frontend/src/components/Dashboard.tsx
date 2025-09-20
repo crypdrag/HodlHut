@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import DepositModal from './DepositModal';
 import SmartSolutionModal from './SmartSolutionModal';
 import TransactionPreviewModal from './TransactionPreviewModal';
@@ -163,6 +164,7 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
+  const { showSuccess, showError, showMyHutFallback } = useToast();
   
   // Check if navigation state specifies an active section and user flow
   const initialSection = (location.state as any)?.activeSection || 'addAssets';
@@ -274,29 +276,57 @@ const Dashboard: React.FC = () => {
     { id: 'rainbow', name: 'Rainbow', icon: <Zap className="w-4 h-4 text-secondary-400" /> }
   ];
 
-  // Execute transaction steps with timing
-  const executeTransactionSteps = () => {
+  // Execute transaction steps with timing and MyHut integration
+  const executeTransactionSteps = async () => {
     const stepTimings = [2000, 1500, 1000, 2000, 4000]; // Different timing for each step
-    
-    stepTimings.forEach((timing, index) => {
-      setTimeout(() => {
-        setTransactionSteps(prev => prev.map((step, i) => {
-          if (i === index) {
-            return { ...step, completed: true, current: false };
-          } else if (i === index + 1) {
-            return { ...step, current: true };
+
+    try {
+      // Simulate MyHut canister integration
+      // In production, this would call the actual MyHut service
+      const isProduction = process.env.NODE_ENV === 'production';
+      const isMyHutAvailable = Math.random() > 0.1; // 90% success rate simulation
+
+      if (!isMyHutAvailable) {
+        // MyHut service failure - show fallback toast
+        showMyHutFallback('Connection timeout to user canister. Please check your network connection.');
+        return;
+      }
+
+      stepTimings.forEach((timing, index) => {
+        setTimeout(() => {
+          setTransactionSteps(prev => prev.map((step, i) => {
+            if (i === index) {
+              return { ...step, completed: true, current: false };
+            } else if (i === index + 1) {
+              return { ...step, current: true };
+            }
+            return step;
+          }));
+
+          // If this is the last step, move to success and show completion toast
+          if (index === stepTimings.length - 1) {
+            setTimeout(() => {
+              setAuthStep('success');
+
+              // Show success toast with simulation indicator
+              showSuccess(
+                'Transaction Completed Successfully',
+                `Swap executed via ${selectedDEX || 'DEX'} routing. Transaction ID: tx_${Date.now()}`,
+                { isSimulated: !isProduction }
+              );
+            }, 1500);
           }
-          return step;
-        }));
-        
-        // If this is the last step, move to success after ethereum confirmation
-        if (index === stepTimings.length - 1) {
-          setTimeout(() => {
-            setAuthStep('success');
-          }, 1500);
-        }
-      }, stepTimings.slice(0, index + 1).reduce((acc, curr) => acc + curr, 0));
-    });
+        }, stepTimings.slice(0, index + 1).reduce((acc, curr) => acc + curr, 0));
+      });
+
+    } catch (error) {
+      // Handle unexpected errors
+      console.error('Transaction execution error:', error);
+      showError(
+        'Transaction Failed',
+        'An unexpected error occurred during transaction execution. Please try again.'
+      );
+    }
   };
 
   // Handle Claim Yield with sparkling animation

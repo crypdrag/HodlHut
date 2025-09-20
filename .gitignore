@@ -10,6 +10,10 @@
 # dfx temporary files
 .dfx/
 
+# dfx executables (large binaries)
+dfx
+dfx.exe
+
 # generated files
 **/declarations/
 
