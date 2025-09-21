@@ -1,7 +1,7 @@
 // DEX Routing Agent Implementation
 // Implements scoring logic and quote aggregation based on your specifications
 
-import { DEXQuote, RouteInput, ScoringWeights, DEXAdapter, DEXRoutingAgent as IDEXRoutingAgent } from '../types/dex';
+import { DEXQuote, RouteInput, ScoringWeights, DEXAdapter, DEXRoutingAgent as IDEXRoutingAgent, DEXUtils } from '../types/dex';
 import { ICDEXAdapter } from '../adapters/ICDEXAdapter';
 import { ICPSwapAdapter } from '../adapters/ICPSwapAdapter';
 import { KongSwapAdapter } from '../adapters/KongSwapAdapter';
@@ -97,8 +97,9 @@ export class DEXRoutingAgent implements IDEXRoutingAgent {
   // Execute quote request with timeout protection
   private async getQuoteWithTimeout(dexName: string, adapter: DEXAdapter, input: RouteInput): Promise<DEXQuote | null> {
     try {
-      // Apply threshold logic - ICDEX only for trades >$500 equivalent
-      const shouldIncludeICDEX = input.amount > 500_000_000; // 500M in token decimals
+      // Apply threshold logic - ICDEX only for trades >$50K USD (orderbook advantage for large trades)
+      const tradeAmountUsd = DEXUtils.convertToUSD(input.amount, input.fromToken);
+      const shouldIncludeICDEX = tradeAmountUsd > 50000; // $50K threshold for orderbook trading
       if (dexName === 'ICDEX' && !shouldIncludeICDEX) {
         return null;
       }

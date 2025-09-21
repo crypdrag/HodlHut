@@ -69,33 +69,33 @@ export interface EnhancedDEXData {
 // Mock data for stub implementations
 export const MOCK_EXCHANGE_RATES: Record<string, Record<string, number>> = {
   'ICP': {
-    'ckBTC': 0.000002,
-    'ckETH': 0.00003,
+    'ckBTC': 0.000104,  // 12/115474 ≈ 0.000104
+    'ckETH': 0.00375,   // 12/3200 ≈ 0.00375
     'ckUSDC': 12.0,
     'ckUSDT': 12.0
   },
   'ckBTC': {
-    'ICP': 500000.0,
-    'ckETH': 15.0,
-    'ckUSDC': 65000.0,
-    'ckUSDT': 65000.0
+    'ICP': 9622.8,     // 115474/12 ≈ 9623
+    'ckETH': 36.08,     // 115474/3200 ≈ 36
+    'ckUSDC': 115474.0, // Current BTC price
+    'ckUSDT': 115474.0  // Current BTC price
   },
   'ckETH': {
-    'ICP': 33333.0,
-    'ckBTC': 0.067,
+    'ICP': 266.7,      // 3200/12 ≈ 267
+    'ckBTC': 0.0277,   // 3200/115474 ≈ 0.0277
     'ckUSDC': 3200.0,
     'ckUSDT': 3200.0
   },
   'ckUSDC': {
-    'ICP': 0.083,
-    'ckBTC': 0.0000154,
-    'ckETH': 0.0003125,
+    'ICP': 0.083,      // 1/12 ≈ 0.083
+    'ckBTC': 0.00000866, // 1/115474 ≈ 0.00000866
+    'ckETH': 0.0003125, // 1/3200 = 0.0003125
     'ckUSDT': 1.0
   },
   'ckUSDT': {
-    'ICP': 0.083,
-    'ckBTC': 0.0000154,
-    'ckETH': 0.0003125,
+    'ICP': 0.083,      // 1/12 ≈ 0.083
+    'ckBTC': 0.00000866, // 1/115474 ≈ 0.00000866
+    'ckETH': 0.0003125, // 1/3200 = 0.0003125
     'ckUSDC': 1.0
   }
 };
@@ -151,7 +151,7 @@ export class DEXUtils {
   static convertToUSD(amount: number, token: string): number {
     const usdRates: Record<string, number> = {
       'ICP': 12.0,
-      'ckBTC': 65000.0,
+      'ckBTC': 115474.0,  // Updated to current BTC price
       'ckETH': 3200.0,
       'ckUSDC': 1.0,
       'ckUSDT': 1.0

@@ -82,9 +82,9 @@ export class KongSwapAgent implements DEXAdapter {
   // Mock token prices (same as ICPSwap for consistency)
   private getTokenPrice(token: string): number {
     const prices: Record<string, number> = {
-      'ckBTC': 65000,
-      'ckETH': 2500,
-      'ICP': 8.5,
+      'ckBTC': 115474,
+      'ckETH': 4475,
+      'ICP': 5.0,
       'ckUSDC': 1.0,
       'ckUSDT': 1.0,
       'KONG': 0.01, // Native KongSwap token

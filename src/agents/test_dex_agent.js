@@ -36,7 +36,7 @@ async function testDEXAgent() {
   for (const scenario of testScenarios) {
     console.log(`📊 Testing: ${scenario.name}`);
     console.log(`   Route: ${scenario.amount} ${scenario.from} → ${scenario.to}`);
-    console.log(`   Trade Value: $${(scenario.amount * (scenario.from === 'ckBTC' ? 97600 : scenario.from === 'ckETH' ? 3800 : 1)).toLocaleString()}`);
+    console.log(`   Trade Value: $${(scenario.amount * (scenario.from === 'ckBTC' ? 115474 : scenario.from === 'ckETH' ? 4475 : 1)).toLocaleString()}`);
     
     try {
       // Test 1: Get routing recommendation (fast)

@@ -289,16 +289,16 @@ export function trackDEXSelection(dexId, swapParams, wasRecommended) {
  */
 function getAssetPrice(asset) {
     const prices = {
-        'ckBTC': 97000,
-        'BTC': 97000,
-        'ckETH': 2500,
-        'ETH': 2500,
+        'ckBTC': 115474,
+        'BTC': 115474,
+        'ckETH': 4475,
+        'ETH': 4475,
         'ckUSDC': 1.00,
         'USDC': 1.00,
         'ckUSDT': 1.00,
         'USDT': 1.00,
         'USDCs': 1.00,
-        'ICP': 12.50
+        'ICP': 5.00
     };
     return prices[asset] || 1;
 }

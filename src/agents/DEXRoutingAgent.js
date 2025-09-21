@@ -40,14 +40,14 @@ class DEXRoutingAgent {
           icpswap: {
             dexName: 'ICPSwap',
             liquidity: { ckBTC: 12.5, ckUSDC: 1220000, totalTVL: 2440000 },
-            currentPrice: 97600,
+            currentPrice: 115474,
             fee: 0.003,
             volume24h: 180000
           },
           kongswap: {
             dexName: 'KongSwap',
             liquidity: { ckBTC: 8.2, ckUSDC: 800000, totalTVL: 1600000 },
-            currentPrice: 97580,
+            currentPrice: 115474,
             fee: 0.0025,
             volume24h: 120000
           }
@@ -142,8 +142,8 @@ class DEXRoutingAgent {
 
       // Token prices for calculations
       prices: {
-        'ckBTC': 97600,
-        'ckETH': 3800,
+        'ckBTC': 115474,
+        'ckETH': 4475,
         'ckUSDC': 1.0,
         'ICP': 12.5
       }
