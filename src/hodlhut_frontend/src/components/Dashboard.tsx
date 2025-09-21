@@ -129,6 +129,13 @@ type EnhancedSmartSolution = SmartSolution;
 
 // Portfolio scenarios for better demo experience
 const PORTFOLIO_SCENARIOS = {
+  'empty-hut': {
+    ckBTC: 0,
+    ckETH: 0,
+    ckUSDC: 0,
+    ckUSDT: 0,
+    ICP: 0
+  },
   'bitcoin-hodler': {
     ckBTC: 1.5,
     ckUSDC: 500,
@@ -170,8 +177,10 @@ const Dashboard: React.FC = () => {
   const initialSection = (location.state as any)?.activeSection || 'addAssets';
   const userFlow = (location.state as any)?.userFlow || 'newUser';
   const [activeSection, setActiveSection] = useState(initialSection);
-  const [currentScenario, setCurrentScenario] = useState<keyof typeof PORTFOLIO_SCENARIOS>('defi-user');
-  const [portfolio, setPortfolio] = useState<Portfolio>(PORTFOLIO_SCENARIOS[currentScenario]);
+  // Initialize scenario based on user flow
+  const initialScenario = userFlow === 'returningUser' ? 'defi-user' : 'empty-hut';
+  const [currentScenario, setCurrentScenario] = useState<keyof typeof PORTFOLIO_SCENARIOS>(initialScenario);
+  const [portfolio, setPortfolio] = useState<Portfolio>(PORTFOLIO_SCENARIOS[initialScenario]);
   
   // Advanced Swap State
   const [fromAsset, setFromAsset] = useState('');
@@ -919,14 +928,14 @@ const Dashboard: React.FC = () => {
       {/* Desktop Status Bar - Hidden on Mobile */}
       <div className="hidden md:block">
         <div className="flex justify-between items-center flex-wrap gap-4 text-sm text-text-secondary p-3">
-          {userFlow === 'returningUser' ? (
-            // Returning user: Show Portfolio + Connected status
+          {calculatePortfolioValue() > 0 ? (
+            // Assets deposited: Show Portfolio value + Connected status
             <>
               <div className="flex items-center text-success-400"><PieChart className="inline w-4 h-4 mr-1" /> Portfolio: ${calculatePortfolioValue().toLocaleString()}</div>
               <div className="flex items-center text-warning-400"><span className="w-2 h-2 rounded-full bg-warning-400 mr-2"></span> Connected Live Onchain (Demo Mode)</div>
             </>
           ) : (
-            // New user: Show Activation countdown + Connected status  
+            // No assets yet: Show Activation countdown + Connected status
             <>
               <div className="flex items-center text-warning-400"><Clock className="inline w-4 h-4 mr-1" /> Add Assets to activate your Sovereign Hut: {formatTime(timeRemaining)}</div>
               <div className="flex items-center text-warning-400"><span className="w-2 h-2 rounded-full bg-warning-400 mr-2"></span> Connected Live Onchain (Demo Mode)</div>
@@ -1069,7 +1078,7 @@ const Dashboard: React.FC = () => {
   // Balance display logic for deposit assets
   const renderBalanceDisplay = () => {
     if (!selectedDepositAssetUnified) {
-      return 'Select an asset to view balance';
+      return '';
     }
     
     // Check if selected asset is from ICP Ecosystem (has balances in portfolio)

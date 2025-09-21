@@ -70,11 +70,24 @@ const AddAssetsSection: React.FC<AddAssetsSectionProps> = ({
 
   const selectedAssetDetails = getSelectedAssetDetails();
 
+  // Calculate portfolio value to determine if Hut is activated
+  const calculatePortfolioValue = (): number => {
+    return Object.entries(portfolio).reduce((total, [asset, amount]) => {
+      const assetData = MASTER_ASSETS[asset];
+      return total + (amount * (assetData?.price || 0));
+    }, 0);
+  };
+
+  // Determine if this is an activated Hut (has assets deposited)
+  const isHutActivated = calculatePortfolioValue() > 0;
+
   return (
     <div className="w-full flex flex-col items-center px-4 py-8">
       <div className="text-center mb-8">
-        <h2 className="heading-2 text-text-primary mb-4">Add Assets to Your Portfolio</h2>
-        <p className="text-lg text-text-secondary">Choose an asset to deposit from L1 chains or ICP ecosystem</p>
+        <h2 className="heading-2 text-text-primary mb-4">
+          {isHutActivated ? "Add Assets" : "Add Assets to Activate Your Hut"}
+        </h2>
+        <p className="text-lg text-text-secondary">Choose an asset to deposit from Bitcoin, Ethereum or ICP ecosystem</p>
       </div>
 
       {/* Unified Deposit Interface */}
@@ -140,7 +153,7 @@ const AddAssetsSection: React.FC<AddAssetsSectionProps> = ({
         )}
 
         {/* Connect Wallet Button */}
-        {selectedAssetDetails ? (
+        {selectedAssetDetails && (
           <button
             className="w-full btn-primary min-h-[60px] text-base font-semibold flex items-center justify-center gap-3 transition-all duration-200 hover:scale-[1.02]"
             onClick={() => {
@@ -151,21 +164,7 @@ const AddAssetsSection: React.FC<AddAssetsSectionProps> = ({
             <Wallet size={20} />
             Connect {selectedAssetDetails.walletType}
           </button>
-        ) : (
-          <div className="w-full min-h-[60px] flex items-center justify-center text-text-muted bg-surface-2 rounded-xl border border-white/5">
-            <div className="text-center">
-              <p className="text-sm font-medium">Select an asset above to continue</p>
-              <p className="text-xs mt-1">Connect your wallet to start depositing</p>
-            </div>
-          </div>
         )}
-
-        {/* Help Text */}
-        <div className="mt-6 text-center">
-          <p className="text-xs text-text-muted">
-            Choose from {Object.values(DEPOSIT_ASSETS_CONFIG).flat().length} supported assets across Bitcoin, Ethereum, Solana, and ICP
-          </p>
-        </div>
       </div>
 
       {/* Quick Access Cards (Mobile Optimized) */}
@@ -186,8 +185,8 @@ const AddAssetsSection: React.FC<AddAssetsSectionProps> = ({
             // Only show balances for ICP Ecosystem assets
             const icpEcosystemAssets = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'];
             const isIcpEcosystemAsset = icpEcosystemAssets.includes(asset);
-            const hasBalance = isIcpEcosystemAsset && portfolio[asset] && portfolio[asset] > 0;
             const balance = portfolio[asset] || 0;
+            const hasBalance = isIcpEcosystemAsset && balance > 0;
             const balanceUSD = balance * (MASTER_ASSETS[asset]?.price || 0);
 
             return (
@@ -202,7 +201,6 @@ const AddAssetsSection: React.FC<AddAssetsSectionProps> = ({
                   <AssetIcon asset={asset} size={20} />
                   <div className="flex-1">
                     <div className="text-sm font-semibold text-text-primary">{assetDetails.label}</div>
-                    <div className="text-xs text-text-muted">{assetDetails.walletType}</div>
                     {hasBalance && (
                       <div className="text-xs text-success-400 mt-1">
                         {formatAmount(balance)} • ${balanceUSD.toLocaleString()}

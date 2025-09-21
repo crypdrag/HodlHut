@@ -5,25 +5,29 @@ import AssetIcon from './AssetIcon';
 import InternetIdentityLogin from './InternetIdentityLogin';
 // Tailwind CSS classes now handle all styling
 import HeroAnimationVideo from '../../assets/images/Hero_Animation.mp4';
-import { 
+import {
   Radio,      // Personal Sovereignty - Broadcasting personal control
   Network,    // Universal Router - Network/routing
-  Brain,      // Intelligent Abstraction - AI/Smart features  
-  TrendingUp, // Hut Garden Tiki Rewards - Profits/growth
+  Brain,      // Smart Abstraction - AI/Smart features
+  TrendingUp, // My Garden Rewards - Profits/growth
   Shield,     // Full Stack Security - Protection
   PieChart,   // Diverse Portfolio - Portfolio management
   ArrowUpDown,// Swap Assets - Two arrows in opposite directions
-  Sprout      // Garden/Plant icon for staking rewards
+  Sprout,     // Garden/Plant icon for staking rewards
+  Zap,        // DEX Aggregation Agent - Lightning/speed
+  Gamepad2    // My Dog Park - Gaming
 } from 'lucide-react';
 // import HeroBgImage from '../../assets/images/Hero_bg.png';
 
-// Lucide icon components with proper TypeScript support
-const PersonalSovereigntyIcon: React.FC = () => <Radio size={48} className="text-primary-500" />;
-const UniversalRouterIcon: React.FC = () => <Network size={48} className="text-primary-500" />;
-const IntelligentAbstractionIcon: React.FC = () => <Brain size={48} className="text-primary-500" />;
-const TikiRewardsIcon: React.FC = () => <TrendingUp size={48} className="text-primary-500" />;
-const FullStackSecurityIcon: React.FC = () => <Shield size={48} className="text-primary-500" />;
-const DiversePortfolioIcon: React.FC = () => <PieChart size={48} className="text-primary-500" />;
+// Lucide icon components with color variety
+const PersonalSovereigntyIcon: React.FC = () => <Radio size={48} className="text-primary-500" />; // Blue 1
+const UniversalRouterIcon: React.FC = () => <Network size={48} className="text-primary-500" />; // Blue 2
+const SmartAbstractionIcon: React.FC = () => <Brain size={48} className="text-warning-500" />; // Yellow 1
+const DEXAggregationIcon: React.FC = () => <Zap size={48} className="text-warning-500" />; // Yellow 2
+const MyGardenRewardsIcon: React.FC = () => <TrendingUp size={48} className="text-success-500" />; // Green 1
+const MyDogParkIcon: React.FC = () => <Gamepad2 size={48} className="text-success-500" />; // Green 2
+const FullStackSecurityIcon: React.FC = () => <Shield size={48} className="text-error-500" />; // Orange 1
+const DiversePortfolioIcon: React.FC = () => <PieChart size={48} className="text-error-500" />; // Orange 2
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -216,7 +220,7 @@ const HomePage: React.FC = () => {
         <div className="container-app stack-lg">
           <h2 className="text-4xl font-bold text-center text-text-primary" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Your Personal Universal Router</h2>
           
-          <div className="grid-features">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="rounded-2xl border border-white/10 bg-surface-1 p-6 text-center">
               <div className="mb-6 flex justify-center">
                 <PersonalSovereigntyIcon />
@@ -239,21 +243,41 @@ const HomePage: React.FC = () => {
 
             <div className="rounded-2xl border border-white/10 bg-surface-1 p-6 text-center">
               <div className="mb-6 flex justify-center">
-                <IntelligentAbstractionIcon />
+                <SmartAbstractionIcon />
               </div>
-              <h3 className="text-2xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Intelligent Abstraction</h3>
+              <h3 className="text-2xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Smart Abstraction</h3>
               <p className="text-text-secondary leading-relaxed">
-                Complex multichain operations are easy to understand and transparent. HodlHut's smart fee engine handles gas, routing, and fee optimization automatically giving you options.
+                Crosschain swaps are easy to understand and transparent. HodlHut's Smart Solutions Agents optimize routing, gas, and fees.
               </p>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-surface-1 p-6 text-center">
               <div className="mb-6 flex justify-center">
-                <TikiRewardsIcon />
+                <DEXAggregationIcon />
+              </div>
+              <h3 className="text-2xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>DEX Aggregation Agent</h3>
+              <p className="text-text-secondary leading-relaxed">
+                HodlHut's DEX Aggregation Agent pulls live ICP DEX data including liquidity levels, cost, and speed to recommend the best route based upon the users trade and amount.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-surface-1 p-6 text-center">
+              <div className="mb-6 flex justify-center">
+                <MyGardenRewardsIcon />
               </div>
               <h3 className="text-2xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>My Garden Rewards</h3>
               <p className="text-text-secondary leading-relaxed">
-                My Garden is where yield farming rewards for hodling and portfolio diversity happen. Weekly Reef Raffles and Tsunami Sweeps keep things hopping.
+                Hodl and stake legacy assets for portfolio diversity yield multipliers. Daily Reef Raffles and Tsunami Sweeps keep things growing.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-surface-1 p-6 text-center">
+              <div className="mb-6 flex justify-center">
+                <MyDogParkIcon />
+              </div>
+              <h3 className="text-2xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>My Dog Park</h3>
+              <p className="text-text-secondary leading-relaxed">
+                My Dog Park is a DAO-governed permissionless gaming zone for Bitcoin Runes and Ordinals fans on Bitcoin mainnet.
               </p>
             </div>
 
@@ -263,7 +287,7 @@ const HomePage: React.FC = () => {
               </div>
               <h3 className="text-2xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Full Stack Security</h3>
               <p className="text-text-secondary leading-relaxed">
-                Huts are a meant to be a chill place to hang out without worrying about the security of your assets. HodlHut may have extra log in steps, but funds are safu.
+                Users authenticate via Internet Identity v2, a WebAuthn-based system with passkey support. VetKD encryption ensures each user's personal Hut is protected and recoverable, even if a device is lost.
               </p>
             </div>
 
@@ -291,37 +315,37 @@ const HomePage: React.FC = () => {
             
             <div className="grid-assets">
               <div className="asset-card-compact">
-                <div className="mb-3 flex justify-center items-center h-5">
-                  <AssetIcon asset="BTC" size={20} />
+                <div className="mb-3 flex justify-center items-center h-8">
+                  <AssetIcon asset="BTC" size={30} />
                 </div>
                 <div className="text-base font-semibold text-text-primary mb-1">Bitcoin</div>
                 <div className="text-xs text-text-muted">Native BTC → ckBTC</div>
               </div>
-              
+
               <div className="asset-card-compact">
-                <div className="mb-3 flex justify-center items-center h-5">
-                  <AssetIcon asset="ETH" size={20} />
+                <div className="mb-3 flex justify-center items-center h-8">
+                  <AssetIcon asset="ETH" size={30} />
                 </div>
                 <div className="text-base font-semibold text-text-primary mb-1">Ethereum</div>
                 <div className="text-xs text-text-muted">Native ETH → ckETH</div>
               </div>
 
               <div className="asset-card-compact">
-                <div className="mb-3 flex justify-center items-center h-5">
-                  <AssetIcon asset="USDC" size={20} />
+                <div className="mb-3 flex justify-center items-center h-8">
+                  <AssetIcon asset="USDC" size={30} />
                 </div>
                 <div className="text-base font-semibold text-text-primary mb-1">USDC</div>
                 <div className="text-xs text-text-muted">Native USDC → ckUSDC</div>
               </div>
 
               <div className="asset-card-compact">
-                <div className="mb-3 flex justify-center items-center h-5">
-                  <AssetIcon asset="USDT" size={20} />
+                <div className="mb-3 flex justify-center items-center h-8">
+                  <AssetIcon asset="USDT" size={30} />
                 </div>
                 <div className="text-base font-semibold text-text-primary mb-1">USDT</div>
                 <div className="text-xs text-text-muted">Native USDT → ckUSDT</div>
               </div>
-              
+
             </div>
           </div>
 
@@ -329,24 +353,21 @@ const HomePage: React.FC = () => {
           <div className="mb-16">
             <h3 className="text-2xl font-semibold text-center text-text-secondary mb-8">ICP ecosystem assets</h3>
 
-            {/* ICP Token - Prominent Center Position */}
-            <div className="flex justify-center mb-8">
+            {/* All ICP Assets - Unified Grid */}
+            <div className="grid-assets">
               <div className="asset-card-compact">
                 {/* Backend: ICP wallet interface (Plug, etc.) + native ICP integration */}
-                <div className="mb-3 flex justify-center items-center h-5">
-                  <AssetIcon asset="ICP" size={20} />
+                <div className="mb-3 flex justify-center items-center h-8">
+                  <AssetIcon asset="ICP" size={30} />
                 </div>
                 <div className="text-base font-semibold text-text-primary mb-1">ICP</div>
                 <div className="text-xs text-text-muted">Internet Computer</div>
               </div>
-            </div>
 
-            {/* Chain Key Assets - Symmetric Grid */}
-            <div className="grid-assets">
               <div className="asset-card-compact">
                 {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
-                <div className="mb-3 flex justify-center items-center h-5">
-                  <AssetIcon asset="ckBTC" size={20} />
+                <div className="mb-3 flex justify-center items-center h-8">
+                  <AssetIcon asset="ckBTC" size={30} />
                 </div>
                 <div className="text-base font-semibold text-text-primary mb-1">ckBTC</div>
                 <div className="text-xs text-text-muted">Chain Key Bitcoin</div>
@@ -354,8 +375,8 @@ const HomePage: React.FC = () => {
 
               <div className="asset-card-compact">
                 {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
-                <div className="mb-3 flex justify-center items-center h-5">
-                  <AssetIcon asset="ckETH" size={20} />
+                <div className="mb-3 flex justify-center items-center h-8">
+                  <AssetIcon asset="ckETH" size={30} />
                 </div>
                 <div className="text-base font-semibold text-text-primary mb-1">ckETH</div>
                 <div className="text-xs text-text-muted">Chain Key Ethereum</div>
@@ -363,8 +384,8 @@ const HomePage: React.FC = () => {
 
               <div className="asset-card-compact">
                 {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
-                <div className="mb-3 flex justify-center items-center h-5">
-                  <AssetIcon asset="ckUSDC" size={20} />
+                <div className="mb-3 flex justify-center items-center h-8">
+                  <AssetIcon asset="ckUSDC" size={30} />
                 </div>
                 <div className="text-base font-semibold text-text-primary mb-1">ckUSDC</div>
                 <div className="text-xs text-text-muted">Chain Key USDC</div>
@@ -372,8 +393,8 @@ const HomePage: React.FC = () => {
 
               <div className="asset-card-compact">
                 {/* Backend: ICP wallet interface (Plug, etc.) + ICRC-1 token integration */}
-                <div className="mb-3 flex justify-center items-center h-5">
-                  <AssetIcon asset="ckUSDT" size={20} />
+                <div className="mb-3 flex justify-center items-center h-8">
+                  <AssetIcon asset="ckUSDT" size={30} />
                 </div>
                 <div className="text-base font-semibold text-text-primary mb-1">ckUSDT</div>
                 <div className="text-xs text-text-muted">Chain Key USDT</div>
@@ -400,8 +421,8 @@ const HomePage: React.FC = () => {
                   <Shield size={48} />
                 </div>
                 <div className="flex-grow sm:pl-6 mt-6 sm:mt-0">
-                  <h3 className="font-medium text-text-primary mb-1 text-xl">Log In with your Internet Identity</h3>
-                  <p className="leading-relaxed text-text-secondary">Internet Identity is a blockchain authentication system for the Internet Computer that allows users to access Dapps on the Internet Computer securely and anonymously.</p>
+                  <h3 className="font-medium text-text-primary mb-1 text-xl">Log In with your Internet Identity V2</h3>
+                  <p className="leading-relaxed text-text-secondary">Internet Identity V2 is an authentication system that allows users to access Dapps on the Internet Computer securely and anonymously.</p>
                 </div>
               </div>
             </div>
@@ -448,8 +469,8 @@ const HomePage: React.FC = () => {
                   <Sprout size={48} />
                 </div>
                 <div className="flex-grow sm:pl-6 mt-6 sm:mt-0">
-                  <h3 className="font-medium text-text-primary mb-1 text-xl">Stake, Earn & Play in My Garden</h3>
-                  <p className="leading-relaxed text-text-secondary">Stake diverse assets for multiplied yield. Join the daily Reef Raffle for a chance to win and be automatically included in the weekly Tsunami Sweep!.</p>
+                  <h3 className="font-medium text-text-primary mb-1 text-xl">Stake, Earn & Play in My Garden & My Dog Park</h3>
+                  <p className="leading-relaxed text-text-secondary">Stake diverse assets for multiplied yield in My Garden. Join the daily Reef Raffle for a chance to win and be automatically included in the weekly Tsunami Sweep! Play Bitcoin metaprotocol games and contests in My Dog Park on the Bitcoin mainnet.</p>
                 </div>
               </div>
             </div>

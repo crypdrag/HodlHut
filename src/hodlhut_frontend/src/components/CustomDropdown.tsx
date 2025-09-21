@@ -106,10 +106,10 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
                   <AssetIcon asset={option.value} size={20} />
                   <span className="dropdown-asset-name">{option.label}</span>
                 </div>
-                {shouldShowBalance && (
+                {shouldShowBalance && hasBalance && (
                   <div className="dropdown-option-right">
                     <div className="dropdown-balance-amount">
-                      {hasBalance ? formatAmount(balance) : '0'}
+                      {formatAmount(balance)}
                     </div>
                     <div className="dropdown-balance-usd">
                       ${balanceUSD.toLocaleString()}
