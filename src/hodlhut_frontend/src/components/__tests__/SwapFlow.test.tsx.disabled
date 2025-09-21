@@ -4,8 +4,8 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { SwapAssetsSection } from '../SwapAssetsSection';
-import { TransactionPreviewModal } from '../TransactionPreviewModal';
+import SwapAssetsSection from '../SwapAssetsSection';
+import TransactionPreviewModal from '../TransactionPreviewModal';
 import { PlugIntegrationService } from '../../services/PlugIntegration';
 import { SwapRequest, SwapResponse } from '../../types/myhut';
 
@@ -72,16 +72,19 @@ describe('SwapFlow React Component Tests', () => {
 
   describe('SwapRequest Building and Submission', () => {
     it('should build correct SwapRequest when SELECT button is clicked', async () => {
-      mockPlugService.isConnected.mockReturnValue(true);
-      mockPlugService.getPrincipal.mockReturnValue('rdmx6-jaaaa-aaaaa-aaadq-cai');
+      mockPlugService.getConnectionState.mockReturnValue({
+        isConnected: true,
+        principal: 'rdmx6-jaaaa-aaaaa-aaadq-cai',
+        userHutId: null,
+        error: null
+      });
       mockPlugService.getUserHut.mockResolvedValue('rrkah-fqaaa-aaaaa-aaaaq-cai');
 
       const mockSwapResponse: SwapResponse = {
         success: true,
         transactionId: 'tx_test_12345',
-        actualAmountReceived: '153846', // 0.00153846 ckBTC
-        actualSlippage: 0.3,
-        actualFee: '2000000' // 0.02 ICP
+        outputAmount: '153846', // 0.00153846 ckBTC
+        actualFeeUsd: 0.24
       };
 
       mockPlugService.executeSwap.mockResolvedValue(mockSwapResponse);
@@ -115,13 +118,17 @@ describe('SwapFlow React Component Tests', () => {
         slippageTolerance: 1.0
       };
 
-      mockPlugService.isConnected.mockReturnValue(true);
+      mockPlugService.getConnectionState.mockReturnValue({
+        isConnected: true,
+        principal: 'rdmx6-jaaaa-aaaaa-aaadq-cai',
+        userHutId: null,
+        error: null
+      });
       mockPlugService.executeSwap.mockResolvedValue({
         success: true,
         transactionId: 'tx_eth_swap',
-        actualAmountReceived: '1600000000', // 1600 ckUSDC
-        actualSlippage: 0.8,
-        actualFee: '5000000000000000' // 0.005 ckETH
+        outputAmount: '1600000000', // 1600 ckUSDC
+        actualFeeUsd: 16.0
       });
 
       render(<SwapAssetsSection {...updatedProps} />);

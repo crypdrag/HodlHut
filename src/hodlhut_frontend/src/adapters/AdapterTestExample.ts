@@ -38,16 +38,13 @@ export class AdapterTestExample {
     const largeTradeInput: RouteInput = {
       fromToken: 'ckETH',
       toToken: 'ckUSDC',
-      amount: 50_000_000_000_000_000_000n, // 50 ckETH (~$160k)
+      amount: 50_000_000_000_000_000, // 0.05 ckETH (~$160) - using safe number
       urgency: 'low',
       userPreference: 'most_liquid'
     };
 
     console.log('\n📊 Large Trade Test (50 ckETH → ckUSDC):');
-    const largeTradeQuotes = await dexRoutingAgent.getBestRoutes({
-      ...largeTradeInput,
-      amount: Number(largeTradeInput.amount)
-    });
+    const largeTradeQuotes = await dexRoutingAgent.getBestRoutes(largeTradeInput);
     this.logQuoteResults(largeTradeQuotes);
   }
 

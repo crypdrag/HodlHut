@@ -3,59 +3,80 @@
 @import url('https://pro.fontawesome.com/releases/v5.10.0/css/all.css');
 @import url('https://cdn.jsdelivr.net/npm/cryptocoins-icons@2.9.0/webfont/cryptocoins.css');
 
+/* ===========================
+   CUSTOM DAPP COLOR PALETTE
+   =========================== */
+:root {
+  /* Custom dapp color palette */
+  --dapp-primary: #668BF7;
+  --dapp-secondary: #141414;
+  --dapp-background: #0F0F0F;
+  --dapp-surface: #141414;
+  --dapp-surface-elevated: #1A1A1A;
+  --dapp-surface-interactive: #1F1F1F;
+  --dapp-surface-subtle: #0F0F0F;
+  --dapp-accent: #56A35C;
+  --dapp-warning: #E7C94E;
+  --dapp-accent-alt: #E37648;
+  --dapp-foreground: #E5E5E5;
+  --dapp-muted: #A1A1A1;
+  --dapp-border: #141414;
+  --dapp-border-accent: #668BF740;
+}
+
 /* ----------------------------
    Dark-first design tokens
    ---------------------------- */
 @theme {
-  /* Background & surfaces (from #141414) */
-  --color-bg: oklch(0.192 0.006 28.9);
-  --color-surface-1: oklch(0.222 0.006 28.9);
-  --color-surface-2: oklch(0.262 0.006 28.9);
-  --color-surface-3: oklch(0.302 0.006 28.9);
+  /* Background & surfaces - Using exact DApp palette */
+  --color-bg: var(--dapp-background);           /* #0F0F0F */
+  --color-surface-1: var(--dapp-surface);       /* #141414 */
+  --color-surface-2: var(--dapp-surface-elevated); /* #1A1A1A */
+  --color-surface-3: var(--dapp-surface-interactive); /* #1F1F1F */
   --color-overlay-1: oklch(0 0 0 / 0.60);
   --color-overlay-2: oklch(1 0 0 / 0.08);
 
-  /* Text hierarchy */
-  --color-text-primary:   oklch(0.94 0 0);
-  --color-text-secondary: oklch(0.80 0 0);
-  --color-text-muted:     oklch(0.70 0 0);
-  --color-on-surface:     var(--color-text-primary);
+  /* Text hierarchy - Using DApp palette */
+  --color-text-primary: var(--dapp-foreground);  /* #E5E5E5 */
+  --color-text-secondary: var(--dapp-muted);     /* #A1A1A1 */
+  --color-text-muted: var(--dapp-muted);         /* #A1A1A1 */
+  --color-on-surface: var(--color-text-primary);
 
-  /* Primary scale (from #668BF7) */
-  --color-primary-50:  oklch(0.950 0.035 227.0);
-  --color-primary-100: oklch(0.900 0.035 227.0);
-  --color-primary-200: oklch(0.800 0.055 227.0);
-  --color-primary-300: oklch(0.700 0.069 227.0);
-  --color-primary-400: oklch(0.620 0.138 227.0);
-  --color-primary-500: oklch(0.664 0.138 227.0);
-  --color-primary-600: oklch(0.550 0.124 227.0);
-  --color-primary-700: oklch(0.450 0.110 227.0);
-  --color-primary-800: oklch(0.380 0.097 227.0);
-  --color-primary-900: oklch(0.300 0.083 227.0);
+  /* Primary scale - Based on DApp primary #668BF7 */
+  --color-primary-50:  #f0f4ff;
+  --color-primary-100: #d9e5ff;
+  --color-primary-200: #b8d0ff;
+  --color-primary-300: #8fb5ff;
+  --color-primary-400: var(--dapp-primary); /* #668BF7 */
+  --color-primary-500: var(--dapp-primary); /* #668BF7 */
+  --color-primary-600: #4a6ad1;
+  --color-primary-700: #3b52a6;
+  --color-primary-800: #2d3e7d;
+  --color-primary-900: #1f2a54;
 
-  /* Success (from #56A35C) */
-  --color-success-50:  oklch(0.950 0.015 118.9);
-  --color-success-100: oklch(0.900 0.015 118.9);
-  --color-success-200: oklch(0.800 0.025 118.9);
-  --color-success-300: oklch(0.700 0.037 118.9);
-  --color-success-400: oklch(0.620 0.061 118.9);
-  --color-success-500: oklch(0.651 0.061 118.9);
-  --color-success-600: oklch(0.550 0.055 118.9);
-  --color-success-700: oklch(0.450 0.049 118.9);
-  --color-success-800: oklch(0.380 0.043 118.9);
-  --color-success-900: oklch(0.300 0.037 118.9);
+  /* Success - Based on DApp accent #56A35C */
+  --color-success-50:  #f0f9f1;
+  --color-success-100: #dcf2dd;
+  --color-success-200: #bce5be;
+  --color-success-300: #8dd492;
+  --color-success-400: var(--dapp-accent); /* #56A35C */
+  --color-success-500: var(--dapp-accent); /* #56A35C */
+  --color-success-600: #478a4d;
+  --color-success-700: #3a6f3e;
+  --color-success-800: #2d5631;
+  --color-success-900: #1f3a21;
 
-  /* Warning (from #E7C94E) */
-  --color-warning-50:  oklch(0.950 0.029 53.4);
-  --color-warning-100: oklch(0.900 0.029 53.4);
-  --color-warning-200: oklch(0.800 0.117 53.4);
-  --color-warning-300: oklch(0.700 0.117 53.4);
-  --color-warning-400: oklch(0.620 0.117 53.4);
-  --color-warning-500: oklch(0.841 0.117 53.4);
-  --color-warning-600: oklch(0.550 0.105 53.4);
-  --color-warning-700: oklch(0.450 0.094 53.4);
-  --color-warning-800: oklch(0.380 0.082 53.4);
-  --color-warning-900: oklch(0.300 0.070 53.4);
+  /* Warning - Based on DApp warning #E7C94E */
+  --color-warning-50:  #fefaed;
+  --color-warning-100: #fdf2d1;
+  --color-warning-200: #fbe5a3;
+  --color-warning-300: #f8d56e;
+  --color-warning-400: var(--dapp-warning); /* #E7C94E */
+  --color-warning-500: var(--dapp-warning); /* #E7C94E */
+  --color-warning-600: #c7a53e;
+  --color-warning-700: #a68432;
+  --color-warning-800: #856527;
+  --color-warning-900: #5c461b;
 
   /* Yellow scale for buttons */
   --color-yellow-50:  oklch(0.98 0.02 90);
@@ -69,17 +90,17 @@
   --color-yellow-800: oklch(0.45 0.12 90);
   --color-yellow-900: oklch(0.35 0.10 90);
 
-  /* Error (from #E37648) */
-  --color-error-50:  oklch(0.950 0.039 25.2);
-  --color-error-100: oklch(0.900 0.039 25.2);
-  --color-error-200: oklch(0.800 0.063 25.2);
-  --color-error-300: oklch(0.700 0.078 25.2);
-  --color-error-400: oklch(0.620 0.157 25.2);
-  --color-error-500: oklch(0.683 0.157 25.2);
-  --color-error-600: oklch(0.550 0.141 25.2);
-  --color-error-700: oklch(0.450 0.125 25.2);
-  --color-error-800: oklch(0.380 0.110 25.2);
-  --color-error-900: oklch(0.300 0.094 25.2);
+  /* Error - Based on DApp accent-alt #E37648 */
+  --color-error-50:  #fef4f1;
+  --color-error-100: #fde6dd;
+  --color-error-200: #fbcbb7;
+  --color-error-300: #f7a385;
+  --color-error-400: var(--dapp-accent-alt); /* #E37648 */
+  --color-error-500: var(--dapp-accent-alt); /* #E37648 */
+  --color-error-600: #c55d37;
+  --color-error-700: #a3492b;
+  --color-error-800: #7f3721;
+  --color-error-900: #582518;
 
   /* On-colors (text on colored backgrounds) */
   --color-on-primary: oklch(0.99 0 0);
