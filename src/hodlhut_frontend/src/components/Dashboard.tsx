@@ -16,15 +16,14 @@ import AddAssetsSection from './AddAssetsSection';
 import SwapAssetsSection from './SwapAssetsSection';
 import MyGardenSection from './MyGardenSection';
 import CustomDropdown from './CustomDropdown';
-import { MASTER_ASSETS, Portfolio } from '../../assets/master_asset_data';
-import { 
+import { MASTER_ASSETS, Portfolio, ASSET_PRICES } from '../../assets/master_asset_data';
+import {
   analyzeCompleteSwap,
   needsDEXSelection,
   calculateSwapRoute,
   DEX_OPTIONS,
   CompleteSwapAnalysis
 } from '../../assets/master_swap_logic';
-import { getUniversalFeeRules } from '../../assets/universal_fee_rules';
 import { getBracketConfig, type SwapRoute } from '../../assets/visual_brackets';
 import { 
   Settings,      // Slippage Tolerance
@@ -235,6 +234,10 @@ const Dashboard: React.FC = () => {
 
   // Transaction Preview Modal State
   const [showTransactionPreviewModal, setShowTransactionPreviewModal] = useState(false);
+  const [approvedSmartSolution, setApprovedSmartSolution] = useState<EnhancedSmartSolution | null>(null);
+
+  // Smart Solutions deposit state
+  const [isSmartSolutionDeposit, setIsSmartSolutionDeposit] = useState(false);
 
   // Execution Progress Modal State
   const [showExecutionProgressModal, setShowExecutionProgressModal] = useState(false);
@@ -592,16 +595,16 @@ const Dashboard: React.FC = () => {
 
 
   const updateAdvancedSwapDetails = () => {
-    
+
     if (!fromAsset || !toAsset || !swapAmount || parseFloat(swapAmount) <= 0) {
       return;
     }
 
     const amount = parseFloat(swapAmount);
-    
-    // STEP 1: Get basic swap analysis
+
+    // STEP 1: Get complete swap analysis (includes comprehensive Smart Solutions)
     const analysis = analyzeCompleteSwap(fromAsset, toAsset, amount, portfolio, selectedDEX || 'ICPSwap');
-    
+
     if (!analysis.success) {
       setSwapAnalysis(null);
       setShowRouteDetails(false);
@@ -609,16 +612,13 @@ const Dashboard: React.FC = () => {
       setShowSmartSolutions(false);
       return;
     }
-    
-    // STEP 2: Apply universal fee rules
-    const feeRules = getUniversalFeeRules(fromAsset, toAsset, amount, portfolio);
-    
+
     setSwapAnalysis(analysis);
-    
-    // STEP 3: Always show route explanation FIRST
+
+    // STEP 2: Always show route explanation FIRST
     setShowRouteDetails(true);
-    
-    // STEP 4: Show DEX selection ONLY if needed (exclude direct Chain Fusion)
+
+    // STEP 3: Show DEX selection ONLY if needed (exclude direct Chain Fusion)
     const isDirectChainFusion = analysis.route.operationType === 'Minter Operation' && analysis.isL1Withdrawal;
     if (needsDEXSelection(fromAsset, toAsset) && !isDirectChainFusion) {
       setShowDEXSelection(true);
@@ -626,39 +626,16 @@ const Dashboard: React.FC = () => {
       setSelectedDEX(null);
       setShowDEXSelection(false);
     }
-    
-    // STEP 5: Handle Smart Solutions using universal rules
-    
-    if (feeRules.shouldShowSmartSolutions && feeRules.primarySolution) {
-      const solution = feeRules.primarySolution;
-      
-      // Map universal fee rule types to SmartSolution types
-      const typeMapping: Record<string, SmartSolution['type']> = {
-        'deduct_from_final': 'deduct_from_swap',
-        'use_existing': 'auto_swap',
-        'manual_swap': 'manual_topup'
-      };
-      
-      const enhancedSolutions = [{
-        id: 'universal_fee_solution',
-        type: typeMapping[solution.type] || 'auto_swap',
-        title: solution.title,
-        description: solution.description,
-        badge: 'RECOMMENDED' as 'RECOMMENDED',
-        userReceives: {
-          amount: analysis.outputAmount,
-          asset: analysis.toAsset
-        },
-        cost: {
-          amount: solution.feeAmount.toString(),
-          asset: solution.feeToken,
-          description: 'Gas fee'
-        }
-      }];
-      setSmartSolutions(enhancedSolutions);
+
+    // STEP 4: Use comprehensive Smart Solutions from analyzeCompleteSwap
+    if (analysis.needsSmartSolutions && analysis.smartSolutions && analysis.smartSolutions.length > 0) {
+      console.log('🔥 Smart Solutions Available:', analysis.smartSolutions);
+      setSmartSolutions(analysis.smartSolutions);
       setShowSmartSolutions(true);
     } else {
+      console.log('🔥 No Smart Solutions needed for this swap');
       setShowSmartSolutions(false);
+      setSmartSolutions([]);
       setSelectedSolution(null);
       setShowAllSolutions(true);
     }
@@ -667,8 +644,9 @@ const Dashboard: React.FC = () => {
   // Smart Solutions interaction handlers
   const handleApproveSolution = (solutionIndex: number) => {
     const solution = smartSolutions[solutionIndex];
-    
-    // Show approval modal instead of alert
+
+    // Show approval modal for ALL solution types (including manual_topup)
+    // The SmartSolutionModal now handles wallet selection inline for manual_topup
     setPendingApproval(solution);
     setShowApprovalModal(true);
   };
@@ -678,6 +656,43 @@ const Dashboard: React.FC = () => {
       // If rejecting the first (recommended) solution, show all alternatives
       setShowAllSolutions(true);
       setSelectedSolution(null);
+
+      // Additionally, if user rejects ALL Smart Solutions, offer deposit alternatives
+      // This creates a deposit solution for the gas asset they need
+      if (smartSolutions.length > 0) {
+        const rejectedSolution = smartSolutions[0];
+        const description = rejectedSolution.description || rejectedSolution.cost?.description || '';
+
+        // Extract what gas asset they need
+        let neededAsset = 'ckETH'; // default
+        if (description.includes('ckBTC')) neededAsset = 'ckBTC';
+        else if (description.includes('ckETH')) neededAsset = 'ckETH';
+        else if (description.includes('ckUSDC')) neededAsset = 'ckUSDC';
+        else if (description.includes('ICP')) neededAsset = 'ICP';
+
+        // Create deposit alternative solution
+        const depositSolution = {
+          id: `deposit_${neededAsset}`,
+          type: 'manual_topup' as const,
+          title: `Deposit ${neededAsset} to Your Portfolio`,
+          description: `Transfer ${neededAsset} from your ICP wallet to your HodlHut portfolio to have sufficient balance for gas fees.`,
+          badge: 'ALTERNATIVE' as const,
+          userReceives: {
+            amount: 0, // No immediate receive since this is a deposit
+            asset: neededAsset
+          },
+          cost: {
+            asset: neededAsset,
+            amount: rejectedSolution.cost?.amount || '0',
+            description: `Deposit ${neededAsset} to portfolio`
+          },
+          portfolioImpact: {},
+          userNeedsTopup: true
+        };
+
+        // Add deposit alternative to solutions
+        setSmartSolutions(prev => [...prev, depositSolution]);
+      }
     } else {
       // For other solutions, just close this specific one
       const updatedSolutions = smartSolutions.filter((_, index) => index !== solutionIndex);
@@ -730,6 +745,7 @@ const Dashboard: React.FC = () => {
 
       // Direct transition to Transaction Preview modal
       setTransactionData(swapAnalysis);
+      setApprovedSmartSolution(pendingApproval); // Pass the approved Smart Solution
       setShowTransactionPreviewModal(true);
     }
 
@@ -1104,7 +1120,30 @@ const Dashboard: React.FC = () => {
       ...prev,
       [asset]: (prev[asset] || 0) + amount
     }));
-    
+
+    // Show success message
+    showSuccess(`Successfully deposited ${amount} ${asset}`);
+
+    // Close deposit modal
+    setIsDepositModalOpen(false);
+    setSelectedDepositAsset('');
+
+    // If this was a Smart Solution deposit, continue to Transaction Preview
+    if (isSmartSolutionDeposit && swapAnalysis && approvedSmartSolution) {
+      setTimeout(() => {
+        setIsSmartSolutionDeposit(false);
+        setTransactionData(swapAnalysis);
+        setShowTransactionPreviewModal(true);
+      }, 500); // Small delay for better UX
+    }
+  };
+
+  // Handler for Smart Solution deposits
+  const handleSmartSolutionDeposit = (asset: string) => {
+    setIsSmartSolutionDeposit(true);
+    setSelectedDepositAsset(asset);
+    setIsDepositModalOpen(true);
+    setShowApprovalModal(false); // Close Smart Solution modal
   };
 
   // Reset Add Assets component to initial state
@@ -1458,12 +1497,13 @@ const Dashboard: React.FC = () => {
       </div>
       
       {/* Deposit Modal */}
-      <DepositModal 
+      <DepositModal
         isOpen={isDepositModalOpen}
         onClose={closeDepositModal}
         selectedAsset={selectedDepositAsset}
         onDepositComplete={handleDepositComplete}
-        onContinue={resetAddAssetsComponent}
+        onContinue={isSmartSolutionDeposit ? undefined : resetAddAssetsComponent}
+        isSmartSolutionDeposit={isSmartSolutionDeposit}
       />
 
       {/* Smart Solutions Approval Modal */}
@@ -1472,14 +1512,21 @@ const Dashboard: React.FC = () => {
         pendingApproval={pendingApproval}
         onConfirm={handleConfirmApproval}
         onCancel={handleCancelApproval}
+        fromAsset={fromAsset}
+        toAsset={toAsset}
+        swapAmount={swapAmount}
+        swapValueUSD={parseFloat(swapAmount) * (ASSET_PRICES[fromAsset] || 0)}
+        onOpenDeposit={handleSmartSolutionDeposit}
       />
 
       {/* Transaction Preview Modal */}
       <TransactionPreviewModal
         isOpen={showTransactionPreviewModal}
         transactionData={transactionData}
+        approvedSmartSolution={approvedSmartSolution}
         onClose={() => {
           setShowTransactionPreviewModal(false);
+          setApprovedSmartSolution(null); // Clear approved Smart Solution
           // Reset entire swap page when transaction is cancelled
           resetSwapAssetsPage();
         }}

@@ -346,7 +346,7 @@ const MyGardenSection: React.FC<MyGardenSectionProps> = ({
       <div className="rounded-2xl border border-white/10 bg-surface-1 p-4 md:p-6">
         {/* Garden Header */}
         <div className="text-center mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-text-primary mb-3">🌱 My Garden 🌱</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-text-primary mb-3">My Garden</h1>
           <p className="text-text-secondary mb-3">Hodl Longevity & Asset Diversity Rewards</p>
           <div className="inline-flex items-center gap-2 rounded-full bg-success-600/15 text-success-400 px-4 py-2 text-sm font-semibold">
             🌿 Sprout Gardener

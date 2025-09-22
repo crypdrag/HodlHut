@@ -65,6 +65,19 @@ export interface SmartSolution {
     targetAsset?: string;     // Final destination asset
     dexRecommendation?: string; // Recommended DEX name
   };
+  // Detailed swap breakdown for Transaction Preview
+  swapDetails?: {
+    sourceAsset: string;
+    sourceAmount: number;
+    targetAsset: string;
+    targetAmount: number;
+    exchangeRate: number;
+    dexFee: number;
+    dexFeePercentage: number;
+    recommendedDEX: string;
+    totalCostUSD: number;
+    priceImpact?: number;
+  };
 }
 
 export interface BaseSwapResult {
@@ -647,20 +660,46 @@ export function generateSmartSolutions(
       return currentValue > bestValue ? asset : best;
     });
 
+    // Calculate actual swap details for DEX fees and costs
+    const sourceAssetPrice = ASSET_PRICES[bestAsset] || 0;
+    const ckETHPrice = ASSET_PRICES['ckETH'] || 0;
+    const exchangeRate = sourceAssetPrice / ckETHPrice; // How much sourceAsset = 1 ckETH
+
+    // Amount of source asset needed (including DEX fees)
+    const dexFeePercentage = selectedDEX === 'ICDEX' ? 0.1 : 0.3; // ICDEX: 0.1%, others: 0.3%
+    const sourceAmountNeeded = gasNeeded / exchangeRate; // Raw amount needed
+    const dexFee = sourceAmountNeeded * (dexFeePercentage / 100);
+    const totalSourceNeeded = sourceAmountNeeded + dexFee;
+
+    // Total cost in USD
+    const totalCostUSD = totalSourceNeeded * sourceAssetPrice;
+
     return [{
       id: `swap_${bestAsset}_for_ckETH`,
       type: 'auto_swap',
-      title: `Swap ${bestAsset} → ckETH`,
-      description: `Use your ${bestAsset} balance to get ckETH for Ethereum gas fees. HodlHut will automatically execute this during your withdrawal.`,
+      title: `Auto-Swap ${bestAsset} → ckETH`,
+      description: `HodlHut will swap ${totalSourceNeeded.toFixed(6)} ${bestAsset} for ${gasNeeded} ckETH to cover Ethereum gas fees. This includes ${dexFeePercentage}% DEX trading fee.`,
       badge: 'RECOMMENDED',
       userReceives: {
         amount: swapAnalysis.outputAmount,
         asset: swapAnalysis.toAsset
       },
       cost: {
-        amount: gasNeeded.toString(),
-        asset: 'ckETH',
-        description: 'Ethereum gas fee (from swap)'
+        amount: totalSourceNeeded.toFixed(6),
+        asset: bestAsset,
+        description: `Includes ${dexFeePercentage}% DEX fee`
+      },
+      // Detailed swap breakdown for Transaction Preview
+      swapDetails: {
+        sourceAsset: bestAsset,
+        sourceAmount: totalSourceNeeded,
+        targetAsset: 'ckETH',
+        targetAmount: gasNeeded,
+        exchangeRate: exchangeRate,
+        dexFee: dexFee,
+        dexFeePercentage: dexFeePercentage,
+        recommendedDEX: selectedDEX,
+        totalCostUSD: totalCostUSD
       }
     }];
   }
@@ -670,7 +709,7 @@ export function generateSmartSolutions(
     id: 'deposit_ckETH',
     type: 'manual_topup',
     title: 'Deposit ckETH',
-    description: `You need ${gasNeeded} ckETH for Ethereum gas fees. Transfer ckETH from your Internet Identity wallet or deposit ETH from Ethereum network.`,
+    description: `You need ${gasNeeded} ckETH for Ethereum gas fees. Transfer ckETH from your ICP wallet or deposit ETH from Ethereum network.`,
     badge: 'REQUIRED STEP',
     userReceives: {
       amount: swapAnalysis.outputAmount,

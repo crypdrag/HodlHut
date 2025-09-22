@@ -21,6 +21,7 @@ export interface DepositModalProps {
   selectedAsset: string;
   onDepositComplete: (asset: string, amount: number) => void;
   onContinue?: () => void; // Optional callback for Continue button
+  isSmartSolutionDeposit?: boolean; // Indicates if this is for Smart Solution gas requirement
 }
 
 interface WalletOption {
@@ -96,12 +97,13 @@ enum DepositStep {
   Success = 4
 }
 
-const DepositModal: React.FC<DepositModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  selectedAsset, 
+const DepositModal: React.FC<DepositModalProps> = ({
+  isOpen,
+  onClose,
+  selectedAsset,
   onDepositComplete,
-  onContinue
+  onContinue,
+  isSmartSolutionDeposit = false
 }) => {
   const [currentStep, setCurrentStep] = useState<DepositStep>(DepositStep.AmountInput);
   const [depositAmount, setDepositAmount] = useState<string>('');
@@ -448,7 +450,7 @@ const DepositModal: React.FC<DepositModalProps> = ({
           className="px-4 py-2 rounded-2xl text-sm font-semibold bg-primary-600 hover:bg-primary-500 text-on-primary focus:ring-2 focus:ring-primary-400 focus:outline-none transition-all duration-200 w-full py-4 text-base font-semibold"
           onClick={handleClose}
         >
-          Continue
+          {isSmartSolutionDeposit ? 'Continue Transaction' : 'Continue'}
         </button>
       </div>
     </div>

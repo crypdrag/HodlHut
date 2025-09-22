@@ -787,7 +787,30 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
           {/* Backend: KongSwap onclick calls KongSwap API, ICPSwap onclick calls ICPSwap API */}
           <CompactDEXSelector
             selectedDEX={selectedDEX}
-            setSelectedDEX={setSelectedDEX}
+            setSelectedDEX={(dexId: string | null) => {
+              setSelectedDEX(dexId);
+
+              // Auto-trigger Transaction Preview for DEX + Chain Fusion swaps when DEX is selected
+              if (dexId && swapAnalysis && !showSmartSolutions) {
+                // Check if this is a DEX + Chain Fusion operation (DEX swap to L1 asset)
+                const isDEXPlusChainFusion = swapAnalysis.route.operationType === 'DEX + Minter' ||
+                                           (swapAnalysis.route.steps.includes('DEX Swap') &&
+                                            ['BTC', 'ETH', 'USDC', 'USDT'].includes(toAsset));
+
+                if (isDEXPlusChainFusion && parseFloat(swapAmount || '0') > 0) {
+                  console.log('🚀 Auto-triggering Transaction Preview for DEX + Chain Fusion:', {
+                    from: fromAsset,
+                    to: toAsset,
+                    selectedDEX: dexId,
+                    operationType: swapAnalysis.route.operationType
+                  });
+
+                  // Set transaction data and show Transaction Preview
+                  setTransactionData(swapAnalysis);
+                  onShowTransactionPreview();
+                }
+              }
+            }}
             dexData={DEX_OPTIONS_ENHANCED}
             fromAsset={fromAsset}
             toAsset={toAsset}

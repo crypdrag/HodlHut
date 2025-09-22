@@ -198,7 +198,7 @@ const AddAssetsSection: React.FC<AddAssetsSectionProps> = ({
                 onClick={() => setSelectedDepositAssetUnified(asset)}
               >
                 <div className="flex items-center gap-3">
-                  <AssetIcon asset={asset} size={20} />
+                  <AssetIcon asset={asset} size={30} />
                   <div className="flex-1">
                     <div className="text-sm font-semibold text-text-primary">{assetDetails.label}</div>
                     {hasBalance && (

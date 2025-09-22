@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { X, ArrowRight, AlertTriangle, Wallet, ExternalLink, CheckCircle, Copy } from 'lucide-react';
-import { CompleteSwapAnalysis } from '../../assets/master_swap_logic';
+import { CompleteSwapAnalysis, SmartSolution } from '../../assets/master_swap_logic';
 
 interface TransactionPreviewModalProps {
   isOpen: boolean;
   transactionData: CompleteSwapAnalysis | null;
+  approvedSmartSolution?: SmartSolution | null;
   onClose: () => void;
   onExecute: () => void;
 }
@@ -12,6 +13,7 @@ interface TransactionPreviewModalProps {
 const TransactionPreviewModal: React.FC<TransactionPreviewModalProps> = ({
   isOpen,
   transactionData,
+  approvedSmartSolution,
   onClose,
   onExecute
 }) => {
@@ -168,6 +170,57 @@ const TransactionPreviewModal: React.FC<TransactionPreviewModalProps> = ({
               Complexity: {transactionData.route.complexity} • {transactionData.route.estimatedTime}
             </div>
           </div>
+
+          {/* Smart Solution Gas Swap Details */}
+          {approvedSmartSolution?.swapDetails && (
+            <div className="bg-warning-600/10 border border-warning-500/20 rounded-xl p-4 mb-6">
+              <div className="text-xs font-medium text-warning-400 mb-4 flex items-center gap-2">
+                <AlertTriangle size={14} />
+                Gas Asset Swap Required
+              </div>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-text-secondary">Swap Amount:</span>
+                  <span className="font-medium text-text-primary">
+                    {approvedSmartSolution.swapDetails.sourceAmount.toFixed(6)} {approvedSmartSolution.swapDetails.sourceAsset}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-text-secondary">Receive:</span>
+                  <span className="font-medium text-success-400">
+                    {approvedSmartSolution.swapDetails.targetAmount} {approvedSmartSolution.swapDetails.targetAsset}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-text-secondary">Exchange Rate:</span>
+                  <span className="font-medium text-text-primary">
+                    1 {approvedSmartSolution.swapDetails.sourceAsset} = {approvedSmartSolution.swapDetails.exchangeRate.toFixed(4)} {approvedSmartSolution.swapDetails.targetAsset}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-text-secondary">DEX Fee ({approvedSmartSolution.swapDetails.dexFeePercentage}%):</span>
+                  <span className="font-medium text-error-400">
+                    {approvedSmartSolution.swapDetails.dexFee.toFixed(6)} {approvedSmartSolution.swapDetails.sourceAsset}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-text-secondary">DEX Platform:</span>
+                  <span className="font-medium text-text-primary">
+                    {approvedSmartSolution.swapDetails.recommendedDEX}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm border-t border-white/10 pt-2">
+                  <span className="text-text-secondary font-medium">Total Cost USD:</span>
+                  <span className="font-semibold text-error-400">
+                    ${approvedSmartSolution.swapDetails.totalCostUSD.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+              <div className="mt-3 text-xs text-warning-300">
+                This swap will be executed automatically to obtain {approvedSmartSolution.swapDetails.targetAsset} for gas fees.
+              </div>
+            </div>
+          )}
 
           {/* Fee Breakdown */}
           {transactionData.feeRequirements.length > 0 && (
