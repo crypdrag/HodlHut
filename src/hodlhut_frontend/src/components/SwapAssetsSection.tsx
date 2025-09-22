@@ -129,8 +129,11 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
   executeSwap,
   updatePortfolioAfterSwap
 }) => {
-  // State for execution confirmation
+  // State for execution confirmation and progressive Smart Solutions
   const [showExecutionConfirm, setShowExecutionConfirm] = useState<number | null>(null);
+  const [smartSolutionsStep, setSmartSolutionsStep] = useState<number>(1);
+  const [rejectedOptions, setRejectedOptions] = useState<Set<string>>(new Set());
+  const [showSolutionsLayer, setShowSolutionsLayer] = useState<'primary' | 'alternatives'>('primary');
 
   // Execute the actual swap using backend MyHut canister
   const handleExecuteSwap = async () => {
@@ -380,10 +383,10 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
       );
     } else if (hasRequiredSteps) {
       return (
-        <div className="mt-4 p-3 bg-warning-600/10 border border-warning-500/20 rounded-lg">
-          <div className="text-sm text-warning-400 flex items-center gap-2">
-            <AlertTriangle size={16} />
-            <span><strong>Manual Steps Required:</strong> You'll need to complete some DEX swaps first to get the required fee tokens.</span>
+        <div className="mt-4 p-3 bg-primary-600/10 border border-primary-500/20 rounded-lg">
+          <div className="text-sm text-primary-300 flex items-center gap-2">
+            <Lightbulb size={16} />
+            <span><strong>Smart Solutions Available:</strong> HodlHut can handle the required gas fees automatically.</span>
           </div>
         </div>
       );
@@ -695,8 +698,80 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
         </div>
       )}
 
-      {/* Slippage Settings */}
-      {renderSlippageSettings()}
+      {/* Check if this is a native withdrawal (ckETH->ETH, ckBTC->BTC) */}
+      {(() => {
+        const isNativeWithdrawal = (fromAsset === 'ckETH' && toAsset === 'ETH') ||
+                                  (fromAsset === 'ckBTC' && toAsset === 'BTC');
+
+        if (isNativeWithdrawal) {
+          // For native withdrawals: show Gas Optimization immediately, then Execute button
+          return (
+            <>
+              {/* Gas Optimization - moved up for native withdrawals */}
+              {renderGasOptimization()}
+
+              {/* Direct Execute Button for Native Withdrawals */}
+              {swapAnalysis && parseFloat(swapAmount || '0') > 0 && (
+                <div className="w-full max-w-lg mt-6">
+                  {/* Balance Preview */}
+                  <div className="bg-surface-2 rounded-xl p-4 mb-4">
+                    <div className="text-sm font-semibold text-text-primary mb-3 flex items-center gap-2">
+                      <Scale size={16} />
+                      Balance Preview
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-text-secondary">Current {fromAsset}:</span>
+                        <span className="font-medium text-text-primary">{formatAmount(portfolio[fromAsset] || 0)}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-error-400">
+                        <span>After withdrawal {fromAsset}:</span>
+                        <span className="font-medium">
+                          {formatAmount(Math.max(0, (portfolio[fromAsset] || 0) - parseFloat(swapAmount || '0')))}
+                          <span className="text-xs ml-1">(-{formatAmount(parseFloat(swapAmount || '0'))})</span>
+                        </span>
+                      </div>
+                      <div className="border-t border-white/10 pt-2">
+                        <div className="flex justify-between items-center text-success-400">
+                          <span>You'll receive {toAsset}:</span>
+                          <span className="font-medium">
+                            {swapAnalysis?.outputAmount
+                              ? formatAmount(swapAnalysis.outputAmount)
+                              : formatAmount(parseFloat(swapAmount || '0') * 0.95)
+                            }
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Execute Button */}
+                  <button
+                    className="w-full btn-success btn-text"
+                    onClick={() => {
+                      if (swapAnalysis) {
+                        setTransactionData(swapAnalysis);
+                      }
+                      onShowTransactionPreview();
+                    }}
+                  >
+                    <Rocket className="inline w-4 h-4 mr-1" />
+                    Execute {toAsset} Withdrawal
+                  </button>
+                </div>
+              )}
+            </>
+          );
+        } else {
+          // For other swaps: show slippage settings and DEX selection
+          return (
+            <>
+              {/* Slippage Settings */}
+              {renderSlippageSettings()}
+            </>
+          );
+        }
+      })()}
 
       {/* STEP 2: Choose Your Method (DEX Selection) - COMPACT VERSION */}
       {showDEXSelection && swapAnalysis && fromAsset !== toAsset && (
@@ -732,33 +807,98 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
         </div>
       )}
 
-      {/* Gas Optimization */}
-      {renderGasOptimization()}
+      {/* Gas Optimization for non-native withdrawals */}
+      {(() => {
+        const isNativeWithdrawal = (fromAsset === 'ckETH' && toAsset === 'ETH') ||
+                                  (fromAsset === 'ckBTC' && toAsset === 'BTC');
+        // Only show Gas Optimization here for non-native withdrawals (native ones show it earlier)
+        return !isNativeWithdrawal ? renderGasOptimization() : null;
+      })()}
 
-      {/* STEP 3: Smart Solutions with Progressive Yes/No Interactions */}
+      {/* STEP 3: Smart Solutions - Simple Mobile-First Design */}
       {showSmartSolutions && smartSolutions.length > 0 && (
-        <div className="w-full max-w-lg mt-6 rounded-2xl border border-white/10 bg-surface-1 p-8">
-          <div className="flex justify-center items-center gap-3 mb-8">
-            <Lightbulb size={24} className="text-primary-500" />
-            <span className="heading-4 text-text-primary">Smart Solutions</span>
-            {selectedSolution !== null && (
+        <div className="w-full max-w-lg mt-6 rounded-2xl border border-white/10 bg-surface-1 p-6">
+          <div className="flex justify-center items-center gap-3 mb-6">
+            <Lightbulb size={20} className="text-primary-500" />
+            <span className="text-lg font-semibold text-text-primary">Smart Solutions</span>
+          </div>
+
+          <div className="space-y-4">
+            {smartSolutions.map((solution, index) => (
+              <div key={index} className="bg-surface-2 rounded-xl p-6 border border-white/20">
+                <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 badge-text mb-3 bg-success-400/15 text-success-300">
+                  <CheckCircle size={16} />
+                  RECOMMENDED
+                </div>
+
+                <h3 className="text-lg font-semibold text-text-primary mb-3">{solution.title}</h3>
+                <p className="text-sm text-text-secondary mb-4">{solution.description}</p>
+
+                <div className="bg-surface-3 rounded-lg p-3 mb-4 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-text-secondary">Cost:</span>
+                    <span className="text-sm font-semibold text-error-400">
+                      {formatNumber(parseFloat(solution.cost.amount))} {solution.cost.asset}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-text-secondary">You'll receive:</span>
+                    <span className="text-sm font-semibold text-success-400">
+                      {formatNumber(solution.userReceives.amount)} {solution.userReceives.asset}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  className="w-full py-3 px-4 rounded-xl font-semibold transition-colors bg-primary-600 hover:bg-primary-500 text-white"
+                  onClick={() => handleApproveSolution(index)}
+                >
+                  ✅ Yes, Execute This
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* OLD Smart Solutions - Keep as backup for now */}
+      {false /* DISABLED - Old Complex Smart Solutions UI */ && showSmartSolutions && smartSolutions.length > 0 && (
+        <div className="w-full max-w-lg mt-6 rounded-2xl border border-white/10 bg-surface-1 p-6">
+          <div className="flex justify-center items-center gap-3 mb-6">
+            <Lightbulb size={20} className="text-primary-500" />
+            <span className="text-lg font-semibold text-text-primary">Smart Solutions</span>
+            {(selectedSolution !== null || showSolutionsLayer === 'alternatives') && (
               <button
-                onClick={resetSolutionsView}
-                className="ml-auto btn-secondary btn-sm"
+                onClick={() => {
+                  resetSolutionsView();
+                  setShowSolutionsLayer('primary');
+                }}
+                className="ml-auto text-sm px-3 py-1 rounded-lg bg-surface-3 text-text-secondary hover:bg-surface-2 transition-colors"
               >
-                ↶ Back to All Options
+                ↶ Back
               </button>
             )}
           </div>
 
           <div className="space-y-4">
-            {/* Show only selected solution when approved, or all when exploring */}
-            {(selectedSolution !== null && !showAllSolutions ?
-              [smartSolutions[selectedSolution]] :
-              (showAllSolutions ? smartSolutions : [smartSolutions[0]])
-            ).map((solution, displayIndex) => {
-              const actualIndex = selectedSolution !== null && !showAllSolutions ? selectedSolution :
-                                  (showAllSolutions ? displayIndex : 0);
+            {/* Layered Display Logic */}
+            {(() => {
+              // When a solution is selected, show only that solution
+              if (selectedSolution !== null) {
+                return [smartSolutions[selectedSolution]];
+              }
+
+              // Primary layer: show only the first (recommended) solution
+              if (showSolutionsLayer === 'primary') {
+                return [smartSolutions[0]];
+              }
+
+              // Alternatives layer: show remaining solutions
+              return smartSolutions.slice(1);
+            })().map((solution, displayIndex) => {
+              // Calculate actual index based on current layer
+              const actualIndex = selectedSolution !== null ? selectedSolution :
+                                  (showSolutionsLayer === 'primary' ? 0 : displayIndex + 1);
               const isSelected = selectedSolution === actualIndex;
               const isFirstSolution = actualIndex === 0;
 
@@ -779,29 +919,124 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
                   <div className="space-y-3 mb-4">
                     {(() => {
                       // Determine balance token based on destination
-                      const getBalanceToken = () => {
-                        if (toAsset === 'BTC') return 'ckBTC';
-                        if (['ETH', 'USDC', 'USDT'].includes(toAsset)) return 'ckETH';
-                        return solution.cost.asset; // fallback to the cost asset
-                      };
-
-                      const balanceToken = getBalanceToken();
-                      const userBalance = portfolio[balanceToken] || 0;
+                      // Always show the actual source asset balance (what user is paying FROM)
+                      const sourceAsset = solution.cost.asset; // This is the asset user is paying from
+                      const userBalance = portfolio[sourceAsset] || 0;
 
                       return (
                         <>
+                          {/* Problem Statement */}
                           <div className="flex justify-between items-center">
                             <span className="body-sm text-text-secondary">Balance</span>
-                            <span className="body-sm font-semibold text-text-primary">{formatNumber(userBalance)} {balanceToken}</span>
+                            <span className="body-sm font-semibold text-text-primary">{formatNumber(userBalance)} {sourceAsset}</span>
                           </div>
                           <div className="flex justify-between items-center">
                             <span className="body-sm text-text-secondary">Gas required</span>
-                            <span className="body-sm font-semibold text-text-primary">{solution.cost.amount} {solution.cost.asset}</span>
+                            <span className="body-sm font-semibold text-text-primary">
+                              {(() => {
+                                const gasAsset = solution.cost.asset; // Smart Solutions now have correct gas asset
+
+                                // For solutions that use existing balance, show the gas token directly
+                                if (solution.id?.includes('use_balance_')) {
+                                  return `${solution.cost.amount} ${solution.cost.asset}`;
+                                }
+
+                                // For swap solutions, extract the target gas amount from description
+                                const description = solution.description || '';
+                                const gasMatch = description.match(/for ([\d.]+) (ck\w+|ICP)/);
+                                if (gasMatch) {
+                                  return `${gasMatch[1]} ${gasMatch[2]}`;
+                                }
+
+                                // Fallback to cost amount with correct gas asset
+                                return `${solution.cost.amount} ${gasAsset}`;
+                              })()}
+                            </span>
                           </div>
-                          <div className="border-t border-white/10 pt-3">
-                            <div className="flex justify-between items-center">
-                              <span className="body-sm text-text-secondary">You'll receive</span>
-                              <span className="body-sm font-semibold text-success-400">{formatNumber(solution.userReceives.amount)} {solution.userReceives.asset}</span>
+
+                          {/* Clear Execution Question - REQUIRED */}
+                          <div className="bg-primary-600/10 border border-primary-500/20 rounded-lg p-3 my-3">
+                            <div className="text-sm font-semibold text-primary-300 mb-2">
+                              {(() => {
+                                // Use clean utility function for gas information extraction
+                                // Smart Solutions now have correct gas asset and network info
+                                const gasAsset = solution.cost.asset;
+                                const network = solution.cost.description?.includes('Bitcoin') ? 'Bitcoin' : 'Ethereum';
+                                const sourceAsset = solution.cost.asset; // Same as gas asset for use_balance solutions
+                                const dexName = 'ICPSwap'; // Default DEX
+
+                                // Generate proper execution question
+                                if (solution.type === 'auto_swap') {
+                                  // Check if this is a "use balance" solution
+                                  if (solution.id?.includes('use_balance_')) {
+                                    return `🔄 Use ${sourceAsset} balance for ${network} gas fees?`;
+                                  }
+                                  // This is a swap solution
+                                  else if (sourceAsset && sourceAsset !== gasAsset) {
+                                    return `🔄 Get ${gasAsset} for ${network} gas fees from ${sourceAsset} balance? (${dexName})`;
+                                  } else {
+                                    return `🔄 Use ${gasAsset} balance for ${network} gas fees?`;
+                                  }
+                                } else {
+                                  return `💰 Get ${gasAsset} for ${network} gas fees from ${sourceAsset || 'balance'}?`;
+                                }
+                              })()}
+                            </div>
+                            <div className="text-xs text-text-secondary">
+                              {solution.type === 'auto_swap'
+                                ? `HodlHut will automatically execute this swap during your withdrawal.`
+                                : solution.type === 'manual_topup'
+                                ? `Navigate to Add Assets section to deposit the required tokens.`
+                                : `HodlHut will guide you through this process.`
+                              }
+                            </div>
+                          </div>
+
+                          {/* Portfolio Impact Preview */}
+                          <div className="bg-surface-3 rounded-lg p-3 space-y-2">
+                            <div className="text-xs font-medium text-text-secondary mb-2">New Portfolio Balances:</div>
+
+                            {/* Show impact on source asset */}
+                            {solution.cost.asset && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs text-text-secondary">{solution.cost.asset}:</span>
+                                <span className="text-xs font-medium text-error-400">
+                                  {(() => {
+                                    const costAmount = parseFloat(solution.cost.amount) || 0;
+                                    const currentBalance = portfolio[solution.cost.asset] || 0;
+                                    const newBalance = Math.max(0, currentBalance - costAmount);
+                                    return formatNumber(newBalance);
+                                  })()}
+                                  <span className="text-text-muted ml-1">(-{formatNumber(parseFloat(solution.cost.amount) || 0)})</span>
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Show impact on gas token received from swap */}
+                            {(() => {
+                              if (solution.type === 'auto_swap' && solution.description && solution.description.includes('for')) {
+                                const gasTokenName = solution.cost.asset; // Smart Solutions now have correct gas asset
+                                const sourceAmount = parseFloat(solution.cost.amount) || 0;
+                                return (
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-xs text-text-secondary">{gasTokenName}:</span>
+                                    <span className="text-xs font-medium text-success-400">
+                                      +{formatNumber(sourceAmount * 0.1)} {gasTokenName}
+                                    </span>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
+
+                            {/* Final withdrawal amount */}
+                            <div className="border-t border-white/10 pt-2">
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs text-text-secondary">You'll receive:</span>
+                                <span className="text-xs font-semibold text-success-400">
+                                  {formatNumber(solution.userReceives.amount)} {solution.userReceives.asset}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </>
@@ -809,28 +1044,40 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
                     })()}
                   </div>
 
-                  {/* Progressive Yes/No Buttons */}
+                  {/* Progressive Yes/No Buttons - Mobile Optimized */}
                   {!isSelected && (
-                    <div className="flex gap-3">
+                    <div className="space-y-3">
                       <button
-                        className={`flex-1 btn-text ${
+                        className={`w-full py-3 px-4 rounded-xl font-medium transition-colors ${
                           solution.badge === 'RECOMMENDED'
-                            ? 'btn-primary'
-                            : 'btn-secondary'
+                            ? 'bg-primary-600 hover:bg-primary-500 text-white'
+                            : 'bg-surface-3 hover:bg-surface-2 text-text-primary border border-white/10'
                         }`}
                         onClick={() => handleApproveSolution(actualIndex)}
                       >
-                        {solution.badge === 'RECOMMENDED' ? 'Yes, Use This' :
-                         solution.badge === 'REQUIRED STEP' ? 'Complete This Step' :
-                         'Choose This Option'}
+                        {solution.type === 'manual_topup' ? '💰 Go to Add Assets' :
+                         solution.badge === 'RECOMMENDED' ? '✅ Yes, Execute This' :
+                         solution.badge === 'REQUIRED STEP' ? '✅ Yes, Execute This' :
+                         '✅ Choose This Option'}
                       </button>
 
-                      <button
-                        className="flex-1 btn-secondary btn-text"
-                        onClick={() => handleRejectSolution(actualIndex)}
-                      >
-                        {isFirstSolution ? 'See Other Options' : 'Skip This'}
-                      </button>
+                      <div className="flex gap-2">
+                        {showSolutionsLayer === 'primary' && smartSolutions.length > 1 && (
+                          <button
+                            className="flex-1 py-2 px-3 rounded-lg text-sm bg-primary-600/20 text-primary-400 hover:bg-primary-600/30 transition-colors"
+                            onClick={() => setShowSolutionsLayer('alternatives')}
+                          >
+                            🔍 See Other Options
+                          </button>
+                        )}
+
+                        <button
+                          className="flex-1 py-2 px-3 rounded-lg text-sm bg-surface-3 text-text-secondary hover:bg-surface-2 transition-colors"
+                          onClick={() => handleRejectSolution(actualIndex)}
+                        >
+                          {showSolutionsLayer === 'primary' ? '❌ Not This One' : '⏭️ Skip This'}
+                        </button>
+                      </div>
                     </div>
                   )}
 
@@ -943,8 +1190,45 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
             })}
           </div>
 
-          {/* Dynamic contextual footer message */}
-          {renderSmartSolutionsFooter()}
+          {/* Dynamic contextual footer message - Mobile Optimized */}
+          {(() => {
+            if (selectedSolution !== null) {
+              return (
+                <div className="mt-4 p-3 bg-success-600/10 border border-success-500/20 rounded-lg">
+                  <div className="text-sm text-success-400 flex items-center gap-2">
+                    <PartyPopper size={16} />
+                    <span><strong>Perfect!</strong> Click "Execute Swap" above to proceed.</span>
+                  </div>
+                </div>
+              );
+            }
+
+            if (showSolutionsLayer === 'primary') {
+              const firstSolution = smartSolutions[0];
+              if (firstSolution?.badge === 'RECOMMENDED') {
+                return (
+                  <div className="mt-4 p-3 bg-primary-600/10 border border-primary-500/20 rounded-lg">
+                    <div className="text-sm text-primary-400">
+                      ✅ <strong>Best Option Found!</strong> This is our recommended solution.
+                      {smartSolutions.length > 1 && ' Tap "See Other Options" for alternatives.'}
+                    </div>
+                  </div>
+                );
+              }
+            }
+
+            if (showSolutionsLayer === 'alternatives') {
+              return (
+                <div className="mt-4 p-3 bg-warning-600/10 border border-warning-500/20 rounded-lg">
+                  <div className="text-sm text-warning-400">
+                    💡 <strong>Alternative Options:</strong> Here are other ways to handle fee payments.
+                  </div>
+                </div>
+              );
+            }
+
+            return null;
+          })()}
         </div>
       )}
 
