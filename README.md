@@ -69,14 +69,16 @@ User → Frontend (React) → MasterAgent
 
 ---
 
-## Key Features (current prototype)
+## Key Features (current implementation)
 
+* **Smart Solutions System:** Automated gas fee resolution with in-modal wallet selection (Plug, MetaMask).
 * **Dynamic Fee Intelligence:** BTC/EVM fee and health snapshots.
-* **Dynamic Routing with ICP Liquidity Bridge:** cross‑DEX quote/route selection (ICPSwap & KongSwap), choosing between **direct** and **ICP liquidity bridge** paths.
+* **CompactDEX Integration:** Quote comparison across ICPSwap, KongSwap, and ICDEX with scoring.
+* **Dynamic Routing with ICP Liquidity Bridge:** cross‑DEX route selection, choosing between **direct** and **ICP liquidity bridge** paths.
 * **Sovereign Accounts (design):** per‑user **MyHut** canister + **HutFactory** governance window (30‑min gate).
 * **Observability:** JSONL operation logs, phase transitions, reorg handling.
 
-> Status: **prototype**. Integration paths and guards are validated in tests; production canisters are WIP.
+> Status: **functional demo with mock data**. Backend canisters implemented with .did interfaces. Deployment pending cycles resolution.
 
 ---
 
@@ -103,9 +105,10 @@ User → Frontend (React) → MasterAgent
 
 ## Tech Stack
 
-* **Frontend:** React + TypeScript, Webpack dev server (prototype)
+* **Frontend:** React + TypeScript, Webpack dev server, Tailwind v4 mobile-first design
 * **Agents:** Node.js (TypeScript/JavaScript)
-* **ICP:** ckBTC/ckUSDC ledgers (read), governance & DEX adapters (planned canisters)
+* **Backend:** Motoko canisters with .did interfaces for Smart Solutions and DEX routing
+* **ICP:** ckBTC/ckUSDC ledgers (read), DEX adapters (mock implementation)
 * **Styling:** Tailwind‑style utility approach (CSS modules in repo), Lucide icons
 * **Auth (planned):** Internet Identity (II)
 
@@ -153,8 +156,8 @@ See **/docs/infra-tech-stack.md** for workflow names and secrets.
 ## Roadmap (abridged)
 
 * **Phase 1 — Intelligence (done):** 6 agents, fee/quote logic, tests
-* **Phase 2 — Canisters (WIP):** RPC adapters, DEX router, HutFactory/MyHut, governance gates
-* **Phase 3 — Productize:** real DEX trades, II auth, metrics canister, CI promotions
+* **Phase 2 — Implementation (current):** Smart Solutions system, backend .did interfaces, CompactDEX integration, mainnet canister deployment
+* **Phase 3 — Productize:** Real DEX integration, II auth, metrics canister, CI promotions
 
 ---
 
