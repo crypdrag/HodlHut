@@ -84,6 +84,22 @@ export class DEXRoutingAgent implements IDEXRoutingAgent {
     // STEP 3: Sort by score descending (highest score first)
     quotes.sort((a, b) => b.score - a.score);
 
+    // STEP 3.5: Filter quotes based on user's slippage tolerance
+    console.log(`[DEXRoutingAgent] Slippage tolerance check: ${input.slippageTolerance}%`);
+    if (input.slippageTolerance && input.slippageTolerance > 0) {
+      quotes.forEach(quote => {
+        if (quote.slippage > input.slippageTolerance!) {
+          console.log(`[DEXRoutingAgent] ${quote.dexName} REJECTED: slippage ${quote.slippage.toFixed(2)}% > tolerance ${input.slippageTolerance.toFixed(1)}%`);
+          quote.quoteError = `Slippage ${quote.slippage.toFixed(2)}% exceeds tolerance ${input.slippageTolerance.toFixed(1)}%`;
+          quote.score = 0; // Mark as unusable
+        } else {
+          console.log(`[DEXRoutingAgent] ${quote.dexName} ACCEPTED: slippage ${quote.slippage.toFixed(2)}% <= tolerance ${input.slippageTolerance.toFixed(1)}%`);
+        }
+      });
+      // Re-sort after applying slippage filter
+      quotes.sort((a, b) => b.score - a.score);
+    }
+
     // STEP 4: Apply user preference adjustments
     this.adjustScoresForPreferences(quotes, input);
 
@@ -97,12 +113,18 @@ export class DEXRoutingAgent implements IDEXRoutingAgent {
   // Execute quote request with timeout protection
   private async getQuoteWithTimeout(dexName: string, adapter: DEXAdapter, input: RouteInput): Promise<DEXQuote | null> {
     try {
-      // Apply threshold logic - ICDEX only for trades >$50K USD (orderbook advantage for large trades)
+      // Demo mode: Include all DEXs for hackathon demonstrations
       const tradeAmountUsd = DEXUtils.convertToUSD(input.amount, input.fromToken);
-      const shouldIncludeICDEX = tradeAmountUsd > 50000; // $50K threshold for orderbook trading
-      if (dexName === 'ICDEX' && !shouldIncludeICDEX) {
-        return null;
-      }
+
+      // DEBUG: Log the routing attempt
+      console.log(`[DEXRoutingAgent] ${dexName} quote attempt:`);
+      console.log(`  - From: ${input.fromToken}`);
+      console.log(`  - To: ${input.toToken}`);
+      console.log(`  - Amount: ${input.amount}`);
+      console.log(`  - USD Value: $${tradeAmountUsd}`);
+
+      // TODO: Re-enable ICDEX threshold for production: tradeAmountUsd > 50000
+      // For demo mode, all DEXs are available regardless of trade size
 
       // Create timeout promise
       const timeoutPromise = new Promise<never>((_, reject) => {
@@ -112,10 +134,22 @@ export class DEXRoutingAgent implements IDEXRoutingAgent {
       // Create adapter calls promise
       const quotePromise = (async () => {
         const isAvailable = await adapter.isAvailable();
+        console.log(`[DEXRoutingAgent] ${dexName} isAvailable:`, isAvailable);
         if (!isAvailable) {
+          console.log(`[DEXRoutingAgent] ${dexName} unavailable, creating error quote`);
           return this.createErrorQuote(dexName, 'DEX unavailable');
         }
-        return await adapter.getQuote(input.fromToken, input.toToken, input.amount);
+        const quote = await adapter.getQuote(input.fromToken, input.toToken, input.amount);
+        console.log(`[DEXRoutingAgent] ${dexName} quote result - hasError:`, !!quote.quoteError);
+        if (quote.quoteError) {
+          console.error(`[DEXRoutingAgent] ${dexName} ERROR:`, quote.quoteError);
+        } else {
+          console.log(`[DEXRoutingAgent] ${dexName} SUCCESS:`);
+          console.log(`  - Fee: ${quote.fee}%`);
+          console.log(`  - Slippage: ${quote.slippage}%`);
+          console.log(`  - Path:`, quote.path);
+        }
+        return quote;
       })();
 
       // Race between quote and timeout

@@ -18,35 +18,39 @@ describe('ICPSwapAdapter', () => {
     });
   });
 
-  describe('isAvailable() - Reliability Simulation', () => {
-    it('should return true when random value indicates availability (>0.08)', async () => {
-      // Math.random is mocked to return 0.5 (50%) in setupTests.ts
-      // Since 0.5 > 0.08, isAvailable should return true (92% uptime)
+  describe('isAvailable() - Demo Mode', () => {
+    it('should return true in demo mode for consistent hackathon demonstrations', async () => {
+      // Demo mode: Always available for consistent hackathon demonstrations
       const isAvailable = await adapter.isAvailable();
       expect(isAvailable).toBe(true);
     });
 
-    it('should return false when random value indicates downtime', async () => {
-      // Mock Math.random to simulate the 8% downtime
-      (Math.random as jest.Mock).mockReturnValue(0.05); // 5% < 8% threshold
+    it('should respect manual availability settings', async () => {
+      // Test the setAvailability method if available
+      if (typeof (adapter as any).setAvailability === 'function') {
+        (adapter as any).setAvailability(false);
+        const isAvailable = await adapter.isAvailable();
+        expect(isAvailable).toBe(false);
 
-      const isAvailable = await adapter.isAvailable();
-      expect(isAvailable).toBe(false);
+        // Reset for other tests
+        (adapter as any).setAvailability(true);
+      } else {
+        // If no setAvailability method, should always be true in demo mode
+        const isAvailable = await adapter.isAvailable();
+        expect(isAvailable).toBe(true);
+      }
     });
 
-    it('should simulate intermittent availability over multiple calls', async () => {
+    it('should maintain consistent availability in demo mode', async () => {
       const results: boolean[] = [];
 
-      // Test 10 calls with different random values
+      // Test 10 calls - all should return true in demo mode
       for (let i = 0; i < 10; i++) {
-        // Alternate between available and unavailable
-        (Math.random as jest.Mock).mockReturnValue(i % 2 === 0 ? 0.9 : 0.05);
         results.push(await adapter.isAvailable());
       }
 
-      // Should have mixed results
-      expect(results).toContain(true);
-      expect(results).toContain(false);
+      // All results should be true in demo mode
+      expect(results.every(result => result === true)).toBe(true);
     });
   });
 

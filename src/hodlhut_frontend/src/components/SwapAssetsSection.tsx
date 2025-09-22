@@ -21,6 +21,7 @@ import { AuthStep } from './AuthenticationModal';
 import { Portfolio, MASTER_ASSETS, ASSET_PRICES } from '../../assets/master_asset_data';
 import { CompleteSwapAnalysis, SmartSolution, DEX_OPTIONS } from '../../assets/master_swap_logic';
 import { type SwapRoute } from '../../assets/visual_brackets';
+import { SwapRequest, SwapResponse } from '../types/myhut';
 
 const DEX_OPTIONS_ENHANCED = {
   KongSwap: {
@@ -90,6 +91,7 @@ interface SwapAssetsSectionProps {
   formatNumber: (num: number) => string;
   onShowTransactionPreview: () => void;
   onDEXSelectedForICPSwap?: (dexId: string) => void;
+  executeSwap?: (request: SwapRequest) => Promise<SwapResponse | null>;
 }
 
 const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
@@ -122,10 +124,68 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
   resetSolutionsView,
   formatNumber,
   onShowTransactionPreview,
-  onDEXSelectedForICPSwap
+  onDEXSelectedForICPSwap,
+  executeSwap
 }) => {
   // State for execution confirmation
   const [showExecutionConfirm, setShowExecutionConfirm] = useState<number | null>(null);
+
+  // Execute the actual swap using backend MyHut canister
+  const handleExecuteSwap = async () => {
+    if (!executeSwap || !fromAsset || !toAsset || !swapAmount || !selectedDEX) {
+      console.warn('Missing required data for swap execution:', {
+        executeSwap: !!executeSwap,
+        fromAsset,
+        toAsset,
+        swapAmount,
+        selectedDEX
+      });
+      return;
+    }
+
+    try {
+      // Map frontend DEX selection to backend-compatible format
+      const getIntermediateAsset = (mainnetAsset: string): string => {
+        const mapping: Record<string, string> = {
+          'BTC': 'ckBTC',
+          'ETH': 'ckETH',
+          'USDC': 'ckUSDC',
+          'USDT': 'ckUSDT'
+        };
+        return mapping[mainnetAsset] || mainnetAsset;
+      };
+
+      // For cross-chain swaps, backend needs the intermediate ckAsset
+      const backendToAsset = ['BTC', 'ETH', 'USDC', 'USDT'].includes(toAsset)
+        ? getIntermediateAsset(toAsset)
+        : toAsset;
+
+      const swapRequest: SwapRequest = {
+        fromAsset: fromAsset as any,
+        toAsset: backendToAsset as any,
+        amount: swapAmount,
+        slippage: slippageTolerance,
+        dexPreference: selectedDEX,
+        urgency: 'medium'
+      };
+
+      console.log('🔄 Executing swap with request:', swapRequest);
+
+      const response = await executeSwap(swapRequest);
+
+      if (response?.success) {
+        console.log('✅ Swap executed successfully:', response);
+        // Continue with transaction preview/progress
+        onShowTransactionPreview();
+      } else {
+        console.error('❌ Swap failed:', response?.errorMessage);
+        // Handle error - could show toast or error modal
+      }
+    } catch (error) {
+      console.error('❌ Swap execution error:', error);
+      // Handle error - could show toast or error modal
+    }
+  };
 
   // Helper functions moved from Dashboard
   const getSwapFromAssetOptions = () => {
@@ -602,6 +662,7 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
             toAsset={toAsset}
             swapAmount={swapAmount}
             swapValueUSD={parseFloat(swapAmount || '0') * (ASSET_PRICES[fromAsset] || 0)}
+            slippageTolerance={slippageTolerance}
             onShowTransactionPreview={onShowTransactionPreview}
             swapAnalysis={swapAnalysis}
             onDEXSelectedForICPSwap={onDEXSelectedForICPSwap}
@@ -764,14 +825,15 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
                         <button
                           className="w-full btn-success btn-text"
                           onClick={() => {
-                            // Set transaction data and show transaction preview modal
+                            // Set transaction data and execute the actual swap
                             if (swapAnalysis) {
                               setTransactionData(swapAnalysis);
                             }
-                            onShowTransactionPreview();
+                            // Execute the swap with selected DEX
+                            handleExecuteSwap();
                           }}
                         >
-                          <Rocket className="inline w-4 h-4 mr-1" /> View & Approve Transaction
+                          <Rocket className="inline w-4 h-4 mr-1" /> Execute Swap via {selectedDEX || 'DEX'}
                         </button>
                       )}
                     </div>

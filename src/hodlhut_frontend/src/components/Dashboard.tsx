@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { usePlugWallet } from '../hooks/usePlugWallet';
 import DepositModal from './DepositModal';
 import SmartSolutionModal from './SmartSolutionModal';
 import TransactionPreviewModal from './TransactionPreviewModal';
@@ -172,6 +173,7 @@ const Dashboard: React.FC = () => {
   const location = useLocation();
   const { logout } = useAuth();
   const { showSuccess, showError, showMyHutFallback } = useToast();
+  const { executeSwap } = usePlugWallet();
   
   // Check if navigation state specifies an active section and user flow
   const initialSection = (location.state as any)?.activeSection || 'addAssets';
@@ -194,7 +196,7 @@ const Dashboard: React.FC = () => {
   const [showRouteDetails, setShowRouteDetails] = useState(false);
   const [showSmartSolutions, setShowSmartSolutions] = useState(false);
   const [showDEXSelection, setShowDEXSelection] = useState(false);
-  const [slippageTolerance, setSlippageTolerance] = useState(1.0);
+  const [slippageTolerance, setSlippageTolerance] = useState(5.0);
   const [currentGasPrice, setCurrentGasPrice] = useState(25);
   const [timeRemaining, setTimeRemaining] = useState(1800); // 30 minutes for Hut activation
   
@@ -1355,6 +1357,7 @@ const Dashboard: React.FC = () => {
             formatNumber={formatNumber}
             onShowTransactionPreview={() => setShowTransactionPreviewModal(true)}
             onDEXSelectedForICPSwap={handleDEXSelectedForICPSwap}
+            executeSwap={executeSwap}
           />
         );
       case 'myGarden':

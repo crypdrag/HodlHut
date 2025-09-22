@@ -11,8 +11,9 @@ export class ICPSwapAgent implements DEXAdapter {
   }
 
   async isAvailable(): Promise<boolean> {
-    // Simulate occasional downtime for testing
-    return this.isOnline && Math.random() > 0.05; // 95% uptime
+    // Demo mode: Always available for consistent hackathon demonstrations
+    // TODO: Restore random availability simulation for testing: Math.random() > 0.05 (95% uptime)
+    return this.isOnline;
   }
 
   async getQuote(fromToken: string, toToken: string, amount: number): Promise<DEXQuote> {
@@ -38,21 +39,47 @@ export class ICPSwapAgent implements DEXAdapter {
     };
   }
 
-  // Calculate realistic slippage based on trade size and liquidity
+  // Calculate ICPSwap slippage based on real data with liquidity issues
   private calculateSlippage(amount: number, fromToken: string, toToken: string): number {
-    const liquidityUsd = this.getLiquidityForPair(fromToken, toToken);
-    const tradePercent = (amount * this.getTokenPrice(fromToken)) / liquidityUsd;
+    // ICPSwap shows 0.5% slippage tolerance but has price deviations
+    const priceDeviations: Record<string, number> = {
+      'ckBTC-ckUSDC': 81.77, // Massive price deviation indicates liquidity issues
+      'ckBTC-ckETH': 1.83,   // Minor deviation, more realistic
+      'ckBTC-ckUSDT': 99.99, // Completely broken - should be marked unavailable
+      'ckETH-ckUSDC': 14.86, // Significant price deviation
+      'ckETH-ckUSDT': 100.0  // No liquidity available
+    };
 
-    // Slippage increases quadratically with trade size
-    let slippage = Math.pow(tradePercent * 100, 1.5) * 0.01;
+    const tradeAmountUsd = this.convertToUSD(amount, fromToken);
+    const pairKey = `${fromToken}-${toToken}`;
+    const reversePairKey = `${toToken}-${fromToken}`;
 
-    // Cap at reasonable maximum
-    slippage = Math.min(slippage, 15);
+    const deviation = priceDeviations[pairKey] || priceDeviations[reversePairKey];
 
-    // Add small random variation for realism
-    slippage += (Math.random() - 0.5) * 0.02;
+    // Only mark completely broken pairs as unavailable (ckUSDT with 99.99%+ deviation)
+    if (!deviation || deviation >= 99) {
+      return 999; // This will trigger unavailable status
+    }
 
-    return Math.max(0.05, slippage); // Minimum 0.05% slippage
+    // For pairs with severe price deviations (>70%), reflect the actual poor execution
+    if (deviation > 70) {
+      // Use the actual price deviation as base slippage since that's what users experience
+      const actualDeviation = deviation * 0.8; // 80% of the price deviation as slippage
+      const scaleFactor = Math.sqrt(tradeAmountUsd / 3464); // Based on user's $3,464 test trade
+      return Math.max(65.0, actualDeviation * scaleFactor); // Minimum 65% slippage for such poor liquidity
+    }
+
+    // For pairs with significant but manageable deviations (15-70%), moderate penalty
+    if (deviation > 15) {
+      const baseSlippage = deviation * 0.5; // 50% of price deviation as slippage
+      const scaleFactor = Math.sqrt(tradeAmountUsd / 3000);
+      return Math.max(5.0, baseSlippage * scaleFactor); // Minimum 5% slippage
+    }
+
+    // For pairs with minor deviations (<15%), use 0.5% base with normal scaling
+    const baseSlippage = 0.5;
+    const scaleFactor = Math.sqrt(tradeAmountUsd / 3000); // Based on ~$3k test trades
+    return Math.max(0.5, baseSlippage * scaleFactor);
   }
 
   // Get estimated liquidity for trading pairs
@@ -73,6 +100,36 @@ export class ICPSwapAgent implements DEXAdapter {
   }
 
   // Mock token prices for calculation
+  // Convert amount to USD with proper decimal handling
+  private convertToUSD(amount: number, token: string): number {
+    const usdRates: Record<string, number> = {
+      'ICP': 12.0,
+      'ckBTC': 115474.0,
+      'ckETH': 3200.0,
+      'ckUSDC': 1.0,
+      'ckUSDT': 1.0
+    };
+
+    const decimals = this.getTokenDecimals(token);
+    const humanAmount = amount / Math.pow(10, decimals);
+    return humanAmount * (usdRates[token] || 1.0);
+  }
+
+  private getTokenDecimals(token: string): number {
+    switch (token) {
+      case 'ICP':
+      case 'ckBTC':
+        return 8;
+      case 'ckETH':
+        return 18;
+      case 'ckUSDC':
+      case 'ckUSDT':
+        return 6;
+      default:
+        return 8;
+    }
+  }
+
   private getTokenPrice(token: string): number {
     const prices: Record<string, number> = {
       'ckBTC': 115474,

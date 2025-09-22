@@ -39,9 +39,13 @@ export interface SwapResponse {
   success: boolean;
   transactionId?: string;
   outputAmount?: string; // Actual amount received as string
+  actualAmountReceived?: string; // Alias for outputAmount for test compatibility
   actualFeeUsd?: number; // Actual fee paid in USD
+  actualFee?: string; // Actual fee in the fee asset (for test compatibility)
+  actualSlippage?: number; // Actual slippage experienced
   executionTime?: number; // Timestamp of execution
   errorMessage?: string; // Error message if failed
+  error?: string; // Alias for errorMessage for test compatibility
   route?: SwapRoute; // The route taken for the swap
 }
 

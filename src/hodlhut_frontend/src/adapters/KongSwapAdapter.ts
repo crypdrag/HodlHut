@@ -29,8 +29,11 @@ export class KongSwapAdapter implements DEXAdapter {
   }
 
   async isAvailable(): Promise<boolean> {
-    // Simulate 97% uptime for KongSwap (very reliable)
-    return Math.random() > 0.03;
+    // Demo mode: Always available for consistent hackathon demonstrations
+    // TODO: Replace with real KongSwap endpoint health check when integrating live APIs
+    // Real implementation: return await fetch('/kongswap/health').then(r => r.ok);
+    // Simulated uptime would be: Math.random() > 0.03 (97% uptime)
+    return true;
   }
 
   async getQuote(fromToken: string, toToken: string, amount: number): Promise<DEXQuote> {
@@ -62,11 +65,7 @@ export class KongSwapAdapter implements DEXAdapter {
 
       // KongSwap characteristics: Fast execution with competitive fees
       const baseFee = 0.2; // 0.2% base fee (lower than ICPSwap)
-      const efficientSlippage = DEXUtils.calculateSlippage(tradeAmountUsd, liquidityUsd);
-
-      // KongSwap optimizes for speed and efficiency
-      const speedBonus = tradeAmountUsd < 25000 ? 0.02 : 0; // Reduced slippage for smaller trades
-      const finalSlippage = Math.max(0.06, efficientSlippage - speedBonus);
+      const finalSlippage = DEXUtils.calculateKongSwapSlippage(tradeAmountUsd, fromToken, toToken);
 
       // Calculate output amount with slippage
       const theoreticalOutput = amount * exchangeRate;

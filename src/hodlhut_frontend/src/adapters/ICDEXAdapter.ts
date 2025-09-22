@@ -6,6 +6,7 @@ import {
   DEXQuote,
   MOCK_EXCHANGE_RATES,
   MOCK_LIQUIDITY_USD,
+  ICDEX_ORDERBOOK_DEPTH,
   DEXUtils
 } from '../types/dex';
 
@@ -29,8 +30,11 @@ export class ICDEXAdapter implements DEXAdapter {
   }
 
   async isAvailable(): Promise<boolean> {
-    // Simulate 95% uptime for ICDEX
-    return Math.random() > 0.05;
+    // Demo mode: Always available for consistent hackathon demonstrations
+    // TODO: Replace with real ICDEX endpoint health check when integrating live APIs
+    // Real implementation: return await icdexCanister.health_check();
+    // Simulated uptime would be: Math.random() > 0.05 (95% uptime)
+    return true;
   }
 
   async getQuote(fromToken: string, toToken: string, amount: number): Promise<DEXQuote> {
@@ -58,36 +62,51 @@ export class ICDEXAdapter implements DEXAdapter {
 
       // Calculate trade details
       const tradeAmountUsd = DEXUtils.convertToUSD(amount, fromToken);
-      const liquidityUsd = MOCK_LIQUIDITY_USD[fromToken]?.[toToken] || 1000000;
 
-      // ICDEX characteristics: Professional orderbook with deep liquidity
-      const baseFee = 0.15; // 0.15% base fee for orderbook trading
-      const orderBookSlippage = DEXUtils.calculateSlippage(tradeAmountUsd, liquidityUsd);
+      // Use realistic orderbook depth instead of generic liquidity
+      const orderbookData = ICDEX_ORDERBOOK_DEPTH[fromToken]?.[toToken];
+      const liquidityUsd = orderbookData
+        ? Math.min(orderbookData.bidDepth, orderbookData.askDepth) // Conservative estimate
+        : MOCK_LIQUIDITY_USD[fromToken]?.[toToken] || 1000000;
 
-      // Orderbook provides better execution for large trades
-      const liquidityBonus = tradeAmountUsd > 50000 ? 0.1 : 0; // Reduced slippage for large trades
-      const finalSlippage = Math.max(0.05, orderBookSlippage - liquidityBonus);
+      // ICDEX characteristics: Professional orderbook with real fee structure
+      const baseFee = orderbookData?.fee || 0.3; // Use real ICDEX fees (0.3% or 0.5% taker)
+
+      // Use specialized orderbook slippage calculation
+      const orderbookSlippage = DEXUtils.calculateOrderbookSlippage(tradeAmountUsd, fromToken, toToken);
+
+      // Apply ICDEX maker rebate for limit orders (simulate professional trading)
+      let effectiveFee = baseFee;
+      if (tradeAmountUsd > 25000) {
+        // Large trades could use limit orders (maker = 0% fee)
+        const makerProbability = Math.min(0.7, tradeAmountUsd / 100000); // Up to 70% chance for $100K+ trades
+        effectiveFee = baseFee * (1 - makerProbability); // Reduced fee due to maker possibility
+      }
+
+      const finalSlippage = Math.max(0.02, orderbookSlippage);
 
       // Calculate output amount with slippage
       const theoreticalOutput = amount * exchangeRate;
       const slippageReduction = theoreticalOutput * (finalSlippage / 100);
       const outputAmount = Math.floor(theoreticalOutput - slippageReduction);
 
-      // Calculate fee amount
-      const feeAmount = Math.floor(amount * (baseFee / 100));
+      // Calculate fee amount using effective fee (accounts for maker rebates)
+      const feeAmount = Math.floor(amount * (effectiveFee / 100));
 
-      // Speed depends on trade type and size
+      // Speed depends on trade type and size (orderbook advantages)
       let estimatedSpeed: string;
       if (tradeAmountUsd > 100000) {
-        estimatedSpeed = "On-chain orderbook execution"; // Professional trading
+        estimatedSpeed = "Professional orderbook execution"; // Large trades get pro treatment
+      } else if (tradeAmountUsd > 25000) {
+        estimatedSpeed = "Limit order eligible (15-45s)"; // Medium-large trades
       } else if (tradeAmountUsd > 10000) {
-        estimatedSpeed = "15-45 seconds"; // Medium trades
+        estimatedSpeed = "Market order execution (8-15s)"; // Medium trades
       } else {
-        estimatedSpeed = "10-30 seconds"; // Small trades
+        estimatedSpeed = "Standard market order (5-12s)"; // Small trades
       }
 
-      // Calculate score (ICDEX excels at large trades and liquidity)
-      const score = DEXUtils.calculateScore(finalSlippage, baseFee, liquidityUsd, estimatedSpeed);
+      // Calculate score (ICDEX excels at large trades and professional features)
+      const score = DEXUtils.calculateScore(finalSlippage, effectiveFee, liquidityUsd, estimatedSpeed);
 
       // Add bonus for professional features
       let professionalBonus = 0;
@@ -117,12 +136,14 @@ export class ICDEXAdapter implements DEXAdapter {
         dexName: this.dexName,
         path: [fromToken, toToken],
         slippage: parseFloat(finalSlippage.toFixed(3)),
-        fee: baseFee,
+        fee: parseFloat(effectiveFee.toFixed(2)), // Show effective fee (includes maker discounts)
         estimatedSpeed,
         liquidityUsd,
         score: parseFloat(finalScore.toFixed(1)),
         badge: badge as any,
-        reason
+        reason: effectiveFee < baseFee
+          ? `${reason} (Maker rebate eligible: ${effectiveFee.toFixed(2)}% effective fee)`
+          : reason
       };
 
     } catch (error) {

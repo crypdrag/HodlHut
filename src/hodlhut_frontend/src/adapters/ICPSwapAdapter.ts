@@ -15,13 +15,13 @@ export class ICPSwapAdapter implements DEXAdapter {
     ['ICP', 'ckBTC'],
     ['ICP', 'ckETH'],
     ['ICP', 'ckUSDC'],
-    ['ICP', 'ckUSDT'],
+    // ['ICP', 'ckUSDT'], // Removed: No liquidity available on ICPSwap
     ['ckBTC', 'ckETH'],
     ['ckBTC', 'ckUSDC'],
-    ['ckBTC', 'ckUSDT'],
-    ['ckETH', 'ckUSDC'],
-    ['ckETH', 'ckUSDT'],
-    ['ckUSDC', 'ckUSDT']
+    // ['ckBTC', 'ckUSDT'], // Removed: Massive price deviation (-99.99%)
+    ['ckETH', 'ckUSDC']
+    // ['ckETH', 'ckUSDT'], // Removed: No liquidity available on ICPSwap
+    // ['ckUSDC', 'ckUSDT'] // Removed: No stable-to-stable support yet
   ];
 
   getDEXName(): string {
@@ -29,8 +29,11 @@ export class ICPSwapAdapter implements DEXAdapter {
   }
 
   async isAvailable(): Promise<boolean> {
-    // Simulate 92% uptime for ICPSwap
-    return Math.random() > 0.08;
+    // Demo mode: Always available for consistent hackathon demonstrations
+    // TODO: Replace with real ICPSwap endpoint health check when integrating live APIs
+    // Real implementation: return await fetch('/icpswap/health').then(r => r.ok);
+    // Simulated uptime would be: Math.random() > 0.08 (92% uptime)
+    return true;
   }
 
   async getQuote(fromToken: string, toToken: string, amount: number): Promise<DEXQuote> {
@@ -62,10 +65,12 @@ export class ICPSwapAdapter implements DEXAdapter {
 
       // ICPSwap characteristics: Balanced approach with moderate liquidity
       const baseFee = 0.25; // 0.25% base fee
-      const ammSlippage = DEXUtils.calculateSlippage(tradeAmountUsd, liquidityUsd);
+      const finalSlippage = DEXUtils.calculateICPSwapSlippage(tradeAmountUsd, fromToken, toToken);
 
-      // AMM provides consistent execution but with standard slippage
-      const finalSlippage = Math.max(0.08, ammSlippage);
+      // Check if this pair has liquidity issues based on real data
+      if (finalSlippage >= 999) {
+        return this.createErrorQuote(fromToken, toToken, amount, 'ICPSwap liquidity unavailable for this pair');
+      }
 
       // Calculate output amount with slippage
       const theoreticalOutput = amount * exchangeRate;

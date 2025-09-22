@@ -34,6 +34,7 @@ interface CompactDEXSelectorProps {
   toAsset?: string;
   swapAmount?: string;
   swapValueUSD?: number;
+  slippageTolerance?: number; // User's slippage tolerance setting
   // Transaction preview callback for ICP-only swaps
   onShowTransactionPreview?: () => void;
   swapAnalysis?: any; // For checking if it's ICP-only vs cross-chain
@@ -49,6 +50,7 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
   toAsset,
   swapAmount,
   swapValueUSD,
+  slippageTolerance,
   onShowTransactionPreview,
   swapAnalysis,
   onDEXSelectedForICPSwap
@@ -89,17 +91,37 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
         return;
       }
 
+      // Only fetch quotes if this route requires DEX routing
+      if (!requiresDEXRouting(fromAsset, toAsset)) {
+        setAgentQuotes([]);
+        return;
+      }
+
       setIsLoadingQuotes(true);
       try {
         // Convert swapAmount to proper units (assuming 8 decimals for most tokens)
         const amount = Math.round(parseFloat(swapAmount || '0') * 100000000);
 
+        // Map mainnet destinations to intermediate ckAssets for DEX routing
+        const getIntermediateAsset = (mainnetAsset: string): string => {
+          const mapping: Record<string, string> = {
+            'BTC': 'ckBTC',
+            'ETH': 'ckETH',
+            'USDC': 'ckUSDC',
+            'USDT': 'ckUSDT'
+          };
+          return mapping[mainnetAsset] || mainnetAsset;
+        };
+
+        const dexToAsset = getIntermediateAsset(toAsset);
+
         const quotes = await dexRoutingAgent.getBestRoutes({
           fromToken: fromAsset,
-          toToken: toAsset,
+          toToken: dexToAsset, // Use intermediate ckAsset for DEX routing
           amount: amount,
           urgency: swapValueUSD > 10000 ? 'high' : 'medium',
-          userPreference: swapValueUSD > 25000 ? 'most_liquid' : 'lowest_cost'
+          userPreference: swapValueUSD > 25000 ? 'most_liquid' : 'lowest_cost',
+          slippageTolerance: slippageTolerance
         });
 
         setAgentQuotes(quotes);
@@ -171,11 +193,29 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
     setExpandedDEX(expandedDEX === dexId ? null : dexId);
   };
 
+  // Helper function to determine if transaction needs DEX routing
+  const requiresDEXRouting = (from?: string, to?: string): boolean => {
+    if (!from || !to) return false;
+
+    const icpAssets = ['ICP', 'ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT'];
+    const mainnetAssets = ['BTC', 'ETH', 'USDC', 'USDT'];
+
+    // If FROM is ICP ecosystem asset, we can route via DEX
+    if (!icpAssets.includes(from)) return false;
+
+    // Route to ICP ecosystem assets directly
+    if (icpAssets.includes(to)) return true;
+
+    // Route to mainnet assets via intermediate ckAsset
+    if (mainnetAssets.includes(to)) return true;
+
+    return false;
+  };
+
   // Helper function to determine if transaction stays within ICP ecosystem
   const isICPEcosystemTransaction = (from?: string, to?: string): boolean => {
     if (!from || !to) return false;
 
-    // ICP ecosystem assets (no L1 withdrawal required)
     const icpAssets = ['ICP', 'ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT'];
 
     // Both assets must be in ICP ecosystem for DEX-only transaction
@@ -247,11 +287,28 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
                 {/* Clean Fee Display */}
                 <div className="text-text-secondary font-medium mx-4">
                   {dex.primaryFee}
-                  {dex.agentQuote?.quoteError && (
+                  {dex.agentQuote?.quoteError && dex.agentQuote.slippage && dex.agentQuote.slippage >= 5 ? (
+                    <div className="text-xs text-warning-400 mt-1 font-semibold">
+                      ⚠️ HIGH-SLIPPAGE
+                      <div className="text-[10px] text-error-400">
+                        {dex.agentQuote.slippage.toFixed(1)}% slippage
+                      </div>
+                      <div className="text-[9px] text-text-tertiary">
+                        Exceeds {((dex.agentQuote.quoteError.match(/tolerance (\d+(?:\.\d+)?)%/) || [])[1] || '5')}% tolerance
+                      </div>
+                    </div>
+                  ) : dex.agentQuote?.quoteError ? (
                     <div className="text-xs text-error-400 mt-1">
                       Unavailable
                     </div>
-                  )}
+                  ) : dex.agentQuote && dex.agentQuote.slippage >= 50 ? (
+                    <div className="text-xs text-warning-400 mt-1 font-semibold">
+                      ⚠️ HIGH-SLIPPAGE
+                      <div className="text-[10px] text-error-400">
+                        {dex.agentQuote.slippage.toFixed(1)}% slippage
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
 
                 {/* Select Button */}
