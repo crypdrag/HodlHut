@@ -1,0 +1,57 @@
+// HodlHut Backend Service Interface
+// Matches frontend CompactDEX and Smart Solutions logic
+
+type SmartSolution = record {
+  id: text;
+  solution_type: variant { deduct_from_swap; swap_other_asset; manual_topup; auto_swap; use_balance };
+  title: text;
+  description: text;
+  badge: variant { RECOMMENDED; REQUIRED_STEP; ALTERNATIVE };
+  user_receives: record {
+    amount: float64;
+    asset: text;
+  };
+  cost: record {
+    amount: text;
+    asset: text;
+    description: opt text;
+  };
+  dex_buttons: opt text;
+};
+
+type SwapAnalysis = record {
+  from_asset: text;
+  to_asset: text;
+  amount: float64;
+  swap_route: vec text;
+  estimated_time: text;
+  total_fee_usd: float64;
+  smart_solutions: vec SmartSolution;
+};
+
+type DEXQuote = record {
+  dex_name: text;
+  path: vec text;
+  slippage: float64;
+  fee: float64;
+  estimated_speed: text;
+  liquidity_usd: float64;
+  score: float64;
+  badge: opt text;
+  reason: text;
+  quote_error: opt text;
+};
+
+service hodlhut_backend : {
+  // Smart Solutions endpoints
+  generate_smart_solutions: (text, text, float64) -> (vec SmartSolution) query;
+
+  // DEX routing endpoints
+  get_dex_quotes: (text, text, float64) -> (vec DEXQuote) query;
+
+  // Swap analysis
+  analyze_swap: (text, text, float64) -> (SwapAnalysis) query;
+
+  // Basic greeting (for testing)
+  greet: (text) -> (text) query;
+}
