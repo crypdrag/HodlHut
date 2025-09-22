@@ -8,43 +8,51 @@ HodlHut is a prototype BTCFi platform that uses a **Multi‑agent intelligence l
 
 > **Hackathon TL;DR**
 >
-> * **Demo:** local prototype + read‑only mainnet checks (Boundary‑NET)
+> * **🚀 LIVE DEMO:** HodlHut deployed and running on IC mainnet with Smart Solutions
 > * **What's novel:** ICP as a fast L2 coordination layer for BTC/ETH via agents + canisters
 > * **Tests:** 36 unit + 6 integration scenarios (see *Testing (Canonical)*)
 
 ---
 
-## Demo
+## 🚀 Live Mainnet Demo
 
-### Local (prototype UI + agents)
+**HodlHut is LIVE on Internet Computer mainnet:**
+
+🌐 **Dapp URL:** `https://vf7wt-caaaa-aaaad-ab6da-cai.icp0.io/` (or `dapp.hodlhut.app` when DNS propagates)
+
+**Deployed Canisters:**
+- **Frontend:** `vf7wt-caaaa-aaaad-ab6da-cai`
+- **Backend:** `vm45p-uiaaa-aaaad-ab6cq-cai`
+- **Candid Interface:** https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=vm45p-uiaaa-aaaad-ab6cq-cai
+
+**✅ Working Features:**
+- Smart Solutions system with in-modal wallet selection
+- CompactDEX integration with live quotes across ICPSwap, KongSwap, ICDEX
+- Transaction Preview with "What's Happening" breakdowns
+- Mobile-first Tailwind v4 design
+- Complete mock data demonstrating sophisticated DeFi routing
+
+## Local Development
+
+### Setup (for developers)
 
 ```bash
-# prerequisites (recommended)
-# - Node.js 22 LTS (Node 18+ works)
-# - npm 10+
-# - DFX ≥ 0.24.x (only needed for canister calls/examples)
-# - Rust toolchain (only if you build Rust canisters)
+# prerequisites
+# - Node.js 22 LTS (Node 18+ works), npm 10+, DFX ≥ 0.24.x
 
-# clone & install
 git clone https://github.com/crypdrag/HodlHut.git
 cd HodlHut
 npm install
 
-# run the webpack dev server (prototype)
+# run local development server
 npm start
 # UI: http://localhost:8082
 ```
 
-### Boundary‑NET (read‑only)
-
-Runs agent checks against public providers / IC canisters without state changes.
+### Agent Testing
 
 ```bash
-# (optional) env for providers (redacted values)
-export EVM_PROVIDERS="<urls or json>"
-export BTC_PROVIDERS="<urls or json>"
-
-# run agent test aggregator (prototype)
+# run agent test aggregator
 node src/agents/test_all_agents.js
 ```
 
@@ -78,15 +86,17 @@ User → Frontend (React) → MasterAgent
 * **Sovereign Accounts (design):** per‑user **MyHut** canister + **HutFactory** governance window (30‑min gate).
 * **Observability:** JSONL operation logs, phase transitions, reorg handling.
 
-> Status: **functional demo with mock data**. Backend canisters implemented with .did interfaces. Deployment pending cycles resolution.
+> Status: **🚀 LIVE ON MAINNET**. Frontend and backend canisters successfully deployed to Internet Computer with full Smart Solutions functionality.
 
 ---
 
 ## Quick Start for Judges
 
-* **See it run:** `npm start` → UI at `http://localhost:8082` (mock data + live reads where available)
-* **See it think:** `node src/agents/test_all_agents.js` (prints fee/quote/quorum decisions)
-* **Deeper:** open **/docs/hodlhut-developer-notes.md** → *Testing (Canonical)* (F.1–F.6 scenarios)
+* **🌐 Try it live:** `https://vf7wt-caaaa-aaaad-ab6da-cai.icp0.io/` (full Smart Solutions + CompactDEX on IC mainnet)
+* **🔍 Backend API:** `https://a4gq6-oaaaa-aaaad-ab6cq-cai.raw.icp0.io/?id=vm45p-uiaaa-aaaad-ab6cq-cai` (Candid interface)
+* **💻 Local demo:** `npm start` → `http://localhost:8082` (development environment)
+* **🤖 Agent tests:** `node src/agents/test_all_agents.js` (fee/quote/quorum decisions)
+* **📚 Deep dive:** **/docs/hodlhut-developer-notes.md** → *Testing (Canonical)* (F.1–F.6 scenarios)
 
 ---
 
