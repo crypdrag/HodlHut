@@ -277,7 +277,8 @@ export function calculateSwapRoute(fromAsset: string, toAsset: string): SwapRout
       bridgeAsset = 'ckBTC';
       chainsInvolved.push('Bitcoin');
     } else if (['ETH', 'USDC', 'USDT'].includes(toAsset)) {
-      bridgeAsset = toAsset === 'ETH' ? 'ckETH' : 'ckUSDC';
+      bridgeAsset = toAsset === 'ETH' ? 'ckETH' :
+                    toAsset === 'USDT' ? 'ckUSDT' : 'ckUSDC';
       chainsInvolved.push('Ethereum');
     }
     

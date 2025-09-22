@@ -80,7 +80,7 @@ const WALLET_OPTIONS: Record<string, WalletOption[]> = {
 
 const ASSET_ICONS: Record<string, JSX.Element> = {
   'BTC': <Circle className="w-4 h-4 text-warning-400" />,
-  'ETH': <Circle className="w-4 h-4 text-primary-400" />, 
+  'ETH': <Circle className="w-4 h-4 text-primary-400" />,
   'USDC': <CreditCard className="w-4 h-4 text-success-400" />,
   'USDT': <CreditCard className="w-4 h-4 text-success-500" />,
   'ckBTC': <Circle className="w-4 h-4 text-warning-400" />,
@@ -88,6 +88,13 @@ const ASSET_ICONS: Record<string, JSX.Element> = {
   'ckUSDC': <CreditCard className="w-4 h-4 text-success-400" />,
   'ckUSDT': <CreditCard className="w-4 h-4 text-success-500" />,
   'ICP': <Globe className="w-4 h-4 text-secondary-400" />
+};
+
+const getWalletTypeText = (asset: string): string => {
+  if (['BTC'].includes(asset)) return 'Bitcoin';
+  if (['ETH', 'USDC', 'USDT'].includes(asset)) return 'Ethereum';
+  if (['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'].includes(asset)) return 'ICP';
+  return 'Wallet';
 };
 
 enum DepositStep {
@@ -277,29 +284,6 @@ const DepositModal: React.FC<DepositModalProps> = ({
     setActiveTimeouts(prev => [...prev, timeout]);
   };
 
-  const handleSolanaDeposit = (messages: string[], finalAsset: string, amount: number) => {
-    setProcessingMessage(messages[0]);
-    
-    const timeout = setTimeout(() => {
-      showSolanaBlockConfirmation(() => {
-        let messageIndex = 1;
-        const messageInterval = setInterval(() => {
-          if (messageIndex < messages.length) {
-            setProcessingMessage(messages[messageIndex]);
-            messageIndex++;
-            
-            if (messageIndex >= messages.length) {
-              clearInterval(messageInterval);
-              setActiveIntervals(prev => prev.filter(i => i !== messageInterval));
-              completeDeposit(finalAsset, amount);
-            }
-          }
-        }, 2000);
-        setActiveIntervals(prev => [...prev, messageInterval]);
-      });
-    }, 2000);
-    setActiveTimeouts(prev => [...prev, timeout]);
-  };
 
   const handleStandardDeposit = (messages: string[], finalAsset: string, amount: number) => {
     let messageIndex = 0;
@@ -336,14 +320,6 @@ const DepositModal: React.FC<DepositModalProps> = ({
     }, 6500); // Wait for meter to complete (6s) + buffer (0.5s)
   };
 
-  const showSolanaBlockConfirmation = (onComplete: () => void) => {
-    setProcessingMessage('');
-    // Show Solana block confirmation UI - meter fills in 6 seconds
-    setTimeout(() => {
-      setProcessingMessage('✅ Solana transaction confirmed!');
-      setTimeout(onComplete, 2000);
-    }, 6500); // Wait for meter to complete (6s) + buffer (0.5s)
-  };
 
   const completeDeposit = (finalAsset: string, amount: number) => {
     onDepositComplete(finalAsset, amount);
@@ -405,7 +381,7 @@ const DepositModal: React.FC<DepositModalProps> = ({
                 {wallet.name}
               </span>
               <span className="text-xs text-text-muted">
-                Bitcoin Wallet
+                {getWalletTypeText(selectedAsset)} Wallet
               </span>
             </div>
             <div className="flex-shrink-0">
@@ -431,8 +407,8 @@ const DepositModal: React.FC<DepositModalProps> = ({
         {(['ETH', 'USDC', 'USDT'].includes(selectedAsset) && processingMessage === '') && (
           <EthereumConfirmationAnimation />
         )}
-        {(false && processingMessage === '') && (
-          <SolanaConfirmationAnimation />
+        {(['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'].includes(selectedAsset) && processingMessage === '') && (
+          <ICPConfirmationAnimation />
         )}
       </div>
     </div>
@@ -479,7 +455,7 @@ const DepositModal: React.FC<DepositModalProps> = ({
 // Block confirmation animation components
 const BitcoinConfirmationAnimation: React.FC = () => (
   <div className="bitcoin-confirmation">
-    <div className="confirmation-icon"><AssetIcon asset="BTC" size={32} /></div>
+    <div className="confirmation-icon flex justify-center mb-4"><AssetIcon asset="BTC" size={32} /></div>
     <h4>Bitcoin Block Confirmation</h4>
     <div className="confirmation-progress">
       <div className="confirmation-bar">
@@ -496,7 +472,7 @@ const BitcoinConfirmationAnimation: React.FC = () => (
 
 const EthereumConfirmationAnimation: React.FC = () => (
   <div className="ethereum-confirmation">
-    <div className="confirmation-icon"><AssetIcon asset="ETH" size={32} /></div>
+    <div className="confirmation-icon flex justify-center mb-4"><AssetIcon asset="ETH" size={32} /></div>
     <h4>Ethereum Block Confirmation</h4>
     <div className="confirmation-progress">
       <div className="confirmation-bar">
@@ -511,19 +487,19 @@ const EthereumConfirmationAnimation: React.FC = () => (
   </div>
 );
 
-const SolanaConfirmationAnimation: React.FC = () => (
-  <div className="solana-confirmation">
-    <div className="confirmation-icon"><AssetIcon asset="BTC" size={32} /></div>
-    <h4>Solana Transaction Confirmation</h4>
+const ICPConfirmationAnimation: React.FC = () => (
+  <div className="icp-confirmation">
+    <div className="confirmation-icon flex justify-center mb-4"><AssetIcon asset="ICP" size={32} /></div>
+    <h4>ICP Transaction Confirmation</h4>
     <div className="confirmation-progress">
       <div className="confirmation-bar">
-        <div className="confirmation-fill solana"></div>
+        <div className="confirmation-fill icp"></div>
       </div>
-      <div className="confirmation-status">⏳ Confirming transaction...</div>
+      <div className="confirmation-status">⏳ Processing ICP transaction...</div>
       <div className="confirmation-count">Finalizing...</div>
     </div>
     <div className="confirmation-info">
-      <Zap className="inline w-4 h-4 mr-1" /> Solana transactions confirm in seconds
+      <Zap className="inline w-4 h-4 mr-1" /> ICP transactions confirm in seconds
     </div>
   </div>
 );

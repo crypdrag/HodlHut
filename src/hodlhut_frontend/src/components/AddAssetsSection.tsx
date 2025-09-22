@@ -13,11 +13,11 @@ const DEPOSIT_ASSETS_CONFIG = {
     { asset: 'USDT', label: 'USDT (Ethereum)', description: 'USDT stablecoin from Ethereum network', walletType: 'Ethereum Wallet' },
   ],
   'ICP Ecosystem': [
-    { asset: 'ckBTC', label: 'ckBTC', description: 'Chain-key Bitcoin on ICP', walletType: 'Internet Identity' },
-    { asset: 'ckETH', label: 'ckETH', description: 'Chain-key Ethereum on ICP', walletType: 'Internet Identity' },
-    { asset: 'ckUSDC', label: 'ckUSDC', description: 'Chain-key USDC on ICP', walletType: 'Internet Identity' },
-    { asset: 'ckUSDT', label: 'ckUSDT', description: 'Chain-key USDT on ICP', walletType: 'Internet Identity' },
-    { asset: 'ICP', label: 'ICP', description: 'Native Internet Computer token', walletType: 'Internet Identity' }
+    { asset: 'ckBTC', label: 'ckBTC', description: 'Chain-key Bitcoin on ICP', walletType: 'ICP' },
+    { asset: 'ckETH', label: 'ckETH', description: 'Chain-key Ethereum on ICP', walletType: 'ICP' },
+    { asset: 'ckUSDC', label: 'ckUSDC', description: 'Chain-key USDC on ICP', walletType: 'ICP' },
+    { asset: 'ckUSDT', label: 'ckUSDT', description: 'Chain-key USDT on ICP', walletType: 'ICP' },
+    { asset: 'ICP', label: 'ICP', description: 'Native Internet Computer token', walletType: 'ICP' }
   ]
 };
 
@@ -136,7 +136,7 @@ const AddAssetsSection: React.FC<AddAssetsSectionProps> = ({
                 <Wallet size={16} className="text-primary-400" />
                 <span className="text-sm font-medium text-text-secondary">Wallet Required:</span>
               </div>
-              <span className="text-sm font-semibold text-primary-400">{selectedAssetDetails.walletType}</span>
+              <span className="text-sm font-semibold text-primary-400">{selectedAssetDetails.walletType} Wallet</span>
             </div>
 
             {/* Category Badge */}
@@ -162,7 +162,7 @@ const AddAssetsSection: React.FC<AddAssetsSectionProps> = ({
             }}
           >
             <Wallet size={20} />
-            Connect {selectedAssetDetails.walletType}
+            Connect {selectedAssetDetails.walletType} Wallet
           </button>
         )}
       </div>
