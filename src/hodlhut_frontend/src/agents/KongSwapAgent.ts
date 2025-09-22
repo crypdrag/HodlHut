@@ -47,7 +47,16 @@ export class KongSwapAgent implements DEXAdapter {
       'ckBTC-ckETH': { baseTradeUsd: 3462.64, baseImpact: 4.08 },
       'ckBTC-ckUSDT': { baseTradeUsd: 3462.64, baseImpact: 1.67 },
       'ckETH-ckUSDC': { baseTradeUsd: 223.20, baseImpact: 0.61 },
-      'ckETH-ckUSDT': { baseTradeUsd: 223.20, baseImpact: 0.47 }
+      'ckETH-ckUSDT': { baseTradeUsd: 223.20, baseImpact: 0.47 },
+      'ckUSDC-ckBTC': { baseTradeUsd: 1005.10, baseImpact: 1.35 }, // Live data: 1000 ckUSDC → 0.00861296 ckBTC
+      'ckUSDC-ICP': { baseTradeUsd: 998.55, baseImpact: 1.2 },    // Live data: 1000 ckUSDC → 216.08338403 ICP (1.2% impact)
+      'ICP-ckUSDC': { baseTradeUsd: 986.55, baseImpact: 1.19 },   // Live data: 216.08338403 ICP → 976.221283 ckUSDC (1.19% impact)
+      'ICP-ckBTC': { baseTradeUsd: 1136.66, baseImpact: 170.0 },  // CATASTROPHIC: $57.97 TVL, $1935.54 fees, liquidity crisis
+      'ICP-ckETH': { baseTradeUsd: 1137.14, baseImpact: 1.42 },   // Live data: 250 ICP → 0.261371118120890875 ckETH (1.42% impact, $74.66 fee)
+      'ICP-ckUSDT': { baseTradeUsd: 1137.42, baseImpact: 0.58 },  // Live data: 250 ICP → 1,130.828072 ckUSDT (0.58% impact, $3.41 fee)
+      'ckBTC-ICP': { baseTradeUsd: 1124.99, baseImpact: 155.0 },  // CATASTROPHIC: reverse direction also broken
+      'ckETH-ICP': { baseTradeUsd: 1121.10, baseImpact: 1.4 },    // Live data: 0.261371118120890875 ckETH → 242.95192847 ICP (1.4% impact, $1.74 fee)
+      'ckUSDT-ICP': { baseTradeUsd: 1130.83, baseImpact: 0.58 }   // Live data: 1,130.828072 ckUSDT → 247.09414775 ICP (0.58% impact, $3.38 fee)
     };
 
     const tradeAmountUsd = this.convertToUSD(amount, fromToken);

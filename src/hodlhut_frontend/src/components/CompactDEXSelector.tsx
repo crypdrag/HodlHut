@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Star, Zap, Waves } from 'lucide-react';
 import DEXIcon from './DEXIcon';
 import { dexRoutingAgent } from '../agents/DEXRoutingAgent';
-import { DEXQuote } from '../types/dex';
+import { DEXQuote, DEXUtils } from '../types/dex';
 import { DEXSemantics, DEXMetrics } from '../utils/DEXSemantics';
 
 // Interface for compact DEX row
@@ -100,8 +100,9 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
 
       setIsLoadingQuotes(true);
       try {
-        // Convert swapAmount to proper units (assuming 8 decimals for most tokens)
-        const amount = Math.round(parseFloat(swapAmount || '0') * 100000000);
+        // Convert swapAmount to proper units using correct decimals for each token
+        const decimals = DEXUtils.getTokenDecimals(fromAsset);
+        const amount = Math.round(parseFloat(swapAmount || '0') * Math.pow(10, decimals));
 
         // Map mainnet destinations to intermediate ckAssets for DEX routing
         const getIntermediateAsset = (mainnetAsset: string): string => {

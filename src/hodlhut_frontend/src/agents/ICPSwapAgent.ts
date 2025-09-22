@@ -39,47 +39,38 @@ export class ICPSwapAgent implements DEXAdapter {
     };
   }
 
-  // Calculate ICPSwap slippage based on real data with liquidity issues
+  // Calculate ICPSwap slippage based on real data with mathematical extrapolation
   private calculateSlippage(amount: number, fromToken: string, toToken: string): number {
-    // ICPSwap shows 0.5% slippage tolerance but has price deviations
-    const priceDeviations: Record<string, number> = {
-      'ckBTC-ckUSDC': 81.77, // Massive price deviation indicates liquidity issues
-      'ckBTC-ckETH': 1.83,   // Minor deviation, more realistic
-      'ckBTC-ckUSDT': 99.99, // Completely broken - should be marked unavailable
-      'ckETH-ckUSDC': 14.86, // Significant price deviation
-      'ckETH-ckUSDT': 100.0  // No liquidity available
+    // Real ICPSwap data points for mathematical extrapolation
+    const realData: Record<string, { baseTradeUsd: number, baseImpact: number }> = {
+      'ckBTC-ckUSDC': { baseTradeUsd: 561.37, baseImpact: 24.65 }, // Live data: 0.00491553 ckBTC → 422.375 ckUSDC (-24.65% impact)
+      'ckBTC-ckETH': { baseTradeUsd: 2280.0, baseImpact: 1.46 },   // Live data: 0.02 ckBTC → 0.519479 ckETH (-1.46% impact)
+      'ckETH-ckUSDC': { baseTradeUsd: 846.61, baseImpact: 8.15 },  // Live data: 0.194897 ckETH → 776.582 ckUSDC (-8.15% impact)
+      'ckETH-ckBTC': { baseTradeUsd: 2250.0, baseImpact: 1.12 },   // Live data: 0.519479 ckETH → 0.0194855 ckBTC (-1.12% impact)
+      'ckETH-ICP': { baseTradeUsd: 1120.0, baseImpact: 0.34 },     // Live data: ckETH → ICP (-0.34% impact)
+      'ckUSDC-ckBTC': { baseTradeUsd: 1000.0, baseImpact: 43.94 }, // Live data: 1000 ckUSDC → 0.00491553 ckBTC (-43.94% impact)
+      'ckUSDC-ckETH': { baseTradeUsd: 1000.0, baseImpact: 15.45 }, // Live data: 1000 ckUSDC → 0.194897 ckETH (-15.45% impact)
+      'ckUSDC-ICP': { baseTradeUsd: 1000.0, baseImpact: 0.57 },    // Live data: 1000 ckUSDC → 216.856 ICP (-0.57% impact)
+      'ICP-ckUSDC': { baseTradeUsd: 995.59, baseImpact: 0.14 },    // Live data: 216.856 ICP → 992.863 ckUSDC (-0.14% impact)
+      'ICP-ckBTC': { baseTradeUsd: 1150.0, baseImpact: 0.90 },     // Live data: 250 ICP → 0.00995941 ckBTC (-0.90% impact)
+      'ICP-ckETH': { baseTradeUsd: 1150.0, baseImpact: 2.37 },     // Live data: ICP → ckETH (-2.37% impact)
+      'ckBTC-ICP': { baseTradeUsd: 1130.0, baseImpact: 0.25 }      // Live data: 0.00995941 ckBTC → 246.92 ICP (+0.25% favorable execution)
     };
 
     const tradeAmountUsd = this.convertToUSD(amount, fromToken);
     const pairKey = `${fromToken}-${toToken}`;
     const reversePairKey = `${toToken}-${fromToken}`;
 
-    const deviation = priceDeviations[pairKey] || priceDeviations[reversePairKey];
+    const pairData = realData[pairKey] || realData[reversePairKey];
 
-    // Only mark completely broken pairs as unavailable (ckUSDT with 99.99%+ deviation)
-    if (!deviation || deviation >= 99) {
+    if (!pairData) {
+      // Mark unsupported pairs as unavailable (ckUSDT pairs)
       return 999; // This will trigger unavailable status
     }
 
-    // For pairs with severe price deviations (>70%), reflect the actual poor execution
-    if (deviation > 70) {
-      // Use the actual price deviation as base slippage since that's what users experience
-      const actualDeviation = deviation * 0.8; // 80% of the price deviation as slippage
-      const scaleFactor = Math.sqrt(tradeAmountUsd / 3464); // Based on user's $3,464 test trade
-      return Math.max(65.0, actualDeviation * scaleFactor); // Minimum 65% slippage for such poor liquidity
-    }
-
-    // For pairs with significant but manageable deviations (15-70%), moderate penalty
-    if (deviation > 15) {
-      const baseSlippage = deviation * 0.5; // 50% of price deviation as slippage
-      const scaleFactor = Math.sqrt(tradeAmountUsd / 3000);
-      return Math.max(5.0, baseSlippage * scaleFactor); // Minimum 5% slippage
-    }
-
-    // For pairs with minor deviations (<15%), use 0.5% base with normal scaling
-    const baseSlippage = 0.5;
-    const scaleFactor = Math.sqrt(tradeAmountUsd / 3000); // Based on ~$3k test trades
-    return Math.max(0.5, baseSlippage * scaleFactor);
+    // Mathematical extrapolation: Impact scales with sqrt of trade size
+    const scaleFactor = Math.sqrt(tradeAmountUsd / pairData.baseTradeUsd);
+    return Math.max(0.5, pairData.baseImpact * scaleFactor);
   }
 
   // Get estimated liquidity for trading pairs

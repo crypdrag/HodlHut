@@ -11,7 +11,7 @@ export interface DEXMetrics {
 }
 
 export interface SemanticExplanation {
-  slippageCategory: 'excellent' | 'good' | 'fair' | 'poor' | 'dangerous';
+  slippageCategory: 'excellent' | 'good' | 'fair' | 'poor' | 'dangerous' | 'catastrophic';
   liquidityCategory: 'excellent' | 'good' | 'fair' | 'low' | 'very-low';
   slippageExplanation: string;
   liquidityExplanation: string;
@@ -48,7 +48,8 @@ export class DEXSemantics {
     if (slippage <= 2.0) return 'good';
     if (slippage <= 5.0) return 'fair';
     if (slippage <= 15.0) return 'poor';
-    return 'dangerous';
+    if (slippage <= 50.0) return 'dangerous';
+    return 'catastrophic'; // For broken liquidity conditions (>50% slippage)
   }
 
   // Liquidity Categorization (Contextual to Trade Size)
@@ -85,6 +86,9 @@ export class DEXSemantics {
 
       case 'dangerous':
         return `Very high slippage! You'll get ~${slippage.toFixed(0)}% less than expected (about $${dollarImpact.toFixed(2)}). This trade size may be too large for current liquidity.`;
+
+      case 'catastrophic':
+        return `CATASTROPHIC LIQUIDITY FAILURE: This pool has critically insufficient liquidity. You would lose ~${slippage.toFixed(0)}% of your trade value (about $${dollarImpact.toFixed(2)}) due to broken market conditions. This represents a liquidity crisis, not normal trading.`;
     }
   }
 
@@ -136,13 +140,22 @@ export class DEXSemantics {
       return 'Proceed with caution. Very high slippage detected - consider reducing trade size or trying later.';
     }
 
+    // Catastrophic scenarios
+    if (slippageCategory === 'catastrophic') {
+      return 'DO NOT TRADE: This pool has catastrophically insufficient liquidity. Trading here will result in severe financial loss due to broken market conditions. Consider using a different DEX or waiting for liquidity to improve.';
+    }
+
     // Default fair scenarios
     return 'Fair option. Acceptable execution conditions with moderate slippage and liquidity.';
   }
 
   // Educational Notes (Learning Opportunities)
   private static getEducationalNote(metrics: DEXMetrics): string | undefined {
-    const { dexName, slippage } = metrics;
+    const { dexName, slippage, liquidityUsd } = metrics;
+
+    if (slippage > 50.0) {
+      return '📚 LIQUIDITY CRISIS EDUCATION: This pool has insufficient funds to execute trades efficiently. AMM pools need balanced token reserves to function properly. When liquidity drops below critical levels, price impact becomes extreme and fees can spike dramatically. This is why diversified liquidity across multiple DEXs is important for healthy DeFi ecosystems.';
+    }
 
     if (dexName === 'ICDEX' && slippage < 1.0) {
       return '💡 Orderbook DEXs like ICDEX often provide better execution for larger trades because you trade directly with other users instead of an automated pool.';
@@ -152,7 +165,7 @@ export class DEXSemantics {
       return '💡 High slippage usually means your trade size is large relative to available liquidity. Splitting into smaller trades or waiting for better liquidity can help.';
     }
 
-    if (metrics.liquidityUsd > 1000000) {
+    if (liquidityUsd > 1000000) {
       return '💡 High liquidity means many traders are providing funds to this pool, creating stable prices and better execution for everyone.';
     }
 
@@ -193,6 +206,7 @@ export class DEXSemantics {
     slippageCategory: SemanticExplanation['slippageCategory'],
     liquidityCategory: SemanticExplanation['liquidityCategory']
   ): string {
+    if (slippageCategory === 'catastrophic') return 'text-red-600';
     if (slippageCategory === 'excellent') return 'text-success-400';
     if (slippageCategory === 'good') return 'text-primary-400';
     if (slippageCategory === 'fair') return 'text-warning-400';
@@ -203,6 +217,7 @@ export class DEXSemantics {
 
   // Utility: Get semantic badge text
   static getSemanticBadge(explanation: SemanticExplanation): string {
+    if (explanation.slippageCategory === 'catastrophic') return 'DO NOT TRADE';
     if (explanation.celebrationMessage) return 'EXCELLENT';
     if (explanation.slippageCategory === 'excellent') return 'OPTIMAL';
     if (explanation.slippageCategory === 'good') return 'GOOD';
