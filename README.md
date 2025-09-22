@@ -12,7 +12,7 @@ My Garden is a user's private yield farm where multipliers reward users based on
 > 
 > **Hackathon TL;DR**
 >
-> * **🚀 LIVE DEMO:** HodlHut deployed and running on IC mainnet with Smart Solutions
+> * **🚀 LIVE DEMO:** HodlHut deployed and running on IC mainnet with Smart Solutions:   https://vf7wt-caaaa-aaaad-ab6da-cai.icp0.io/
 > * **What's novel:** ICP as a fast compute layer for multichain growth via agents + canisters
 > * **Demo:** DEX DATA AS OF September 21, 2025. Live data e.g. liquidity & slippage may vary over time.
 > * **Tests:** 36 unit + 6 integration scenarios (see *Testing (Canonical)*)
@@ -216,4 +216,5 @@ PRs welcome! See issues or propose an agent/canister you'd like to extend. Pleas
 ## License
 
 MIT — see `LICENSE`.
+
 
