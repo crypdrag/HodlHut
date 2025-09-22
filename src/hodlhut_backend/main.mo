@@ -2,7 +2,7 @@ import Text "mo:base/Text";
 import Array "mo:base/Array";
 import Float "mo:base/Float";
 
-actor HodlHutBackend {
+persistent actor HodlHutBackend {
 
   // Types matching frontend Smart Solutions logic
   public type SmartSolution = {
@@ -100,7 +100,7 @@ actor HodlHutBackend {
   };
 
   // Mock swap analysis
-  public query func analyze_swap(fromAsset: Text, toAsset: Text, amount: Float) : async {fromAsset: Text; toAsset: Text; amount: Float; swapRoute: [Text]; estimatedTime: Text; totalFeeUsd: Float; smartSolutions: [SmartSolution]} {
+  public func analyze_swap(fromAsset: Text, toAsset: Text, amount: Float) : async {fromAsset: Text; toAsset: Text; amount: Float; swapRoute: [Text]; estimatedTime: Text; totalFeeUsd: Float; smartSolutions: [SmartSolution]} {
     let solutions = await generate_smart_solutions(fromAsset, toAsset, amount);
     {
       fromAsset = fromAsset;
