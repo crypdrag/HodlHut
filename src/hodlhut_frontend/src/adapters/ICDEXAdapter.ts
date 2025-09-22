@@ -12,17 +12,19 @@ import {
 
 export class ICDEXAdapter implements DEXAdapter {
   private readonly dexName = 'ICDEX';
-  private readonly supportedPairs = [
-    ['ICP', 'ckBTC'],
-    ['ICP', 'ckETH'],
-    ['ICP', 'ckUSDC'],
-    ['ICP', 'ckUSDT'],
-    ['ckBTC', 'ckETH'],
-    ['ckBTC', 'ckUSDC'],
-    ['ckBTC', 'ckUSDT'],
-    ['ckETH', 'ckUSDC'],
-    ['ckETH', 'ckUSDT'],
-    ['ckUSDC', 'ckUSDT']
+  // Active pairs based on real ICDEX market data (Sep 21, 2025)
+  private readonly activePairs = [
+    ['ICP', 'ckBTC'],     // EXCELLENT: 2.32M ICP volume, 0.3% fee
+    ['ICP', 'ckETH'],     // GOOD: 95.9K ICP volume, 0.3% fee
+    ['ICP', 'ckUSDC'],    // MODERATE: 55.5K ckUSDC volume, 0.5% fee
+    ['ckBTC', 'ckETH']    // MODERATE: 40 ckBTC volume, 0.3% fee
+  ];
+
+  // Dead/stale pairs to exclude from routing
+  private readonly deadPairs = [
+    ['ckBTC', 'ckUSDT'],  // DEAD: Zero liquidity confirmed
+    ['ckETH', 'ckUSDT'],  // STALE: Ancient pricing (2,150 ckUSDT)
+    ['ICP', 'ckUSDT']     // NO LIQUIDITY: Not available
   ];
 
   getDEXName(): string {
@@ -39,13 +41,21 @@ export class ICDEXAdapter implements DEXAdapter {
 
   async getQuote(fromToken: string, toToken: string, amount: number): Promise<DEXQuote> {
     try {
-      // Check if pair is supported
-      const pairSupported = this.supportedPairs.some(
+      // Check if pair is active with real liquidity
+      const pairActive = this.activePairs.some(
         ([a, b]) => (a === fromToken && b === toToken) || (a === toToken && b === fromToken)
       );
 
-      if (!pairSupported) {
-        return this.createErrorQuote(fromToken, toToken, amount, 'Unsupported trading pair on ICDEX');
+      const pairDead = this.deadPairs.some(
+        ([a, b]) => (a === fromToken && b === toToken) || (a === toToken && b === fromToken)
+      );
+
+      if (pairDead) {
+        return this.createErrorQuote(fromToken, toToken, amount, 'ICDEX pair has no liquidity or stale pricing');
+      }
+
+      if (!pairActive) {
+        return this.createErrorQuote(fromToken, toToken, amount, 'Trading pair not available on ICDEX');
       }
 
       // Check availability
