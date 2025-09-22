@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp, Star, Zap, Waves } from 'lucide-react';
 import DEXIcon from './DEXIcon';
 import { dexRoutingAgent } from '../agents/DEXRoutingAgent';
 import { DEXQuote } from '../types/dex';
+import { DEXSemantics, DEXMetrics } from '../utils/DEXSemantics';
 
 // Interface for compact DEX row
 interface CompactDEXView {
@@ -351,34 +352,59 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
               </div>
 
               {/* Agent Data Row - Score, Slippage, and Badge info below main row */}
-              {dex.agentQuote && !dex.agentQuote.quoteError && (
+              {dex.agentQuote && dex.agentQuote.slippage !== undefined && swapValueUSD && (
                 <div className="px-4 pb-3 text-xs text-text-muted">
-                  {/* Top row: Badge and main metrics */}
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      {dex.badge.text && (
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                          dex.badge.text === 'RECOMMENDED' ? 'bg-success-400/15 text-success-300' :
-                          dex.badge.text === 'FASTEST' ? 'bg-warning-400/15 text-warning-300' :
-                          dex.badge.text === 'CHEAPEST' ? 'bg-primary-600/15 text-primary-400' :
-                          dex.badge.type === 'speed'
-                            ? 'bg-warning-400/15 text-warning-300'
-                            : 'bg-primary-600/15 text-primary-400'
-                        }`}>
-                          {dex.badge.text}
-                        </span>
-                      )}
-                      <span>Score: {dex.agentQuote.score.toFixed(1)}</span>
-                    </div>
-                    <div>
-                      {dex.agentQuote.liquidityUsd ? `$${(dex.agentQuote.liquidityUsd / 1000).toFixed(0)}K liquidity` : ''}
-                    </div>
-                  </div>
-                  {/* Bottom row: Performance metrics */}
-                  <div className="flex items-center gap-4">
-                    <span>Slippage: ~{dex.agentQuote.slippage.toFixed(2)}%</span>
-                    <span>Speed: {dex.agentQuote.estimatedSpeed}</span>
-                  </div>
+                  {(() => {
+                    // Generate semantic analysis for dynamic badges
+                    const metrics: DEXMetrics = {
+                      slippage: dex.agentQuote.slippage,
+                      liquidityUsd: dex.agentQuote.liquidityUsd,
+                      fee: dex.agentQuote.fee,
+                      estimatedSpeed: dex.agentQuote.estimatedSpeed,
+                      tradeValueUsd: swapValueUSD,
+                      dexName: dex.agentQuote.dexName
+                    };
+
+                    const explanation = DEXSemantics.generateExplanation(metrics);
+                    const semanticBadge = DEXSemantics.getSemanticBadge(explanation);
+                    const semanticColor = DEXSemantics.getSemanticColor(explanation.slippageCategory, explanation.liquidityCategory);
+
+                    return (
+                      <>
+                        {/* Top row: Dynamic semantic badge and metrics */}
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              explanation.slippageCategory === 'excellent' ? 'bg-success-400/15 text-success-300' :
+                              explanation.slippageCategory === 'good' ? 'bg-primary-600/15 text-primary-400' :
+                              explanation.slippageCategory === 'fair' ? 'bg-warning-400/15 text-warning-300' :
+                              explanation.slippageCategory === 'poor' ? 'bg-error-400/15 text-error-400' :
+                              'bg-error-500/15 text-error-500'
+                            }`}>
+                              {semanticBadge}
+                            </span>
+                            <span>Score: {dex.agentQuote.score.toFixed(1)}</span>
+                          </div>
+                          <div>
+                            {dex.agentQuote.liquidityUsd ? `$${(dex.agentQuote.liquidityUsd / 1000).toFixed(0)}K liquidity` : ''}
+                          </div>
+                        </div>
+                        {/* Bottom row: Performance metrics with semantic coloring */}
+                        <div className="flex items-center gap-4">
+                          <span className={semanticColor}>
+                            Slippage: ~{dex.agentQuote.slippage.toFixed(2)}% ({explanation.slippageCategory})
+                          </span>
+                          <span>Speed: {dex.agentQuote.estimatedSpeed}</span>
+                        </div>
+                        {/* Quick hint for expansion */}
+                        {(explanation.warningMessage || explanation.celebrationMessage || explanation.educationalNote) && (
+                          <div className="mt-2 text-xs text-primary-400">
+                            💡 Click to expand for detailed analysis
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               )}
             </div>
@@ -386,44 +412,153 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
             {/* Tier 2: Expanded Details (On-demand) */}
             {expandedDEX === dex.id && (
               <div className="border-t border-white/10 bg-surface-1 p-6">
-                {/* Stats Grid - Detailed Performance Metrics */}
-                <div className="mb-6">
-                  <h4 className="text-sm font-semibold text-text-primary mb-4">Performance Metrics</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    {Object.entries(dexData[dex.id].stats).map(([stat, value]) => (
-                      <div key={stat} className="bg-surface-2 rounded-lg p-3">
-                        <div className="text-xs text-text-muted mb-1">{stat}</div>
-                        <div className="text-sm font-semibold text-text-primary">{String(value)}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                {/* Dynamic Semantic Explanations */}
+                {(() => {
+                  // Generate semantic explanation if we have agent quote data (including high slippage cases)
+                  if (dex.agentQuote && dex.agentQuote.slippage !== undefined && swapValueUSD) {
+                    const metrics: DEXMetrics = {
+                      slippage: dex.agentQuote.slippage,
+                      liquidityUsd: dex.agentQuote.liquidityUsd,
+                      fee: dex.agentQuote.fee,
+                      estimatedSpeed: dex.agentQuote.estimatedSpeed,
+                      tradeValueUsd: swapValueUSD,
+                      dexName: dex.agentQuote.dexName
+                    };
 
-                {/* Advantages */}
-                <div className="mb-6">
-                  <h4 className="text-sm font-semibold text-text-primary mb-4">Best For</h4>
-                  <div className="space-y-2">
-                    {dexData[dex.id].advantages.map((advantage, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-success-400 flex-shrink-0"></div>
-                        <span className="text-sm text-text-secondary">{advantage}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                    const explanation = DEXSemantics.generateExplanation(metrics);
+                    const semanticColor = DEXSemantics.getSemanticColor(explanation.slippageCategory, explanation.liquidityCategory);
 
-                {/* Trade-offs */}
-                <div className="mb-6">
-                  <h4 className="text-sm font-semibold text-text-primary mb-4">Trade-offs</h4>
-                  <div className="space-y-2">
-                    {dexData[dex.id].tradeoffs.map((tradeoff, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-warning-400 flex-shrink-0"></div>
-                        <span className="text-sm text-text-secondary">{tradeoff}</span>
+                    return (
+                      <>
+                        {/* Celebration Message */}
+                        {explanation.celebrationMessage && (
+                          <div className="mb-4 p-3 bg-success-500/10 border border-success-400/20 rounded-lg">
+                            <div className="text-sm font-medium text-success-300">
+                              {explanation.celebrationMessage}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Warning Message */}
+                        {explanation.warningMessage && (
+                          <div className="mb-4 p-3 bg-error-500/10 border border-error-400/20 rounded-lg">
+                            <div className="text-sm font-medium text-error-300">
+                              {explanation.warningMessage}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Overall Recommendation */}
+                        <div className="mb-6">
+                          <h4 className="text-sm font-semibold text-text-primary mb-3">Overall Assessment</h4>
+                          <div className={`text-sm ${semanticColor} font-medium mb-2`}>
+                            {explanation.overallRecommendation}
+                          </div>
+                        </div>
+
+                        {/* Slippage Analysis */}
+                        <div className="mb-6">
+                          <h4 className="text-sm font-semibold text-text-primary mb-3">Price Impact Analysis</h4>
+                          <div className="text-sm text-text-secondary leading-relaxed">
+                            {explanation.slippageExplanation}
+                          </div>
+                        </div>
+
+                        {/* Liquidity Analysis */}
+                        <div className="mb-6">
+                          <h4 className="text-sm font-semibold text-text-primary mb-3">Liquidity Analysis</h4>
+                          <div className="text-sm text-text-secondary leading-relaxed">
+                            {explanation.liquidityExplanation}
+                          </div>
+                        </div>
+
+                        {/* Educational Note */}
+                        {explanation.educationalNote && (
+                          <div className="mb-6 p-3 bg-primary-600/10 border border-primary-500/20 rounded-lg">
+                            <div className="text-sm text-primary-300">
+                              {explanation.educationalNote}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Performance Metrics */}
+                        <div className="mb-6">
+                          <h4 className="text-sm font-semibold text-text-primary mb-4">Real-Time Metrics</h4>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-surface-2 rounded-lg p-3">
+                              <div className="text-xs text-text-muted mb-1">Slippage</div>
+                              <div className={`text-sm font-semibold ${semanticColor}`}>
+                                {metrics.slippage.toFixed(2)}% ({explanation.slippageCategory})
+                              </div>
+                            </div>
+                            <div className="bg-surface-2 rounded-lg p-3">
+                              <div className="text-xs text-text-muted mb-1">Liquidity</div>
+                              <div className="text-sm font-semibold text-text-primary">
+                                ${(metrics.liquidityUsd/1000).toFixed(0)}K ({explanation.liquidityCategory})
+                              </div>
+                            </div>
+                            <div className="bg-surface-2 rounded-lg p-3">
+                              <div className="text-xs text-text-muted mb-1">Trading Fee</div>
+                              <div className="text-sm font-semibold text-text-primary">
+                                {metrics.fee}%
+                              </div>
+                            </div>
+                            <div className="bg-surface-2 rounded-lg p-3">
+                              <div className="text-xs text-text-muted mb-1">Speed</div>
+                              <div className="text-sm font-semibold text-text-primary">
+                                {metrics.estimatedSpeed}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    );
+                  }
+
+                  // Fallback to static content when no agent data available
+                  return (
+                    <>
+                      {/* Static Performance Metrics */}
+                      <div className="mb-6">
+                        <h4 className="text-sm font-semibold text-text-primary mb-4">Performance Metrics</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          {Object.entries(dexData[dex.id].stats).map(([stat, value]) => (
+                            <div key={stat} className="bg-surface-2 rounded-lg p-3">
+                              <div className="text-xs text-text-muted mb-1">{stat}</div>
+                              <div className="text-sm font-semibold text-text-primary">{String(value)}</div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
+
+                      {/* Static Advantages */}
+                      <div className="mb-6">
+                        <h4 className="text-sm font-semibold text-text-primary mb-4">Best For</h4>
+                        <div className="space-y-2">
+                          {dexData[dex.id].advantages.map((advantage, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <div className="w-1.5 h-1.5 rounded-full bg-success-400 flex-shrink-0"></div>
+                              <span className="text-sm text-text-secondary">{advantage}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Static Trade-offs */}
+                      <div className="mb-6">
+                        <h4 className="text-sm font-semibold text-text-primary mb-4">Trade-offs</h4>
+                        <div className="space-y-2">
+                          {dexData[dex.id].tradeoffs.map((tradeoff, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <div className="w-1.5 h-1.5 rounded-full bg-warning-400 flex-shrink-0"></div>
+                              <span className="text-sm text-text-secondary">{tradeoff}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
 
                 {/* Compare Toggle */}
                 <div className="pt-4 border-t border-white/5">
