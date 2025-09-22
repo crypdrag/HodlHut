@@ -2,14 +2,18 @@
 
 **Sovereign Multichain DeFi Router on the Internet Computer (ICP)**
 
-HodlHut is a prototype BTCFi platform that uses a **Multi‑agent intelligence layer** on ICP to optimize fees and route liquidity across Bitcoin and Ethereum — anchored by **dynamic routing with an ICP liquidity bridge** (choosing between direct and ICP liquidity bridge paths at runtime). The HodlHut interface abstracts complexity for multi-hopping trades while transparently advising the user exactly what is happening behind the scenes with simple language and charts. Yield Farming and games are built into the roadmap.
+HodlHut is a BTCFi platform that uses a **Multi‑agent intelligence layer** on ICP to optimize fees and route liquidity across ICP, Bitcoin, and Ethereum — anchored by **dynamic routing**. The HodlHut interface abstracts complexity for multi-hopping trades while transparently advising the user exactly what is happening behind the scenes with simple language and charts. 
 
-> **Note:** Solana integration was removed based on DFINITY's roadmap decision not to create ckSOL or ckUSDC(SOL) chain-key tokens, making Solana integration unnecessary for the HodlHut architecture. 
+My Hut canister performs Agent assisted comprehensive swaps involving both ICP DEXs and Chain Fusion. While complexity is abstracted as much as possible for the user, transparency is not. Users are given swap options if DEXs are involved [ckBTC ->ckUSDC-> USDC (ETH)] advising them of slippage, liquidity risk, and DEX fees prior to choosing which ICP DEX to perform the swap. (Custom Agents check ICP as the liquidity bridge for any ckX ↔ ckY swap when the direct pool is thin.) Chain Fusion gas fees are always real-time and visible. HoldHut Smart Solutions advise the user of any gas necessary for crosschain resolutions on Bitcoin and Ethereum, and offers solutions for the easiest way to obtain the appropriate gas if they don't hold ckBTC or ckETH.
 
+My Garden is a user's private yield farm where multipliers reward users based on staking diversity. Reef Raffle and Tsunami Sweep are DAO controlled daily lotteries, and monthly lotteries. (The ReefRaffleAgent and MyGarden Agent have not been prototyped yet.) DAO and tokenomics designs are on the RoadMap. HodlHut's future build plans to incorporate Bitcoin metaprotocols via Runes Exchange Environment. HodlHut's DAO will launch on RichSwap. Hodlhut was created to highlight ICP Dapps' USPS and bridge the BTCFi and ICP community. 
+
+> **Note:** Solana integration was removed until further notice and more support for ckSOL on DFINITY's roadmap.
+> 
 > **Hackathon TL;DR**
 >
-> * **Demo:** local prototype + read‑only mainnet checks (Boundary‑NET)
-> * **What's novel:** ICP as a fast L2 coordination layer for BTC/ETH via agents + canisters
+> * **Demo:** DEX DATA AS OF September 21, 2025. Live data e.g. liquidity & slippage may vary over time. 
+> * **What's novel:** ICP as a fast compute layer for multichain growth via agents + canisters
 > * **Tests:** 36 unit + 6 integration scenarios (see *Testing (Canonical)*)
 
 ---
@@ -201,3 +205,4 @@ PRs welcome! See issues or propose an agent/canister you'd like to extend. Pleas
 ## License
 
 MIT — see `LICENSE`.
+
