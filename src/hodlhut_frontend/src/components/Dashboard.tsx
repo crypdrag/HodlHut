@@ -174,6 +174,22 @@ const Dashboard: React.FC = () => {
   const { logout } = useAuth();
   const { showSuccess, showError, showMyHutFallback } = useToast();
   const { executeSwap } = usePlugWallet();
+
+  // Portfolio balance update function after successful swaps
+  const updatePortfolioAfterSwap = (fromAsset: string, toAsset: string, fromAmount: number, toAmount: number) => {
+    setPortfolio(prev => {
+      const updated = {
+        ...prev,
+        [fromAsset]: Math.max(0, (prev[fromAsset] || 0) - fromAmount), // Deduct from source
+        [toAsset]: (prev[toAsset] || 0) + toAmount // Add to destination
+      };
+
+      console.log(`✅ Portfolio updated: -${fromAmount} ${fromAsset}, +${toAmount} ${toAsset}`);
+      console.log('New portfolio balances:', updated);
+
+      return updated;
+    });
+  };
   
   // Check if navigation state specifies an active section and user flow
   const initialSection = (location.state as any)?.activeSection || 'addAssets';
@@ -199,7 +215,8 @@ const Dashboard: React.FC = () => {
   const [slippageTolerance, setSlippageTolerance] = useState(5.0);
   const [currentGasPrice, setCurrentGasPrice] = useState(25);
   const [timeRemaining, setTimeRemaining] = useState(1800); // 30 minutes for Hut activation
-  
+  const [hasEverHadAssets, setHasEverHadAssets] = useState(userFlow === 'returningUser'); // Track if user ever had assets
+
   // Enhanced Smart Solutions State
   const [smartSolutions, setSmartSolutions] = useState<EnhancedSmartSolution[]>([]);
   const [selectedSolution, setSelectedSolution] = useState<number | null>(null);
@@ -520,9 +537,16 @@ const Dashboard: React.FC = () => {
     const timer = setInterval(() => {
       setTimeRemaining(prev => Math.max(0, prev - 1));
     }, 1000);
-    
+
     return () => clearInterval(timer);
   }, []);
+
+  // Track when user first gets assets
+  useEffect(() => {
+    if (calculatePortfolioValue() > 0 && !hasEverHadAssets) {
+      setHasEverHadAssets(true);
+    }
+  }, [portfolio, hasEverHadAssets]);
 
   
   // Auto-analyze swap when parameters change
@@ -810,10 +834,15 @@ const Dashboard: React.FC = () => {
           
           {/* Center: Status Info */}
           <div className="flex-1 mx-3 text-center">
-            {userFlow === 'returningUser' ? (
+            {calculatePortfolioValue() > 0 ? (
               <div className="text-success-400 text-sm font-medium">
                 <PieChart className="inline w-4 h-4 mr-1" />
                 ${calculatePortfolioValue().toLocaleString()}
+              </div>
+            ) : hasEverHadAssets ? (
+              <div className="text-error-400 text-xs font-medium">
+                <Clock className="inline w-4 h-4 mr-1" />
+                Add Assets to Keep Activated: {formatTime(timeRemaining)}
               </div>
             ) : (
               <div className="text-warning-400 text-xs font-medium">
@@ -935,6 +964,12 @@ const Dashboard: React.FC = () => {
             <>
               <div className="flex items-center text-success-400"><PieChart className="inline w-4 h-4 mr-1" /> Portfolio: ${calculatePortfolioValue().toLocaleString()}</div>
               <div className="flex items-center text-warning-400"><span className="w-2 h-2 rounded-full bg-warning-400 mr-2"></span> Connected Live Onchain (Demo Mode)</div>
+            </>
+          ) : hasEverHadAssets ? (
+            // Had assets but swapped everything out: Warning message
+            <>
+              <div className="flex items-center text-error-400"><Clock className="inline w-4 h-4 mr-1" /> Add Assets to My Hut to Keep Activated: {formatTime(timeRemaining)}</div>
+              <div className="flex items-center text-error-400"><span className="w-2 h-2 rounded-full bg-error-400 mr-2"></span> Connected Live Onchain (Demo Mode)</div>
             </>
           ) : (
             // No assets yet: Show Activation countdown + Connected status
@@ -1358,6 +1393,7 @@ const Dashboard: React.FC = () => {
             onShowTransactionPreview={() => setShowTransactionPreviewModal(true)}
             onDEXSelectedForICPSwap={handleDEXSelectedForICPSwap}
             executeSwap={executeSwap}
+            updatePortfolioAfterSwap={updatePortfolioAfterSwap}
           />
         );
       case 'myGarden':
@@ -1448,6 +1484,78 @@ const Dashboard: React.FC = () => {
           resetSwapAssetsPage();
         }}
         onExecute={() => {
+          console.log('🚀 TransactionPreviewModal onExecute called!');
+
+          // Execute the swap and update portfolio in demo mode
+          if (transactionData) {
+            const isDemoMode = !(window as any).ic || process.env.NODE_ENV === 'development';
+
+            if (isDemoMode) {
+              console.log('🎮 Demo mode: Executing swap from TransactionPreviewModal');
+
+              // Update portfolio balances after successful demo swap
+              if (fromAsset && toAsset && swapAmount && transactionData) {
+                const fromAmount = parseFloat(swapAmount);
+
+                console.log('📊 Demo portfolio update from TransactionPreviewModal:', {
+                  fromAsset,
+                  toAsset,
+                  fromAmount,
+                  isL1Withdrawal: transactionData.isL1Withdrawal,
+                  feeRequirements: transactionData.feeRequirements
+                });
+
+                // Use the comprehensive fee breakdown from Transaction Preview
+                setPortfolio(prev => {
+                  const updated = { ...prev };
+
+                  // Calculate total deduction for source asset (sent amount + fees in same asset)
+                  let totalSourceAssetDeduction = fromAmount;
+
+                  // Add any fees that are paid in the same asset as the source
+                  if (transactionData.feeRequirements) {
+                    transactionData.feeRequirements.forEach(fee => {
+                      if (fee.token === fromAsset && fee.amount) {
+                        totalSourceAssetDeduction += fee.amount;
+                        console.log(`💸 Adding ${fee.amount} ${fee.token} fee to source asset deduction (${fee.description})`);
+                      }
+                    });
+                  }
+
+                  // Deduct total from source asset
+                  updated[fromAsset] = Math.max(0, (prev[fromAsset] || 0) - totalSourceAssetDeduction);
+                  console.log(`💸 Total deducted from ${fromAsset}: ${totalSourceAssetDeduction} (${fromAmount} sent + ${totalSourceAssetDeduction - fromAmount} fees)`);
+
+                  // Deduct fees that are paid in different assets
+                  if (transactionData.feeRequirements) {
+                    transactionData.feeRequirements.forEach(fee => {
+                      if (fee.token !== fromAsset && fee.token && fee.amount) {
+                        const feeAmount = fee.amount;
+                        updated[fee.token] = Math.max(0, (prev[fee.token] || 0) - feeAmount);
+                        console.log(`💸 Deducted ${feeAmount} ${fee.token} for ${fee.description}`);
+                      }
+                    });
+                  }
+
+                  // For L1 withdrawals, do NOT add destination asset (goes to external wallet)
+                  // For ICP ecosystem swaps, add destination asset
+                  if (!transactionData.isL1Withdrawal && swapAnalysis?.outputAmount) {
+                    const toAmount = swapAnalysis.outputAmount;
+                    updated[toAsset] = (prev[toAsset] || 0) + toAmount;
+                    console.log(`💰 Added ${toAmount} ${toAsset} (destination asset)`);
+                  } else if (transactionData.isL1Withdrawal) {
+                    console.log('🌉 L1 withdrawal: Destination asset sent to external wallet, not added to portfolio');
+                  }
+
+                  console.log('✅ Portfolio updated with all fees deducted:', updated);
+                  return updated;
+                });
+
+                console.log('✅ Demo portfolio updated successfully from TransactionPreviewModal');
+              }
+            }
+          }
+
           setShowTransactionPreviewModal(false);
           // Open ExecutionProgressModal to show transaction progress
           setShowExecutionProgressModal(true);

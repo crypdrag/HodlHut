@@ -92,6 +92,7 @@ interface SwapAssetsSectionProps {
   onShowTransactionPreview: () => void;
   onDEXSelectedForICPSwap?: (dexId: string) => void;
   executeSwap?: (request: SwapRequest) => Promise<SwapResponse | null>;
+  updatePortfolioAfterSwap?: (fromAsset: string, toAsset: string, fromAmount: number, toAmount: number) => void;
 }
 
 const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
@@ -125,13 +126,22 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
   formatNumber,
   onShowTransactionPreview,
   onDEXSelectedForICPSwap,
-  executeSwap
+  executeSwap,
+  updatePortfolioAfterSwap
 }) => {
   // State for execution confirmation
   const [showExecutionConfirm, setShowExecutionConfirm] = useState<number | null>(null);
 
   // Execute the actual swap using backend MyHut canister
   const handleExecuteSwap = async () => {
+    console.log('🚀 handleExecuteSwap called!', {
+      executeSwap: !!executeSwap,
+      fromAsset,
+      toAsset,
+      swapAmount,
+      selectedDEX
+    });
+
     if (!executeSwap || !fromAsset || !toAsset || !swapAmount || !selectedDEX) {
       console.warn('Missing required data for swap execution:', {
         executeSwap: !!executeSwap,
@@ -171,10 +181,56 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
 
       console.log('🔄 Executing swap with request:', swapRequest);
 
+      // Check if we're in demo mode (Internet Identity disabled)
+      const isDemoMode = !(window as any).ic || process.env.NODE_ENV === 'development';
+
+      if (isDemoMode) {
+        console.log('🎮 Demo mode: Simulating successful swap execution');
+
+        // Simulate successful swap for demo mode
+        const simulatedResponse = {
+          success: true,
+          transactionId: `demo_${Date.now()}`,
+          outputAmount: swapAnalysis?.outputAmount || (parseFloat(swapAmount) * 0.95)
+        };
+
+        console.log('✅ Demo swap executed successfully:', simulatedResponse);
+
+        // Update portfolio balances after successful demo swap
+        if (updatePortfolioAfterSwap && swapAnalysis) {
+          const fromAmount = parseFloat(swapAmount);
+          const toAmount = swapAnalysis.outputAmount || (fromAmount * 0.95);
+
+          console.log('📊 Demo portfolio update:', {
+            fromAsset,
+            toAsset,
+            fromAmount,
+            toAmount
+          });
+
+          updatePortfolioAfterSwap(fromAsset, toAsset, fromAmount, toAmount);
+          console.log('✅ Demo portfolio updated successfully');
+        }
+
+        // Continue with transaction preview/progress
+        onShowTransactionPreview();
+        return;
+      }
+
+      // Real swap execution for production
       const response = await executeSwap(swapRequest);
 
       if (response?.success) {
         console.log('✅ Swap executed successfully:', response);
+
+        // Update portfolio balances after successful swap
+        if (updatePortfolioAfterSwap && swapAnalysis) {
+          const fromAmount = parseFloat(swapAmount);
+          const toAmount = swapAnalysis.outputAmount || (fromAmount * 0.95); // Use analysis output or fallback
+
+          updatePortfolioAfterSwap(fromAsset, toAsset, fromAmount, toAmount);
+        }
+
         // Continue with transaction preview/progress
         onShowTransactionPreview();
       } else {
@@ -821,20 +877,64 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
                           </div>
                         </div>
                       ) : (
-                        // Initial execute button
-                        <button
-                          className="w-full btn-success btn-text"
-                          onClick={() => {
-                            // Set transaction data and execute the actual swap
-                            if (swapAnalysis) {
-                              setTransactionData(swapAnalysis);
-                            }
-                            // Execute the swap with selected DEX
-                            handleExecuteSwap();
-                          }}
-                        >
-                          <Rocket className="inline w-4 h-4 mr-1" /> Execute Swap via {selectedDEX || 'DEX'}
-                        </button>
+                        <>
+                          {/* Portfolio balance preview before execution */}
+                          <div className="bg-surface-2 rounded-xl p-4 mb-4">
+                            <div className="text-sm font-semibold text-text-primary mb-3 flex items-center gap-2">
+                              <Scale size={16} />
+                              Balance Preview
+                            </div>
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center">
+                                <span className="text-text-secondary">Current {fromAsset}:</span>
+                                <span className="font-medium text-text-primary">{formatAmount(portfolio[fromAsset] || 0)}</span>
+                              </div>
+                              <div className="flex justify-between items-center text-error-400">
+                                <span>After swap {fromAsset}:</span>
+                                <span className="font-medium">
+                                  {formatAmount(Math.max(0, (portfolio[fromAsset] || 0) - parseFloat(swapAmount || '0')))}
+                                  <span className="text-xs ml-1">(-{formatAmount(parseFloat(swapAmount || '0'))})</span>
+                                </span>
+                              </div>
+                              <div className="border-t border-white/10 pt-2">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-text-secondary">Current {toAsset}:</span>
+                                  <span className="font-medium text-text-primary">{formatAmount(portfolio[toAsset] || 0)}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-success-400">
+                                  <span>After swap {toAsset}:</span>
+                                  <span className="font-medium">
+                                    {swapAnalysis?.outputAmount
+                                      ? formatAmount((portfolio[toAsset] || 0) + swapAnalysis.outputAmount)
+                                      : formatAmount((portfolio[toAsset] || 0) + (parseFloat(swapAmount || '0') * 0.95))
+                                    }
+                                    <span className="text-xs ml-1">
+                                      (+{swapAnalysis?.outputAmount
+                                          ? formatAmount(swapAnalysis.outputAmount)
+                                          : formatAmount(parseFloat(swapAmount || '0') * 0.95)
+                                       })
+                                    </span>
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Execute button */}
+                          <button
+                            className="w-full btn-success btn-text"
+                            onClick={() => {
+                              // Set transaction data and execute the actual swap
+                              if (swapAnalysis) {
+                                setTransactionData(swapAnalysis);
+                              }
+                              // Execute the swap with selected DEX
+                              handleExecuteSwap();
+                            }}
+                          >
+                            <Rocket className="inline w-4 h-4 mr-1" /> Execute Swap via {selectedDEX || 'DEX'}
+                          </button>
+                        </>
                       )}
                     </div>
                   )}
