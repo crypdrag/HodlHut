@@ -838,18 +838,18 @@ const Dashboard: React.FC = () => {
     <div className="bg-surface-2/90 border border-white/10 rounded-xl mb-3 md:mb-6">
       {/* Mobile Integrated Header */}
       <div className="md:hidden">
-        <div className="flex items-center justify-between p-3">
+        <div className="flex items-center justify-between p-4">
           {/* Left: Hamburger Menu */}
           <button
-            className="btn-primary min-h-[44px] px-3"
+            className="btn-primary min-h-[44px] px-4"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle navigation menu"
           >
             {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
-          
+
           {/* Center: Status Info */}
-          <div className="flex-1 mx-3 text-center">
+          <div className="flex-1 mx-4 text-center">
             {calculatePortfolioValue() > 0 ? (
               <div className="text-success-400 text-sm font-medium">
                 <PieChart className="inline w-4 h-4 mr-1" />

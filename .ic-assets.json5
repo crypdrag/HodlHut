@@ -1,0 +1,16 @@
+[
+  {
+    "match": "**/*",
+    "headers": {
+      "X-Frame-Options": "DENY",
+      "X-Content-Type-Options": "nosniff",
+      "Referrer-Policy": "same-origin"
+    }
+  },
+  {
+    "match": ".well-known/ic-domains",
+    "headers": {
+      "Content-Type": "text/plain"
+    }
+  }
+]

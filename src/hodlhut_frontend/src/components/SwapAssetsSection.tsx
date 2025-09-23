@@ -403,20 +403,20 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
     return null;
   };
 
-  // Simple Route Visualization - Clean and Clear
+  // Simple Route Visualization - Mobile-First Responsive
   const SimpleRouteDisplay: React.FC<{ route: SwapRoute }> = ({ route }) => {
     return (
-      <div className="flex items-center justify-center gap-4 mb-4">
+      <div className="flex items-center justify-center gap-2 sm:gap-3 md:gap-4 mb-3 overflow-x-auto px-2 py-1">
         {route.steps.map((step, index) => (
           <React.Fragment key={index}>
-            <div className="bg-surface-1 border-2 border-primary-500 rounded-2xl w-32 h-16 flex items-center justify-center">
-              <div className="flex items-center gap-2">
-                <AssetIcon asset={step} size={16} />
-                <span className="font-semibold text-text-primary">{step}</span>
+            <div className="token-display-container flex-shrink-0">
+              <div className="token-display-content">
+                <AssetIcon asset={step} size={16} className="flex-shrink-0" />
+                <span className="token-display-text">{step}</span>
               </div>
             </div>
             {index < route.steps.length - 1 && (
-              <div className="text-primary-500 font-bold">→</div>
+              <div className="route-arrow">→</div>
             )}
           </React.Fragment>
         ))}
@@ -649,10 +649,10 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
 
       {/* STEP 1: What's Happening (Route Explanation) - ALWAYS SHOWN FIRST */}
       {showRouteDetails && swapAnalysis && (
-        <div className="w-full max-w-lg mt-6 rounded-2xl border border-white/10 bg-surface-1 p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-text-primary mb-2">What's Happening?</h1>
-            <p className="text-text-secondary">Your transaction explained</p>
+        <div className="whats-happening-container">
+          <div className="whats-happening-header">
+            <h1 className="whats-happening-title">What's Happening?</h1>
+            <p className="whats-happening-subtitle">Your transaction explained</p>
           </div>
 
           {fromAsset === toAsset ? (
@@ -670,27 +670,27 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
             <>
               <SimpleRouteDisplay route={swapAnalysis.route} />
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-                <div className="bg-surface-2 rounded-xl p-6">
-                  <div className="ui-label text-text-muted mb-2">Operation</div>
-                  <div className="body-md text-text-primary font-semibold">
+              <div className="grid-transaction-details mt-4">
+                <div className="transaction-detail-card">
+                  <div className="transaction-detail-label">Operation</div>
+                  <div className="transaction-detail-value">
                     {swapAnalysis.route.operationType === 'DEX + Minter' ? 'DEX + Chain Fusion' :
                      swapAnalysis.route.operationType === 'DEX Swap' ? 'DEX' :
                      swapAnalysis.route.operationType === 'Minter Operation' ? 'Chain Fusion' :
                      swapAnalysis.route.operationType}
                   </div>
                 </div>
-                <div className="bg-surface-2 rounded-xl p-6">
-                  <div className="ui-label text-text-muted mb-2">Networks</div>
-                  <div className="body-md text-text-primary font-semibold">
+                <div className="transaction-detail-card">
+                  <div className="transaction-detail-label">Networks</div>
+                  <div className="transaction-detail-value">
                     {swapAnalysis.route.chainsInvolved.map(chain =>
                       chain === 'Internet Computer' ? 'ICP' : chain
                     ).join(' → ')}
                   </div>
                 </div>
-                <div className="bg-surface-2 rounded-xl p-6">
-                  <div className="ui-label text-text-muted mb-2">Est. Time</div>
-                  <div className="body-md text-text-primary font-semibold">{swapAnalysis.route.estimatedTime}</div>
+                <div className="transaction-detail-card">
+                  <div className="transaction-detail-label">Est. Time</div>
+                  <div className="transaction-detail-value">{swapAnalysis.route.estimatedTime}</div>
                 </div>
               </div>
             </>
