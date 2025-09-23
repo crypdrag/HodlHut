@@ -58,14 +58,24 @@ const ExecutionProgressModal: React.FC<ExecutionProgressModalProps> = ({
       const bridgeToken = getBridgeToken(transactionData.toAsset);
       const destinationNetwork = getDestinationNetwork(transactionData.toAsset);
 
-      progressSteps = [
-        {
+      // Check if DEX swap is actually needed (only if fromAsset != bridge token)
+      const needsDEXSwap = transactionData.fromAsset !== bridgeToken;
+
+      progressSteps = [];
+
+      // Only add DEX swap step if actually needed
+      if (needsDEXSwap) {
+        progressSteps.push({
           id: 'dex_swap',
           title: 'DEX Swapping',
           description: `${transactionData.fromAsset} → ${bridgeToken}`,
           status: 'pending',
           estimatedTime: '10-20 seconds'
-        },
+        });
+      }
+
+      // Add chain fusion steps
+      progressSteps.push(
         {
           id: 'chain_fusion_preparation',
           title: 'Sending to Chain Fusion',
@@ -86,7 +96,7 @@ const ExecutionProgressModal: React.FC<ExecutionProgressModalProps> = ({
           description: `${transactionData.toAsset} delivered to your wallet`,
           status: 'pending'
         }
-      ];
+      );
     }
 
     setSteps(progressSteps);
