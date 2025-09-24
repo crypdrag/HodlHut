@@ -354,9 +354,9 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
               </div>
               </div>
 
-              {/* Agent Data Row - Score, Slippage, and Badge info below main row */}
+              {/* Mobile-Optimized Badge Row - Progressive Disclosure */}
               {dex.agentQuote && dex.agentQuote.slippage !== undefined && swapValueUSD && (
-                <div className="px-2 sm:px-4 pb-2 sm:pb-3 text-xs text-text-muted">
+                <div className="px-2 sm:px-4 pb-2 sm:pb-3">
                   {(() => {
                     // Generate semantic analysis for dynamic badges
                     const metrics: DEXMetrics = {
@@ -374,30 +374,47 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
 
                     return (
                       <>
-                        {/* Top row: Dynamic semantic badge and metrics */}
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-2">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                              explanation.slippageCategory === 'excellent' ? 'bg-success-400/15 text-success-300' :
-                              explanation.slippageCategory === 'good' ? 'bg-primary-600/15 text-primary-400' :
-                              explanation.slippageCategory === 'fair' ? 'bg-warning-400/15 text-warning-300' :
-                              explanation.slippageCategory === 'poor' ? 'bg-error-400/15 text-error-400' :
-                              'bg-error-500/15 text-error-500'
-                            }`}>
-                              {semanticBadge}
-                            </span>
-                            <span>Score: {dex.agentQuote.score.toFixed(1)}</span>
-                          </div>
-                          <div>
-                            {dex.agentQuote.liquidityUsd ? `$${(dex.agentQuote.liquidityUsd / 1000).toFixed(0)}K liquidity` : ''}
-                          </div>
-                        </div>
-                        {/* Bottom row: Performance metrics with semantic coloring */}
-                        <div className="flex items-center gap-4">
-                          <span className={semanticColor}>
-                            Slippage: ~{dex.agentQuote.slippage.toFixed(2)}% ({explanation.slippageCategory})
+                        {/* Mobile: Single row with essential info only */}
+                        <div className="flex items-center justify-between sm:hidden">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                            explanation.slippageCategory === 'excellent' ? 'bg-success-400/15 text-success-300' :
+                            explanation.slippageCategory === 'good' ? 'bg-primary-600/15 text-primary-400' :
+                            explanation.slippageCategory === 'fair' ? 'bg-warning-400/15 text-warning-300' :
+                            explanation.slippageCategory === 'poor' ? 'bg-error-400/15 text-error-400' :
+                            'bg-error-500/15 text-error-500'
+                          }`}>
+                            {semanticBadge}
                           </span>
-                          <span>Speed: {dex.agentQuote.estimatedSpeed}</span>
+                          <span className={`text-xs font-medium ${semanticColor}`}>
+                            {dex.agentQuote.slippage.toFixed(1)}%
+                          </span>
+                        </div>
+
+                        {/* Desktop: Full detailed layout */}
+                        <div className="hidden sm:block">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                explanation.slippageCategory === 'excellent' ? 'bg-success-400/15 text-success-300' :
+                                explanation.slippageCategory === 'good' ? 'bg-primary-600/15 text-primary-400' :
+                                explanation.slippageCategory === 'fair' ? 'bg-warning-400/15 text-warning-300' :
+                                explanation.slippageCategory === 'poor' ? 'bg-error-400/15 text-error-400' :
+                                'bg-error-500/15 text-error-500'
+                              }`}>
+                                {semanticBadge}
+                              </span>
+                              <span className="text-xs text-text-muted">Score: {dex.agentQuote.score.toFixed(1)}</span>
+                            </div>
+                            <div className="text-xs text-text-muted">
+                              {dex.agentQuote.liquidityUsd ? `$${(dex.agentQuote.liquidityUsd / 1000).toFixed(0)}K liquidity` : ''}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-text-muted">
+                            <span className={semanticColor}>
+                              Slippage: ~{dex.agentQuote.slippage.toFixed(2)}% ({explanation.slippageCategory})
+                            </span>
+                            <span>Speed: {dex.agentQuote.estimatedSpeed}</span>
+                          </div>
                         </div>
                       </>
                     );
@@ -446,25 +463,25 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
                         )}
 
                         {/* Overall Recommendation */}
-                        <div className="mb-6">
-                          <h4 className="text-sm font-semibold text-text-primary mb-3">Overall Assessment</h4>
-                          <div className={`text-sm ${semanticColor} font-medium mb-2`}>
+                        <div className="mb-4 sm:mb-6">
+                          <h4 className="text-xs sm:text-sm font-semibold text-text-primary mb-2 sm:mb-3">Overall Assessment</h4>
+                          <div className={`text-xs sm:text-sm ${semanticColor} font-medium mb-1 sm:mb-2`}>
                             {explanation.overallRecommendation}
                           </div>
                         </div>
 
                         {/* Slippage Analysis */}
-                        <div className="mb-6">
-                          <h4 className="text-sm font-semibold text-text-primary mb-3">Price Impact Analysis</h4>
-                          <div className="text-sm text-text-secondary leading-relaxed">
+                        <div className="mb-4 sm:mb-6">
+                          <h4 className="text-xs sm:text-sm font-semibold text-text-primary mb-2 sm:mb-3">Price Impact Analysis</h4>
+                          <div className="text-xs sm:text-sm text-text-secondary leading-snug sm:leading-relaxed">
                             {explanation.slippageExplanation}
                           </div>
                         </div>
 
                         {/* Liquidity Analysis */}
-                        <div className="mb-6">
-                          <h4 className="text-sm font-semibold text-text-primary mb-3">Liquidity Analysis</h4>
-                          <div className="text-sm text-text-secondary leading-relaxed">
+                        <div className="mb-4 sm:mb-6">
+                          <h4 className="text-xs sm:text-sm font-semibold text-text-primary mb-2 sm:mb-3">Liquidity Analysis</h4>
+                          <div className="text-xs sm:text-sm text-text-secondary leading-snug sm:leading-relaxed">
                             {explanation.liquidityExplanation}
                           </div>
                         </div>
@@ -557,12 +574,6 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
                   );
                 })()}
 
-                {/* Compare Toggle */}
-                <div className="pt-4 border-t border-white/5">
-                  <button className="text-xs text-primary-400 hover:text-primary-300 transition-colors">
-                    Compare with other DEXs →
-                  </button>
-                </div>
               </div>
             )}
           </div>

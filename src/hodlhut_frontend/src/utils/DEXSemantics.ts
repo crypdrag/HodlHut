@@ -66,63 +66,62 @@ export class DEXSemantics {
     return 'very-low';                               // Less than 5x trade size
   }
 
-  // Slippage Explanations (User Impact Focus)
+  // Slippage Explanations (Ultra Mobile-Optimized)
   private static getSlippageExplanation(metrics: DEXMetrics): string {
     const { slippage, tradeValueUsd } = metrics;
     const dollarImpact = (tradeValueUsd * slippage) / 100;
 
     switch (this.categorizeSlippage(slippage)) {
       case 'excellent':
-        return `Excellent execution! You'll get ~${slippage.toFixed(2)}% less than expected (about $${dollarImpact.toFixed(2)}). This is normal market movement.`;
+        return `Excellent execution. ~${slippage.toFixed(2)}% slippage (~$${dollarImpact.toFixed(2)}).`;
 
       case 'good':
-        return `Good execution. You'll get ~${slippage.toFixed(1)}% less than expected (about $${dollarImpact.toFixed(2)}). This is reasonable for current market conditions.`;
+        return `Good execution. ~${slippage.toFixed(1)}% slippage (~$${dollarImpact.toFixed(2)}).`;
 
       case 'fair':
-        return `Fair execution. You'll get ~${slippage.toFixed(1)}% less than expected (about $${dollarImpact.toFixed(2)}). Consider if this trade size is optimal.`;
+        return `Fair execution. ~${slippage.toFixed(1)}% slippage (~$${dollarImpact.toFixed(2)}).`;
 
       case 'poor':
-        return `High slippage detected. You'll get ~${slippage.toFixed(1)}% less than expected (about $${dollarImpact.toFixed(2)}). Consider smaller trade size or different timing.`;
+        return `High slippage. ~${slippage.toFixed(1)}% slippage (~$${dollarImpact.toFixed(2)}).`;
 
       case 'dangerous':
-        return `Very high slippage! You'll get ~${slippage.toFixed(0)}% less than expected (about $${dollarImpact.toFixed(2)}). This trade size may be too large for current liquidity.`;
+        return `Very high slippage! ~${slippage.toFixed(0)}% loss (~$${dollarImpact.toFixed(2)}).`;
 
       case 'catastrophic':
-        return `CATASTROPHIC LIQUIDITY FAILURE: This pool has critically insufficient liquidity. You would lose ~${slippage.toFixed(0)}% of your trade value (about $${dollarImpact.toFixed(2)}) due to broken market conditions. This represents a liquidity crisis, not normal trading.`;
+        return `EXTREME SLIPPAGE: ~${slippage.toFixed(0)}% loss (~$${dollarImpact.toFixed(2)}).`;
     }
   }
 
-  // Liquidity Explanations (Educational Focus)
+  // Liquidity Explanations (Ultra Mobile-Optimized)
   private static getLiquidityExplanation(metrics: DEXMetrics): string {
     const { liquidityUsd, tradeValueUsd } = metrics;
-    const liquidityRatio = liquidityUsd / tradeValueUsd;
 
     switch (this.categorizeLiquidity(liquidityUsd, tradeValueUsd)) {
       case 'excellent':
-        return `Excellent liquidity! $${(liquidityUsd/1000).toFixed(0)}K available means your trade barely affects the price. You get the best possible rate.`;
+        return `Excellent liquidity. $${(liquidityUsd/1000).toFixed(0)}K available.`;
 
       case 'good':
-        return `Good liquidity. $${(liquidityUsd/1000).toFixed(0)}K available provides stable pricing for your $${(tradeValueUsd/1000).toFixed(1)}K trade.`;
+        return `Good liquidity. $${(liquidityUsd/1000).toFixed(0)}K available.`;
 
       case 'fair':
-        return `Fair liquidity. $${(liquidityUsd/1000).toFixed(0)}K available covers your trade, but larger amounts might get worse rates.`;
+        return `Fair liquidity. $${(liquidityUsd/1000).toFixed(0)}K available.`;
 
       case 'low':
-        return `Lower liquidity. $${(liquidityUsd/1000).toFixed(0)}K available means your trade impacts the price more than ideal.`;
+        return `Lower liquidity. $${(liquidityUsd/1000).toFixed(0)}K available.`;
 
       case 'very-low':
-        return `Very low liquidity. Only $${(liquidityUsd/1000).toFixed(0)}K available for a $${(tradeValueUsd/1000).toFixed(1)}K trade. Price impact will be significant.`;
+        return `Low liquidity. $${(liquidityUsd/1000).toFixed(0)}K available.`;
     }
   }
 
-  // Overall Recommendations (Action-Oriented)
+  // Overall Recommendations (Mobile-Optimized)
   private static getOverallRecommendation(metrics: DEXMetrics): string {
     const slippageCategory = this.categorizeSlippage(metrics.slippage);
     const liquidityCategory = this.categorizeLiquidity(metrics.liquidityUsd, metrics.tradeValueUsd);
 
     // Excellent scenarios
     if (slippageCategory === 'excellent' && ['excellent', 'good'].includes(liquidityCategory)) {
-      return 'Excellent choice! Great liquidity and minimal slippage make this optimal for your trade.';
+      return 'Excellent option. Optimal liquidity and minimal slippage.';
     }
 
     // Good scenarios
@@ -132,70 +131,53 @@ export class DEXSemantics {
 
     // Warning scenarios
     if (slippageCategory === 'poor' || liquidityCategory === 'very-low') {
-      return 'Consider alternatives. High slippage or low liquidity may result in unfavorable execution.';
+      return 'Consider alternatives. High slippage or low liquidity detected.';
     }
 
     // Dangerous scenarios
     if (slippageCategory === 'dangerous') {
-      return 'Proceed with caution. Very high slippage detected - consider reducing trade size or trying later.';
+      return 'Proceed with caution. Very high slippage detected.';
     }
 
     // Catastrophic scenarios
     if (slippageCategory === 'catastrophic') {
-      return 'DO NOT TRADE: This pool has catastrophically insufficient liquidity. Trading here will result in severe financial loss due to broken market conditions. Consider using a different DEX or waiting for liquidity to improve.';
+      return 'DO NOT TRADE: Catastrophically insufficient liquidity will result in severe losses.';
     }
 
     // Default fair scenarios
-    return 'Fair option. Acceptable execution conditions with moderate slippage and liquidity.';
+    return 'Fair option. Acceptable execution with moderate slippage.';
   }
 
-  // Educational Notes (Learning Opportunities)
+  // Educational Notes (Mobile-Optimized)
   private static getEducationalNote(metrics: DEXMetrics): string | undefined {
-    const { dexName, slippage, liquidityUsd } = metrics;
-
-    if (slippage > 50.0) {
-      return '📚 LIQUIDITY CRISIS EDUCATION: This pool has insufficient funds to execute trades efficiently. AMM pools need balanced token reserves to function properly. When liquidity drops below critical levels, price impact becomes extreme and fees can spike dramatically. This is why diversified liquidity across multiple DEXs is important for healthy DeFi ecosystems.';
-    }
-
-    if (dexName === 'ICDEX' && slippage < 1.0) {
-      return '💡 Orderbook DEXs like ICDEX often provide better execution for larger trades because you trade directly with other users instead of an automated pool.';
-    }
-
-    if (slippage > 5.0) {
-      return '💡 High slippage usually means your trade size is large relative to available liquidity. Splitting into smaller trades or waiting for better liquidity can help.';
-    }
-
-    if (liquidityUsd > 1000000) {
-      return '💡 High liquidity means many traders are providing funds to this pool, creating stable prices and better execution for everyone.';
-    }
-
+    // Remove educational notes for mobile - too verbose for mobile viewport
     return undefined;
   }
 
-  // Warning Messages (Protective)
+  // Warning Messages (Mobile-Optimized)
   private static getWarningMessage(metrics: DEXMetrics): string | undefined {
     if (metrics.slippage > 15.0) {
-      return `⚠️ Very high slippage! You may lose $${((metrics.tradeValueUsd * metrics.slippage) / 100).toFixed(2)} to price impact alone.`;
+      return `⚠️ Very high slippage! You may lose $${((metrics.tradeValueUsd * metrics.slippage) / 100).toFixed(2)}.`;
     }
 
     if (this.categorizeLiquidity(metrics.liquidityUsd, metrics.tradeValueUsd) === 'very-low') {
-      return '⚠️ Low liquidity detected. Your trade represents a significant portion of available funds, leading to poor execution.';
+      return '⚠️ Low liquidity detected. Poor execution expected.';
     }
 
     return undefined;
   }
 
-  // Celebration Messages (Positive Reinforcement)
+  // Celebration Messages (Mobile-Optimized)
   private static getCelebrationMessage(metrics: DEXMetrics): string | undefined {
     const slippageCategory = this.categorizeSlippage(metrics.slippage);
     const liquidityCategory = this.categorizeLiquidity(metrics.liquidityUsd, metrics.tradeValueUsd);
 
     if (slippageCategory === 'excellent' && liquidityCategory === 'excellent') {
-      return '🎉 Perfect conditions! Excellent liquidity and minimal slippage mean you get maximum value from your trade.';
+      return '🎉 Perfect conditions! Excellent liquidity and minimal slippage.';
     }
 
     if (metrics.slippage < 0.5) {
-      return '✨ Outstanding execution! Less than 0.5% slippage is excellent for DeFi trading.';
+      return '✨ Outstanding execution! Less than 0.5% slippage.';
     }
 
     return undefined;
