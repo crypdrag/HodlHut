@@ -16,7 +16,8 @@
     },
     "hodlhut_backend": {
       "main": "src/hodlhut_backend/main.mo",
-      "type": "motoko"
+      "type": "motoko",
+      "args": "--enhanced-orthogonal-persistence"
     },
     "hutfactory": {
       "main": "src/hutfactory/main.mo",
