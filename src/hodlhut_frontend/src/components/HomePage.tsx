@@ -95,84 +95,86 @@ const HomePage: React.FC = () => {
     <div className="bg-bg text-text-primary min-h-screen overflow-x-hidden">
       {/* Header */}
       <header className="nav-header">
-        <nav className="container-app flex justify-between items-center pad-section">
-          <div className="flex items-center gap-3">
+        <div className="container-app pad-section">
+          {/* Mobile: Logo and brand name on top row */}
+          <div className="flex justify-center items-center gap-3 mb-3 sm:hidden">
             <AssetIcon asset="logo" size={50} className="w-12 h-12 object-contain" />
             <span className="text-2xl font-bold text-text-primary" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>HodlHut</span>
-            {isAuthenticated && principal && (
-              <div className="relative ml-6 group">
-                <span className="text-sm bg-surface-2 text-text-secondary px-3 py-1 rounded-full border border-white/10 cursor-pointer hover:bg-surface-3 transition-all duration-200">
-                  👤 {principal.toString().slice(0, 8)}...
-                </span>
-                <div className="absolute top-full right-0 mt-1 bg-surface-1 border border-white/10 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transform translate-y-2 group-hover:translate-y-0 transition-all duration-200 z-50 p-2">
-                  <button 
-                    className="btn-sienna text-sm w-full"
+          </div>
+
+          {/* Navigation row */}
+          <nav className="flex justify-between items-center">
+            {/* Desktop: Logo and brand name on left */}
+            <div className="hidden sm:flex items-center gap-3">
+              <AssetIcon asset="logo" size={50} className="w-12 h-12 object-contain" />
+              <span className="text-2xl font-bold text-text-primary" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>HodlHut</span>
+            </div>
+
+            {/* Navigation buttons - mobile centered, desktop right */}
+            <div className="flex gap-1 sm:gap-4 items-center mx-auto sm:mx-0">
+            {isAuthenticated ? (
+              <>
+                <button
+                  className="btn-bitcoin text-xs sm:text-base px-2 py-1 sm:px-4 sm:py-2 whitespace-nowrap"
+                  onClick={handleGetHut}
+                >
+                  Get Hut
+                </button>
+                <button
+                  className="btn-success text-xs sm:text-base px-2 py-1 sm:px-4 sm:py-2 whitespace-nowrap"
+                  onClick={handleMyHuts}
+                >
+                  My Huts
+                </button>
+                <div className="relative group">
+                  <button
+                    className="btn-sienna text-xs sm:text-base px-2 py-1 sm:px-4 sm:py-2 whitespace-nowrap"
                     onClick={logout}
                   >
                     Logout
                   </button>
+                  {principal && (
+                    <div className="absolute top-full right-0 mt-1 bg-surface-1 border border-white/10 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transform translate-y-2 group-hover:translate-y-0 transition-all duration-200 z-50 p-2 min-w-max">
+                      <span className="text-xs text-text-secondary px-2 py-1 rounded bg-surface-2">
+                        👤 {principal.toString().slice(0, 8)}...
+                      </span>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
-          </div>
-          <div className="flex gap-4">
-            {isAuthenticated ? (
-              <>
-                <button 
-                  className="btn-bitcoin"
-                  onClick={handleGetHut}
-                >
-                  {/* Backend: Triggers Internet Identity authentication with custom security options */}
-                  Get Hut
-                </button>
-                <button 
-                  className="btn-success"
-                  onClick={handleMyHuts}
-                >
-                  {/* Backend: Triggers Internet Identity authentication with custom security options */}
-                  My Huts
-                </button>
-                <button 
-                  className="btn-sienna"
-                  onClick={logout}
-                >
-                  Logout
-                </button>
               </>
             ) : (
               <>
-                <button 
-                  className={`btn-bitcoin ${isLoading ? 'opacity-50 cursor-wait' : ''}`}
+                <button
+                  className={`btn-bitcoin text-xs sm:text-base px-2 py-1 sm:px-4 sm:py-2 whitespace-nowrap transition-colors ${isLoading ? 'bg-primary-600' : ''}`}
                   onClick={handleGetHut}
                   disabled={isLoading}
                 >
-                  {/* Backend: Triggers Internet Identity authentication with custom security options */}
-                  {isLoading ? 'Connecting...' : 'Get Hut'}
+                  Get Hut
                 </button>
-                <button 
-                  className={`btn-success ${isLoading ? 'opacity-50 cursor-wait' : ''}`}
+                <button
+                  className={`btn-success text-xs sm:text-base px-2 py-1 sm:px-4 sm:py-2 whitespace-nowrap transition-colors ${isLoading ? 'bg-success-600' : ''}`}
                   onClick={handleMyHuts}
                   disabled={isLoading}
                 >
-                  {/* Backend: Triggers Internet Identity authentication with custom security options */}
-                  {isLoading ? 'Connecting...' : 'My Huts'}
+                  My Huts
                 </button>
               </>
             )}
-            <button 
-              className="btn-primary"
+            <button
+              className="btn-primary text-xs sm:text-base px-2 py-1 sm:px-4 sm:py-2 whitespace-nowrap"
               onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
             >
               Learn
             </button>
-          </div>
-        </nav>
+            </div>
+          </nav>
+        </div>
       </header>
 
       {/* Hero Section */}
-      <section className="relative min-h-[70vh] flex items-end justify-center overflow-hidden section bg-surface-1">
-        {/* Hero Animation */}
-        <div className={`absolute inset-0 flex items-center justify-center z-10 transition-opacity duration-2000 ${!showAnimation ? 'opacity-0 pointer-events-none' : ''}`}>
+      <section className="relative min-h-[40vh] sm:min-h-[70vh] flex items-center justify-center overflow-hidden section bg-surface-1">
+        {/* Hero Animation - Desktop only */}
+        <div className={`hidden sm:block absolute inset-0 flex items-center justify-center z-10 transition-opacity duration-2000 ${!showAnimation ? 'opacity-0 pointer-events-none' : ''}`}>
           <video
             className={`absolute w-full h-full object-cover object-center transition-opacity duration-500 ${isVideoLoaded ? 'opacity-100' : 'opacity-0'}`}
             autoPlay
@@ -185,21 +187,39 @@ const HomePage: React.FC = () => {
           </video>
         </div>
 
-        {/* Hero Background - Video with last frame fallback */}
-        <div className="absolute inset-0 z-0">
-          <video 
-            className="w-full h-full object-cover object-center" 
-            autoPlay 
-            muted 
+        {/* Hero Background - Desktop only */}
+        <div className="hidden sm:block absolute inset-0 z-0">
+          <video
+            className="w-full h-full object-cover object-center"
+            autoPlay
+            muted
             loop
-            poster="" // Last frame will show when video loads
+            poster=""
           >
             <source src={HeroAnimationVideo} type="video/mp4" />
           </video>
         </div>
 
-        {/* Hero Card */}
-        <div className="relative z-20 flex justify-center items-center max-w-4xl px-8">
+        {/* Mobile Hero Content - CTA Card */}
+        <div className="sm:hidden z-20 flex flex-col items-center justify-center text-center px-4">
+          <div className="rounded-2xl border border-white/10 bg-surface-2 p-6 max-w-sm">
+            <h1 className="text-4xl font-bold text-text-primary mb-6" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>
+              HodlHut
+            </h1>
+            <p className="text-lg text-text-secondary mb-6 leading-snug">
+              Your Sovereign Multichain Paradise
+            </p>
+            <button
+              className="btn-bitcoin btn-lg"
+              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              Start Your Journey
+            </button>
+          </div>
+        </div>
+
+        {/* Hero Card - Desktop only */}
+        <div className="hidden sm:flex relative z-20 justify-center items-center max-w-4xl px-8">
           <div className="rounded-2xl border border-white/10 bg-surface-2 p-6 max-w-lg text-center">
             <h1 className="text-5xl font-bold text-text-primary mb-6" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>HodlHut</h1>
             <p className="text-xl text-text-secondary mb-8 leading-snug">
@@ -218,7 +238,7 @@ const HomePage: React.FC = () => {
       {/* Features Section */}
       <section className="section bg-surface-2">
         <div className="container-app stack-lg">
-          <h2 className="text-4xl font-bold text-center text-text-primary" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Your Personal Universal Router</h2>
+          <h2 className="hidden sm:block text-4xl font-bold text-center text-text-primary" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Your Personal Universal Router</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="rounded-2xl border border-white/10 bg-surface-1 p-6 text-center">
@@ -482,12 +502,11 @@ const HomePage: React.FC = () => {
       <section className="section bg-bg">
         <div className="container-app">
           <div className="md:w-2/3 mx-auto flex justify-center">
-            <button 
+            <button
               className="btn-bitcoin btn-lg"
               onClick={handleGetHut}
               disabled={isLoading}
             >
-              {/* Backend: Connects to Internet Identity login and starts 30-minute countdown for My Hut activation (user has 30 minutes to deposit assets to activate) */}
               {isLoading ? 'Connecting...' : 'Get My Hut'}
             </button>
           </div>
@@ -497,15 +516,17 @@ const HomePage: React.FC = () => {
       {/* Footer */}
       <footer className="section bg-surface-1 text-text-primary">
         <div className="container-app">
-          <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+            {/* Brand - centered on mobile, left on desktop */}
+            <div className="flex items-center gap-2 mx-auto sm:mx-0">
               <AssetIcon asset="logo" size={32} />
               <span className="text-xl font-bold text-text-primary" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>HodlHut</span>
             </div>
-            <div className="flex gap-8 flex-wrap">
-              <a href="#" className="text-text-muted hover:text-primary-400 transition-colors duration-300">Privacy Policy</a>
-              <a href="#" className="text-text-muted hover:text-primary-400 transition-colors duration-300">Terms of Service</a>
-              <a href="#" className="text-text-muted hover:text-primary-400 transition-colors duration-300">Documentation</a>
+            {/* Navigation - centered on mobile, right on desktop */}
+            <div className="flex gap-4 sm:gap-8 mx-auto sm:mx-0">
+              <a href="#" className="text-text-muted hover:text-primary-400 transition-colors duration-300">Privacy</a>
+              <a href="#" className="text-text-muted hover:text-primary-400 transition-colors duration-300">Terms</a>
+              <a href="#" className="text-text-muted hover:text-primary-400 transition-colors duration-300">DOCS</a>
             </div>
           </div>
           <div className="border-t border-white/10 pt-6 text-center">
