@@ -201,9 +201,9 @@ const ExecutionProgressModal: React.FC<ExecutionProgressModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className={allCompleted ? "p-4" : "p-6"}>
           {/* Transaction Overview */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${allCompleted ? "mb-4" : "mb-6"}`}>
             <div className="bg-surface-2 rounded-xl p-4">
               <div className="text-xs font-medium text-text-muted mb-2">From</div>
               <div className="text-sm sm:text-base font-semibold text-text-primary">
@@ -218,60 +218,62 @@ const ExecutionProgressModal: React.FC<ExecutionProgressModalProps> = ({
             </div>
           </div>
 
-          {/* Progress Steps */}
-          <div className="space-y-4">
-            {steps.map((step, index) => (
-              <div key={step.id} className="flex items-start gap-4">
-                {/* Step Icon */}
-                <div className="flex-shrink-0 mt-1">
-                  {step.status === 'completed' ? (
-                    <CheckCircle size={20} className="text-success-400" />
-                  ) : step.status === 'in_progress' ? (
-                    <div className="w-5 h-5 border-2 border-primary-400 border-t-transparent rounded-full animate-spin" />
-                  ) : step.status === 'failed' ? (
-                    <AlertTriangle size={20} className="text-error-400" />
-                  ) : (
-                    <Circle size={20} className="text-text-muted" />
-                  )}
-                </div>
-
-                {/* Step Content */}
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <h4 className={`font-semibold ${
-                      step.status === 'completed' ? 'text-success-400' :
-                      step.status === 'in_progress' ? 'text-primary-400' :
-                      step.status === 'failed' ? 'text-error-400' :
-                      'text-text-muted'
-                    }`}>
-                      {step.title}
-                    </h4>
-                    {step.estimatedTime && step.status === 'in_progress' && (
-                      <span className="text-xs text-text-secondary">
-                        {step.estimatedTime}
-                      </span>
+          {/* Progress Steps - Hide detailed steps when completed for mobile optimization */}
+          {!allCompleted && (
+            <div className="space-y-4">
+              {steps.map((step, index) => (
+                <div key={step.id} className="flex items-start gap-4">
+                  {/* Step Icon */}
+                  <div className="flex-shrink-0 mt-1">
+                    {step.status === 'completed' ? (
+                      <CheckCircle size={20} className="text-success-400" />
+                    ) : step.status === 'in_progress' ? (
+                      <div className="w-5 h-5 border-2 border-primary-400 border-t-transparent rounded-full animate-spin" />
+                    ) : step.status === 'failed' ? (
+                      <AlertTriangle size={20} className="text-error-400" />
+                    ) : (
+                      <Circle size={20} className="text-text-muted" />
                     )}
                   </div>
-                  <p className="text-sm text-text-secondary">
-                    {step.description}
-                  </p>
 
-                  {/* Progress Bar for Active Step */}
-                  {step.status === 'in_progress' && (
-                    <div className="mt-3">
-                      <div className="w-full bg-surface-3 rounded-full h-2">
-                        <div className="bg-primary-500 h-2 rounded-full animate-pulse" style={{width: '45%'}}></div>
-                      </div>
+                  {/* Step Content */}
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <h4 className={`font-semibold ${
+                        step.status === 'completed' ? 'text-success-400' :
+                        step.status === 'in_progress' ? 'text-primary-400' :
+                        step.status === 'failed' ? 'text-error-400' :
+                        'text-text-muted'
+                      }`}>
+                        {step.title}
+                      </h4>
+                      {step.estimatedTime && step.status === 'in_progress' && (
+                        <span className="text-xs text-text-secondary">
+                          {step.estimatedTime}
+                        </span>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+                    <p className="text-sm text-text-secondary">
+                      {step.description}
+                    </p>
 
-          {/* Completion Message with SIMULATED/REAL indicator */}
+                    {/* Progress Bar for Active Step */}
+                    {step.status === 'in_progress' && (
+                      <div className="mt-3">
+                        <div className="w-full bg-surface-3 rounded-full h-2">
+                          <div className="bg-primary-500 h-2 rounded-full animate-pulse" style={{width: '45%'}}></div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Completion Message with SIMULATED/REAL indicator - Moved up right after TO container when completed */}
           {allCompleted && (
-            <div className="mt-6">
+            <div className="mt-4">
               <ResultIndicator
                 transactionId={`tx_${Date.now()}_swap_${transactionData.fromAsset}_${transactionData.toAsset}`}
                 receivedAmount={transactionData.outputAmount?.toString() || '0'}
@@ -298,7 +300,7 @@ const ExecutionProgressModal: React.FC<ExecutionProgressModalProps> = ({
 
           {/* Action Button */}
           {allCompleted && (
-            <div className="mt-6">
+            <div className="mt-4">
               <button
                 className="w-full btn-success btn-text"
                 onClick={onComplete}
