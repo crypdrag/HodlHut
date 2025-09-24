@@ -22,7 +22,7 @@ const PortfolioOverview: React.FC<PortfolioOverviewProps> = ({
   const assetsWithBalance = fromAssets.filter(asset => portfolio[asset] && portfolio[asset] > 0);
 
   return (
-    <div className="mb-4 md:mb-8 rounded-2xl border border-white/10 bg-surface-1 overflow-hidden transition-all duration-200 hover:bg-surface-2/50">
+    <div className="mb-3 sm:mb-4 md:mb-8 rounded-2xl border border-white/10 bg-surface-1 overflow-hidden transition-all duration-200 hover:bg-surface-2/50">
       {/* Collapsible Portfolio Compact Row */}
       <div
         className="portfolio-compact-header"
@@ -48,10 +48,10 @@ const PortfolioOverview: React.FC<PortfolioOverviewProps> = ({
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-white/10">
-                    <th className="text-left text-text-secondary text-sm font-medium pb-3">Asset</th>
-                    <th className="text-left text-text-secondary text-sm font-medium pb-3">Token</th>
-                    <th className="text-right text-text-secondary text-sm font-medium pb-3">Amount</th>
-                    <th className="text-right text-text-secondary text-sm font-medium pb-3">Value (USD)</th>
+                    <th className="text-left text-text-secondary text-xs sm:text-sm font-medium pb-2 sm:pb-3">Asset</th>
+                    <th className="text-left text-text-secondary text-xs sm:text-sm font-medium pb-2 sm:pb-3">Token</th>
+                    <th className="text-right text-text-secondary text-xs sm:text-sm font-medium pb-2 sm:pb-3">Amount</th>
+                    <th className="text-right text-text-secondary text-xs sm:text-sm font-medium pb-2 sm:pb-3">Value (USD)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -60,19 +60,19 @@ const PortfolioOverview: React.FC<PortfolioOverviewProps> = ({
                     const usdValue = (MASTER_ASSETS[asset]?.price || 0) * amount;
                     return (
                       <tr key={asset} className="border-b border-white/5 hover:bg-surface-2/50 transition-colors">
-                        <td className="py-4">
-                          <div className="flex items-center gap-3">
-                            <AssetIcon asset={asset} size={24} />
+                        <td className="py-2 sm:py-4">
+                          <div className="flex items-center gap-2 sm:gap-3">
+                            <AssetIcon asset={asset} size={20} className="sm:w-6 sm:h-6" />
                           </div>
                         </td>
-                        <td className="py-4">
-                          <div className="text-text-primary font-medium">{asset}</div>
+                        <td className="py-2 sm:py-4">
+                          <div className="text-sm sm:text-base text-text-primary font-medium">{asset}</div>
                         </td>
-                        <td className="py-4 text-right">
-                          <div className="text-text-primary font-medium">{formatAmount(amount)}</div>
+                        <td className="py-2 sm:py-4 text-right">
+                          <div className="text-sm sm:text-base text-text-primary font-medium">{formatAmount(amount)}</div>
                         </td>
-                        <td className="py-4 text-right">
-                          <div className="text-text-primary font-medium">${usdValue.toLocaleString()}</div>
+                        <td className="py-2 sm:py-4 text-right">
+                          <div className="text-sm sm:text-base text-text-primary font-medium">${usdValue.toLocaleString()}</div>
                         </td>
                       </tr>
                     );

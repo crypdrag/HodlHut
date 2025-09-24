@@ -82,12 +82,12 @@ const AddAssetsSection: React.FC<AddAssetsSectionProps> = ({
   const isHutActivated = calculatePortfolioValue() > 0;
 
   return (
-    <div className="w-full flex flex-col items-center px-4 py-8">
-      <div className="text-center mb-8">
-        <h2 className="heading-2 text-text-primary mb-4">
+    <div className="w-full flex flex-col items-center px-4 py-4 sm:py-8">
+      <div className="text-center mb-3 sm:mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-1 sm:mb-2">
           {isHutActivated ? "Add Assets" : "Add Assets to Activate Your Hut"}
         </h2>
-        <p className="text-lg text-text-secondary">Choose an asset to deposit from Bitcoin, Ethereum or ICP ecosystem</p>
+        <p className="text-sm sm:text-base text-text-secondary">Choose an asset to deposit from Bitcoin, Ethereum or ICP ecosystem</p>
       </div>
 
       {/* Unified Deposit Interface */}

@@ -1098,7 +1098,7 @@ All styling must use global classes defined in @theme section - no utility class
 }
 
 .dropdown-search {
-  @apply w-full px-3 py-2 bg-surface-3 border-none rounded-t-xl text-text-primary placeholder:text-text-muted focus:outline-none;
+  @apply w-full px-3 py-2 bg-surface-3 border-none rounded-t-xl text-sm text-text-primary placeholder:text-text-muted focus:outline-none;
 }
 
 .dropdown-option {
@@ -1482,16 +1482,16 @@ section.relative button.bg-primary-600:hover {
 
 /* Unified portfolio header (no margins, part of container) */
 .portfolio-compact-header {
-  @apply p-4 cursor-pointer;
+  @apply p-3 sm:p-4 cursor-pointer;
   @apply flex items-center justify-between transition-all duration-200;
 }
 
 .portfolio-compact-content {
-  @apply flex items-center gap-4 flex-1;
+  @apply flex items-center gap-2 sm:gap-4 flex-1;
 }
 
 .portfolio-compact-title {
-  @apply text-lg font-semibold text-text-primary;
+  @apply text-base sm:text-lg font-semibold text-text-primary;
 }
 
 .portfolio-compact-value {
@@ -1499,7 +1499,7 @@ section.relative button.bg-primary-600:hover {
 }
 
 .portfolio-compact-amount {
-  @apply text-lg font-bold text-text-primary;
+  @apply text-base sm:text-lg font-bold text-text-primary;
 }
 
 .portfolio-compact-change {

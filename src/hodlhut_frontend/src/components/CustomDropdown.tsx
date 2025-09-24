@@ -67,10 +67,10 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
         {selectedOption ? (
           <>
             <AssetIcon asset={selectedOption.value} size={20} />
-            <span className="ml-2">{selectedOption.label}</span>
+            <span className="ml-2 text-sm font-medium text-text-primary">{selectedOption.label}</span>
           </>
         ) : (
-          <span className="text-primary-600">{placeholder}</span>
+          <span className="text-sm text-primary-600">{placeholder}</span>
         )}
         <span className="ml-auto text-xs">▼</span>
       </div>

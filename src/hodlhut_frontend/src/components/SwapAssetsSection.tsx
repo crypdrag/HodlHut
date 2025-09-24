@@ -536,10 +536,10 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
   };
 
   return (
-    <div className="w-full flex flex-col items-center px-4 py-8">
-      <div className="text-center mb-4 md:mb-8">
-        <div className="heading-2 text-text-primary mb-2">Swap Assets Crosschain</div>
-        <p className="text-text-secondary">Swap assets within ICP or out to Bitcoin and Ethereum.</p>
+    <div className="w-full flex flex-col items-center px-4 py-4 sm:py-8">
+      <div className="text-center mb-3 sm:mb-6">
+        <div className="text-xl sm:text-2xl font-bold text-text-primary mb-1 sm:mb-2">Swap Assets Crosschain</div>
+        <p className="text-sm sm:text-base text-text-secondary">Swap assets within ICP or out to Bitcoin and Ethereum.</p>
       </div>
 
       {/* Main Swap Interface */}
