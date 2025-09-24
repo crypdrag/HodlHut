@@ -186,7 +186,7 @@ export function generateCanonicalGasSolutions(
       network,
       amount: gasAmountNeeded,
       hasBalance: true,
-      description: `You have sufficient ${gasAsset} balance. HodlHut will automatically use ${gasAmountNeeded.toFixed(6)} ${gasAsset} for ${network} gas fees.`
+      description: `You have ${gasAsset} in your portfolio! Use ${gasAmountNeeded.toFixed(3)} ${gasAsset} for ${network} gas fees?`
     });
   }
 
@@ -513,14 +513,14 @@ export function calculateFeeRequirements(
     console.log('🔥 L1 GAS FEE RESULT:', gasFee);
 
     if (gasFee) {
-      // For USDC/USDT → ETH: Smart Solutions needed (separate ckETH gas required)
-      const needsSmartSolutions = ['USDC', 'USDT'].includes(toAsset);
+      // For L1 withdrawals: Smart Solutions needed (separate gas assets required)
+      const needsSmartSolutions = ['USDC', 'USDT', 'BTC', 'ETH'].includes(toAsset);
 
       // For all L1 withdrawals: Show gas fee in Transaction Preview
-      // For Smart Solutions: Only trigger for USDC/USDT → ETH
+      // For Smart Solutions: Only trigger for L1 withdrawals needing separate gas
       const gasWithSolutionsControl = {
         ...gasFee,
-        isUserSufficient: !needsSmartSolutions // false only for USDC/USDT → ETH
+        isUserSufficient: !needsSmartSolutions // false only for L1 withdrawals needing separate gas
       };
 
       fees.push(gasWithSolutionsControl);
@@ -619,22 +619,24 @@ export function generateSmartSolutions(
     toAsset: swapAnalysis.toAsset
   });
 
-  // ONLY trigger for USDC/USDT withdrawals that need ckETH for Ethereum
-  if (!['USDC', 'USDT'].includes(swapAnalysis.toAsset)) {
-    console.log('✅ No Smart Solutions needed - not USDC/USDT withdrawal');
+  // ONLY trigger for L1 withdrawals that need separate gas assets
+  if (!['USDC', 'USDT', 'BTC', 'ETH'].includes(swapAnalysis.toAsset)) {
+    console.log('✅ No Smart Solutions needed - not L1 withdrawal requiring separate gas');
     return [];
   }
 
-  const gasNeeded = 0.003; // Ethereum gas
-  const ckETHBalance = portfolio['ckETH'] || 0;
+  // Determine required gas asset and amount based on destination
+  const { gasAsset, network } = getRequiredGasAsset(swapAnalysis.toAsset);
+  const gasNeeded = gasAsset === 'ckBTC' ? 0.0005 : 0.003; // Bitcoin: 0.0005, Ethereum: 0.003
+  const gasBalance = portfolio[gasAsset] || 0;
 
-  // PRIORITY 1: Does user have ckETH? Use this.
-  if (ckETHBalance >= gasNeeded) {
+  // PRIORITY 1: Does user have the required gas asset? Use this.
+  if (gasBalance >= gasNeeded) {
     return [{
-      id: 'use_ckETH_balance',
+      id: `use_${gasAsset}_balance`,
       type: 'use_balance',
-      title: 'Use ckETH Balance',
-      description: `You have sufficient ckETH balance. HodlHut will automatically use ${gasNeeded} ckETH for Ethereum gas fees during your withdrawal.`,
+      title: `Use ${gasAsset} Balance`,
+      description: `You have ${gasAsset} in your portfolio! Use ${gasNeeded.toFixed(gasAsset === 'ckBTC' ? 4 : 3)} ${gasAsset} for ${network} gas fees?`,
       badge: 'RECOMMENDED',
       userReceives: {
         amount: swapAnalysis.outputAmount,
@@ -642,15 +644,15 @@ export function generateSmartSolutions(
       },
       cost: {
         amount: gasNeeded.toString(),
-        asset: 'ckETH',
-        description: 'Ethereum gas fee'
+        asset: gasAsset,
+        description: `${network} gas fee`
       }
     }];
   }
 
   // PRIORITY 2: Does user have other ckAssets? Choose best swap for best rate.
-  const availableAssets = ['ckBTC', 'ckUSDC', 'ICP'].filter(asset =>
-    asset !== swapAnalysis.fromAsset && (portfolio[asset] || 0) > 0
+  const availableAssets = ['ckBTC', 'ckETH', 'ckUSDC', 'ICP'].filter(asset =>
+    asset !== gasAsset && asset !== swapAnalysis.fromAsset && (portfolio[asset] || 0) > 0
   );
 
   if (availableAssets.length > 0) {
@@ -663,8 +665,8 @@ export function generateSmartSolutions(
 
     // Calculate actual swap details for DEX fees and costs
     const sourceAssetPrice = ASSET_PRICES[bestAsset] || 0;
-    const ckETHPrice = ASSET_PRICES['ckETH'] || 0;
-    const exchangeRate = sourceAssetPrice / ckETHPrice; // How much sourceAsset = 1 ckETH
+    const gasAssetPrice = ASSET_PRICES[gasAsset] || 0;
+    const exchangeRate = sourceAssetPrice / gasAssetPrice; // How much sourceAsset = 1 gasAsset
 
     // Amount of source asset needed (including DEX fees)
     const dexFeePercentage = selectedDEX === 'ICDEX' ? 0.1 : 0.3; // ICDEX: 0.1%, others: 0.3%
@@ -676,10 +678,10 @@ export function generateSmartSolutions(
     const totalCostUSD = totalSourceNeeded * sourceAssetPrice;
 
     return [{
-      id: `swap_${bestAsset}_for_ckETH`,
+      id: `swap_${bestAsset}_for_${gasAsset}`,
       type: 'auto_swap',
-      title: `Auto-Swap ${bestAsset} → ckETH`,
-      description: `HodlHut will swap ${totalSourceNeeded.toFixed(6)} ${bestAsset} for ${gasNeeded} ckETH to cover Ethereum gas fees. This includes ${dexFeePercentage}% DEX trading fee.`,
+      title: `Auto-Swap ${bestAsset} → ${gasAsset}`,
+      description: `HodlHut will swap ${totalSourceNeeded.toFixed(6)} ${bestAsset} for ${gasNeeded.toFixed(gasAsset === 'ckBTC' ? 4 : 3)} ${gasAsset} to cover ${network} gas fees. This includes ${dexFeePercentage}% DEX trading fee.`,
       badge: 'RECOMMENDED',
       userReceives: {
         amount: swapAnalysis.outputAmount,
@@ -694,7 +696,7 @@ export function generateSmartSolutions(
       swapDetails: {
         sourceAsset: bestAsset,
         sourceAmount: totalSourceNeeded,
-        targetAsset: 'ckETH',
+        targetAsset: gasAsset,
         targetAmount: gasNeeded,
         exchangeRate: exchangeRate,
         dexFee: dexFee,
@@ -705,12 +707,12 @@ export function generateSmartSolutions(
     }];
   }
 
-  // PRIORITY 3: No ckETH? No other assets? Prompt to add ckETH.
+  // PRIORITY 3: No gas asset? No other assets? Prompt to add required gas asset.
   return [{
-    id: 'deposit_ckETH',
+    id: `deposit_${gasAsset}`,
     type: 'manual_topup',
-    title: 'Deposit ckETH',
-    description: `You need ${gasNeeded} ckETH for Ethereum gas fees. Transfer ckETH from your ICP wallet or deposit ETH from Ethereum network.`,
+    title: `Deposit ${gasAsset}`,
+    description: `You need ${gasNeeded.toFixed(gasAsset === 'ckBTC' ? 4 : 3)} ${gasAsset} for ${network} gas fees. Transfer ${gasAsset} from your ICP wallet or deposit ${gasAsset.replace('ck', '')} from ${network} network.`,
     badge: 'REQUIRED STEP',
     userReceives: {
       amount: swapAnalysis.outputAmount,
@@ -718,8 +720,8 @@ export function generateSmartSolutions(
     },
     cost: {
       amount: gasNeeded.toString(),
-      asset: 'ckETH',
-      description: 'Ethereum gas fee'
+      asset: gasAsset,
+      description: `${network} gas fee`
     }
   }];
 }
@@ -980,8 +982,8 @@ export function analyzeCompleteSwap(
   console.log('🚀 FEE REQUIREMENTS IN ANALYSIS:', feeRequirements);
   const totalFeesUSD = feeRequirements.reduce((sum, fee) => sum + fee.usdValue, 0);
   console.log('🚀 TOTAL FEES USD:', totalFeesUSD);
-  // CLEAN LOGIC: Smart Solutions only needed for USDC/USDT withdrawals
-  const needsSmartSolutions = ['USDC', 'USDT'].includes(toAsset);
+  // CLEAN LOGIC: Smart Solutions needed for L1 withdrawals requiring separate gas assets
+  const needsSmartSolutions = ['USDC', 'USDT', 'BTC', 'ETH'].includes(toAsset);
 
   const swapAnalysis: CompleteSwapAnalysis = {
     success: true,

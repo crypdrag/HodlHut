@@ -775,7 +775,11 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
                         <span className="font-medium text-text-primary">{formatAmount(portfolio[fromAsset] || 0)}</span>
                       </div>
                       <div className="flex justify-between items-center text-error-400">
-                        <span>After withdrawal {fromAsset}:</span>
+                        <span>
+                          {(fromAsset === 'ckBTC' && toAsset === 'BTC') ? 'ckBTC Gas Fees:' :
+                           (fromAsset === 'ckETH' && toAsset === 'ETH') ? 'ckETH Gas Fees:' :
+                           `After withdrawal ${fromAsset}:`}
+                        </span>
                         <span className="font-medium">
                           {formatAmount(Math.max(0, (portfolio[fromAsset] || 0) - parseFloat(swapAmount || '0')))}
                           <span className="text-xs ml-1">(-{formatAmount(parseFloat(swapAmount || '0'))})</span>
@@ -822,42 +826,29 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
         }
       })()}
 
-      {/* STEP 2: Choose Your Method (DEX Selection) - COMPACT VERSION */}
-      {showDEXSelection && swapAnalysis && fromAsset !== toAsset && (
-        <div className="w-full max-w-lg mt-6 rounded-2xl border border-white/10 bg-surface-1 p-8">
-          <div className="flex justify-center mb-8">
-            <span className="heading-4 text-text-primary">
-              {swapAnalysis.route.operationType === 'DEX + Minter'
-                ? 'First choose your DEX'
-                : 'Choose your DEX'}
-            </span>
-          </div>
+      {/* STEP 2/3: DEX Selection OR Smart Solutions (Mobile-First Single Container) */}
+      {(showDEXSelection || showSmartSolutions) && swapAnalysis && fromAsset !== toAsset && (
+        <div className="w-full max-w-lg mt-6 rounded-2xl border border-white/10 bg-surface-1 p-6">
+          {/* DEX Selection Content - Only show if Smart Solutions are NOT showing */}
+          {showDEXSelection && !showSmartSolutions && (
+            <>
+              <div className="flex justify-center mb-8">
+                <span className="heading-4 text-text-primary">
+                  {swapAnalysis.route.operationType === 'DEX + Minter'
+                    ? 'First choose your DEX'
+                    : 'Choose your DEX'}
+                </span>
+              </div>
 
-          {/* Backend: KongSwap onclick calls KongSwap API, ICPSwap onclick calls ICPSwap API */}
+              {/* Backend: KongSwap onclick calls KongSwap API, ICPSwap onclick calls ICPSwap API */}
           <CompactDEXSelector
             selectedDEX={selectedDEX}
             setSelectedDEX={(dexId: string | null) => {
               setSelectedDEX(dexId);
 
-              // Auto-trigger Transaction Preview for DEX + Chain Fusion swaps when DEX is selected
-              if (dexId && swapAnalysis && !showSmartSolutions) {
-                // Check if this is a DEX + Chain Fusion operation (DEX swap to L1 asset)
-                const isDEXPlusChainFusion = swapAnalysis.route.operationType === 'DEX + Minter' ||
-                                           (swapAnalysis.route.steps.includes('DEX Swap') &&
-                                            ['BTC', 'ETH', 'USDC', 'USDT'].includes(toAsset));
-
-                if (isDEXPlusChainFusion && parseFloat(swapAmount || '0') > 0) {
-                  console.log('🚀 Auto-triggering Transaction Preview for DEX + Chain Fusion:', {
-                    from: fromAsset,
-                    to: toAsset,
-                    selectedDEX: dexId,
-                    operationType: swapAnalysis.route.operationType
-                  });
-
-                  // Set transaction data and show Transaction Preview
-                  setTransactionData(swapAnalysis);
-                  onShowTransactionPreview();
-                }
+              // Call the parent DEX selection handler to properly handle Smart Solutions
+              if (dexId && swapAnalysis && parseFloat(swapAmount || '0') > 0) {
+                onDEXSelectedForICPSwap(dexId);
               }
             }}
             dexData={DEX_OPTIONS_ENHANCED}
@@ -871,23 +862,21 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
             onDEXSelectedForICPSwap={onDEXSelectedForICPSwap}
           />
 
-          <div className="mt-6 p-4 bg-primary-600/5 rounded-lg border border-primary-600/20">
-            <p className="text-sm text-text-secondary">
-              <span className="font-semibold text-text-primary">Your Choice Matters:</span> We show you all options with real data - you decide what's most important for your trade.
-            </p>
-          </div>
-        </div>
-      )}
+              <div className="mt-6 p-4 bg-primary-600/5 rounded-lg border border-primary-600/20">
+                <p className="text-sm text-text-secondary">
+                  <span className="font-semibold text-text-primary">Your Choice Matters:</span> We show you all options with real data - you decide what's most important for your trade.
+                </p>
+              </div>
+            </>
+          )}
 
-      {/* Gas information moved to What's Happening component */}
-
-      {/* STEP 3: Smart Solutions - Simple Mobile-First Design */}
-      {showSmartSolutions && smartSolutions.length > 0 && (
-        <div className="w-full max-w-lg mt-6 rounded-2xl border border-white/10 bg-surface-1 p-6">
-          <div className="flex justify-center items-center gap-3 mb-6">
-            <Lightbulb size={20} className="text-primary-500" />
-            <span className="text-lg font-semibold text-text-primary">Smart Solutions</span>
-          </div>
+          {/* Smart Solutions Content */}
+          {showSmartSolutions && smartSolutions.length > 0 && (
+            <>
+              <div className="flex justify-center items-center gap-3 mb-6">
+                <Lightbulb size={20} className="text-primary-500" />
+                <span className="text-lg font-semibold text-text-primary">Smart Solutions</span>
+              </div>
 
           <div className="space-y-4">
             {smartSolutions.map((solution, index) => (
@@ -923,9 +912,13 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
                 </button>
               </div>
             ))}
-          </div>
+              </div>
+            </>
+          )}
         </div>
       )}
+
+      {/* Gas information moved to What's Happening component */}
 
       {/* OLD Smart Solutions - Keep as backup for now */}
       {false /* DISABLED - Old Complex Smart Solutions UI */ && showSmartSolutions && smartSolutions.length > 0 && (

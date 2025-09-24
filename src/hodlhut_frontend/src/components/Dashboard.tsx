@@ -631,7 +631,15 @@ const Dashboard: React.FC = () => {
     if (analysis.needsSmartSolutions && analysis.smartSolutions && analysis.smartSolutions.length > 0) {
       console.log('🔥 Smart Solutions Available:', analysis.smartSolutions);
       setSmartSolutions(analysis.smartSolutions);
-      setShowSmartSolutions(true);
+
+      // For DEX + Chain Fusion: Only show Smart Solutions after DEX is selected
+      const requiresDEXFirst = (analysis.route.operationType === 'DEX + Minter') && needsDEXSelection(fromAsset, toAsset);
+      if (requiresDEXFirst && !selectedDEX) {
+        console.log('🔥 DEX + Chain Fusion: Waiting for DEX selection before showing Smart Solutions');
+        setShowSmartSolutions(false);
+      } else {
+        setShowSmartSolutions(true);
+      }
     } else {
       console.log('🔥 No Smart Solutions needed for this swap');
       setShowSmartSolutions(false);
@@ -782,7 +790,7 @@ const Dashboard: React.FC = () => {
     // Update selected DEX
     setSelectedDEX(dexId);
 
-    // Generate swap analysis with selected DEX
+    // Generate swap analysis with selected DEX and handle Smart Solutions properly
     if (fromAsset && toAsset && swapAmount && parseFloat(swapAmount) > 0) {
       const amount = parseFloat(swapAmount);
       const analysis = analyzeCompleteSwap(fromAsset, toAsset, amount, portfolio, dexId);
@@ -791,7 +799,17 @@ const Dashboard: React.FC = () => {
         setSwapAnalysis(analysis);
         setTransactionData(analysis);
 
-        // Immediately open Transaction Preview modal
+        // Re-run Smart Solutions logic with DEX selected
+        if (analysis.needsSmartSolutions && analysis.smartSolutions && analysis.smartSolutions.length > 0) {
+          console.log('🔥 Smart Solutions Available after DEX selection:', analysis.smartSolutions);
+          setSmartSolutions(analysis.smartSolutions);
+          setShowSmartSolutions(true);
+          setShowDEXSelection(false); // Hide DEX selector when Smart Solutions appear
+          console.log('🔥 DEX selected, hiding DEX selector and showing Smart Solutions');
+          return; // Show Smart Solutions instead of going directly to Transaction Preview
+        }
+
+        // For non-Smart Solutions flows: Immediately open Transaction Preview modal
         setTimeout(() => {
           setShowTransactionPreviewModal(true);
         }, 100); // Small delay to ensure state is set
