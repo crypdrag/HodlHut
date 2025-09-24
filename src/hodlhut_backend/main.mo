@@ -2,7 +2,7 @@ import Text "mo:base/Text";
 import Array "mo:base/Array";
 import Float "mo:base/Float";
 
-persistent actor HodlHutBackend {
+actor HodlHutBackend {
 
   // Types matching frontend Smart Solutions logic
   public type SmartSolution = {
