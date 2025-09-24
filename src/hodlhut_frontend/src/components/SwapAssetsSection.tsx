@@ -10,6 +10,7 @@ import {
   Waves,
   PartyPopper,
   ArrowLeftRight,
+  ArrowRight,
   Star,
   Plus,
   Rocket
@@ -406,17 +407,17 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
   // Simple Route Visualization - Mobile-First Responsive
   const SimpleRouteDisplay: React.FC<{ route: SwapRoute }> = ({ route }) => {
     return (
-      <div className="flex items-center justify-center gap-2 sm:gap-3 md:gap-4 mb-3 overflow-x-auto px-2 py-1">
+      <div className="flex items-center gap-0 sm:gap-2 md:gap-3 mb-3 overflow-x-auto px-1 py-1">
         {route.steps.map((step, index) => (
           <React.Fragment key={index}>
             <div className="token-display-container flex-shrink-0">
               <div className="token-display-content">
-                <AssetIcon asset={step} size={16} className="flex-shrink-0" />
+                <AssetIcon asset={step} size={12} className="flex-shrink-0 sm:w-4 sm:h-4" />
                 <span className="token-display-text">{step}</span>
               </div>
             </div>
             {index < route.steps.length - 1 && (
-              <div className="route-arrow">→</div>
+              <ArrowRight className="text-primary-500 flex-shrink-0 w-3 h-3 sm:w-4 sm:h-4 mx-0" />
             )}
           </React.Fragment>
         ))}
@@ -525,9 +526,9 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
             <Fuel size={16} />
             {optimizationTitle}
           </span>
-          <span className="text-sm font-medium text-text-secondary">{currentFeeDisplay}</span>
+          <span className="text-xs sm:text-sm font-medium text-text-secondary">{currentFeeDisplay}</span>
         </div>
-        <div className={`text-sm font-medium ${colorClass}`}>
+        <div className={`caption ${colorClass}`}>
           {recommendation}
         </div>
       </div>
@@ -739,8 +740,8 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
 
                 return (
                   <div className="flex items-center justify-between w-full p-3 bg-surface-2 rounded-lg mt-4">
-                    <span className="text-text-secondary">Current: {currentFee}</span>
-                    <span className={`${statusColor}`}>
+                    <span className="text-xs sm:text-sm text-text-secondary">Current: {currentFee}</span>
+                    <span className={`text-xs sm:text-sm ${statusColor}`}>
                       {destinationChain === 'Bitcoin' ? 'Bitcoin fees are' : 'Gas is'} {status.toLowerCase()}
                     </span>
                   </div>
