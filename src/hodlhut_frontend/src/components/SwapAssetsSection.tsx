@@ -407,7 +407,7 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
   // Simple Route Visualization - Mobile-First Responsive
   const SimpleRouteDisplay: React.FC<{ route: SwapRoute }> = ({ route }) => {
     return (
-      <div className="flex items-center gap-0 sm:gap-2 md:gap-3 mb-3 overflow-x-auto px-1 py-1">
+      <div className="flex items-center justify-center gap-0 sm:gap-2 md:gap-3 mb-3 overflow-x-auto px-1 py-1">
         {route.steps.map((step, index) => (
           <React.Fragment key={index}>
             <div className="token-display-container flex-shrink-0">
@@ -863,11 +863,6 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
             onDEXSelectedForICPSwap={onDEXSelectedForICPSwap}
           />
 
-              <div className="mt-6 p-4 bg-primary-600/5 rounded-lg border border-primary-600/20">
-                <p className="text-sm text-text-secondary">
-                  <span className="font-semibold text-text-primary">Your Choice Matters:</span> We show you all options with real data - you decide what's most important for your trade.
-                </p>
-              </div>
             </>
           )}
 
