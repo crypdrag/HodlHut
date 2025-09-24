@@ -224,13 +224,13 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
   };
 
   return (
-    <div className="w-full max-w-lg">
+    <div className="w-full max-w-full sm:max-w-lg">
       {/* Slippage Tolerance Container */}
-      <div className="mb-4 p-3 bg-warning-400/10 border border-warning-400/20 rounded-lg">
+      <div className="mb-4 p-2 sm:p-3 bg-warning-400/10 border border-warning-400/20 rounded-lg">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-semibold text-warning-300">Slippage Tolerance</span>
+          <span className="text-xs sm:text-sm font-semibold text-warning-300">Slippage Tolerance</span>
         </div>
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex items-center justify-center gap-1 sm:gap-2">
           {[0.5, 1, 3, 5].map((tolerance) => (
             <button
               key={tolerance}
@@ -238,7 +238,7 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
                 setLocalSlippageTolerance(tolerance);
                 console.log('Selected slippage tolerance:', tolerance + '%');
               }}
-              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors min-h-[44px] ${
                 localSlippageTolerance === tolerance
                   ? 'bg-warning-400 text-warning-900'
                   : 'bg-surface-2 text-text-secondary hover:bg-surface-3 hover:text-text-primary'
@@ -275,11 +275,11 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
               )}
 
               {/* Main Row - Logo, Badge, Fee, Select Button */}
-              <div className={`flex items-center p-4 ${isRecommended ? 'pt-2' : ''}`}>
+              <div className={`flex items-center p-2 sm:p-4 ${isRecommended ? 'pt-1 sm:pt-2' : ''}`}>
                 {/* DEX Logo + Name */}
-                <div className="flex items-center gap-3 flex-1">
-                  <DEXIcon dex={dex.id} size={24} />
-                  <span className="font-semibold text-text-primary">{dex.name}</span>
+                <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                  <DEXIcon dex={dex.id} size={20} />
+                  <span className="text-sm sm:text-base font-semibold text-text-primary truncate">{dex.name}</span>
                 </div>
 
                 {/* Mobile-friendly visual indicator - just a colored dot */}
@@ -288,7 +288,7 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
                 )}
 
                 {/* Clean Fee Display */}
-                <div className="text-text-secondary font-medium mx-4">
+                <div className="text-xs sm:text-sm text-text-secondary font-medium mx-1 sm:mx-4">
                   {dex.primaryFee}
                 </div>
 
@@ -335,7 +335,7 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
                     }
                   }
                 }}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors min-h-[44px] min-w-[60px] sm:min-w-[80px] ${
                   dex.isSelected
                     ? 'bg-success-600 text-white'
                     : 'bg-primary-600 hover:bg-primary-500 text-white'
@@ -345,18 +345,18 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
               </button>
 
               {/* Expand Arrow */}
-              <div className="ml-2 text-text-muted">
+              <div className="ml-1 sm:ml-2 text-text-muted">
                 {expandedDEX === dex.id ? (
-                  <ChevronUp size={16} />
+                  <ChevronUp size={14} className="sm:w-4 sm:h-4" />
                 ) : (
-                  <ChevronDown size={16} />
+                  <ChevronDown size={14} className="sm:w-4 sm:h-4" />
                 )}
               </div>
               </div>
 
               {/* Agent Data Row - Score, Slippage, and Badge info below main row */}
               {dex.agentQuote && dex.agentQuote.slippage !== undefined && swapValueUSD && (
-                <div className="px-4 pb-3 text-xs text-text-muted">
+                <div className="px-2 sm:px-4 pb-2 sm:pb-3 text-xs text-text-muted">
                   {(() => {
                     // Generate semantic analysis for dynamic badges
                     const metrics: DEXMetrics = {
