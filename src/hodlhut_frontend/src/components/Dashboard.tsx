@@ -1077,41 +1077,77 @@ const Dashboard: React.FC = () => {
     ];
 
     return (
-      <div className="rounded-2xl border border-white/10 bg-surface-1 p-6">
-        <div className="mb-6">
-          <h2 className="text-xl font-bold text-text-primary mb-2">Transaction History</h2>
-          <p className="text-text-secondary">View all your trading and deposit activity</p>
+      <div className="rounded-xl sm:rounded-2xl border border-white/10 bg-surface-1 p-3 sm:p-6">
+        <div className="mb-4 sm:mb-6">
+          <h2 className="text-lg sm:text-xl font-bold text-text-primary mb-1 sm:mb-2">Transaction History</h2>
+          <p className="text-sm sm:text-base text-text-secondary">View all your trading and deposit activity</p>
         </div>
-        
-        <div className="space-y-4">
+
+        <div className="space-y-2 sm:space-y-4">
           {mockTransactions.map((tx) => (
-            <div key={tx.id} className="rounded-xl border border-white/10 bg-surface-2 p-4 hover:bg-surface-3 transition-all duration-300">
-              <div className="flex justify-between items-start mb-3">
-                <span className="inline-flex items-center gap-2 rounded-full bg-primary-600/15 text-primary-400 px-3 py-1 text-xs font-semibold">
-                  {tx.type}
-                </span>
-                <span className="text-text-muted text-sm">{tx.time}</span>
-              </div>
-              
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <AssetIcon asset={tx.from} size={20} />
-                  <span className="text-text-primary font-medium">{tx.amount} {tx.from}</span>
-                  <span className="text-text-muted">→</span>
-                  <AssetIcon asset={tx.to} size={20} />
-                  <span className="text-text-primary font-medium">{tx.to}</span>
+            <div key={tx.id} className="rounded-lg sm:rounded-xl border border-white/10 bg-surface-2 p-3 sm:p-4 hover:bg-surface-3 transition-all duration-300 min-h-[44px]">
+              {/* Mobile: Stacked layout, Desktop: Original layout */}
+              <div className="block sm:hidden">
+                {/* Mobile Header Row */}
+                <div className="flex justify-between items-center mb-2">
+                  <span className="inline-flex items-center gap-1 sm:gap-2 rounded-full bg-primary-600/15 text-primary-400 px-2 sm:px-3 py-1 text-xs font-semibold">
+                    {tx.type}
+                  </span>
+                  <span className="text-text-muted text-xs sm:text-sm">{tx.time}</span>
                 </div>
-                
-                <div className="text-right">
-                  <div className="text-text-primary font-semibold">{tx.value}</div>
-                  <div className="text-text-muted text-sm">Fee: {tx.fee}</div>
+
+                {/* Mobile Asset Row */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <AssetIcon asset={tx.from} size={16} />
+                    <span className="text-text-primary font-medium text-sm truncate">{tx.amount} {tx.from}</span>
+                    <span className="text-text-muted text-xs">→</span>
+                    <AssetIcon asset={tx.to} size={16} />
+                    <span className="text-text-primary font-medium text-sm">{tx.to}</span>
+                  </div>
+                </div>
+
+                {/* Mobile Value Row */}
+                <div className="flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1 text-success-400 text-xs font-medium">
+                    ✅ {tx.status}
+                  </span>
+                  <div className="text-right">
+                    <div className="text-text-primary font-semibold text-sm">{tx.value}</div>
+                    <div className="text-text-muted text-xs">Fee: {tx.fee}</div>
+                  </div>
                 </div>
               </div>
-              
-              <div className="flex justify-end">
-                <span className="inline-flex items-center gap-1 text-success-400 text-sm font-medium">
-                  ✅ {tx.status}
-                </span>
+
+              {/* Desktop: Original layout */}
+              <div className="hidden sm:block">
+                <div className="flex justify-between items-start mb-3">
+                  <span className="inline-flex items-center gap-2 rounded-full bg-primary-600/15 text-primary-400 px-3 py-1 text-xs font-semibold">
+                    {tx.type}
+                  </span>
+                  <span className="text-text-muted text-sm">{tx.time}</span>
+                </div>
+
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <AssetIcon asset={tx.from} size={20} />
+                    <span className="text-text-primary font-medium">{tx.amount} {tx.from}</span>
+                    <span className="text-text-muted">→</span>
+                    <AssetIcon asset={tx.to} size={20} />
+                    <span className="text-text-primary font-medium">{tx.to}</span>
+                  </div>
+
+                  <div className="text-right">
+                    <div className="text-text-primary font-semibold">{tx.value}</div>
+                    <div className="text-text-muted text-sm">Fee: {tx.fee}</div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <span className="inline-flex items-center gap-1 text-success-400 text-sm font-medium">
+                    ✅ {tx.status}
+                  </span>
+                </div>
               </div>
             </div>
           ))}
