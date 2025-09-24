@@ -110,7 +110,7 @@ const SmartSolutionModal: React.FC<SmartSolutionModalProps> = ({
             <div className="w-10 h-10 rounded-full bg-warning-600/20 flex items-center justify-center">
               <Lightbulb size={20} className="text-warning-400" />
             </div>
-            <h3 className="text-xl font-semibold text-text-primary">Approve Smart Solution</h3>
+            <h3 className="text-base sm:text-xl font-semibold text-text-primary">Approve Smart Solution</h3>
           </div>
           <button
             className="w-8 h-8 rounded-full bg-surface-3 hover:bg-surface-2 flex items-center justify-center text-text-muted hover:text-text-primary transition-colors"
@@ -124,10 +124,10 @@ const SmartSolutionModal: React.FC<SmartSolutionModalProps> = ({
         {/* Content */}
         <div className="p-6">
           <div className="mb-6">
-            <h4 className="text-lg font-semibold text-text-primary mb-2">
+            <h4 className="text-sm sm:text-lg font-semibold text-text-primary mb-2">
               {formatTextWithNumbers(pendingApproval.title)}
             </h4>
-            <p className="text-text-secondary leading-relaxed">
+            <p className="text-xs sm:text-sm text-text-secondary leading-snug sm:leading-relaxed">
               {formatTextWithNumbers(pendingApproval.description)}
             </p>
 

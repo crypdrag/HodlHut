@@ -766,30 +766,30 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
                 <div className="w-full max-w-lg mt-6">
                   {/* Balance Preview */}
                   <div className="bg-surface-2 rounded-xl p-4 mb-4">
-                    <div className="text-sm font-semibold text-text-primary mb-3 flex items-center gap-2">
-                      <Scale size={16} />
+                    <div className="text-xs sm:text-sm font-semibold text-text-primary mb-2 sm:mb-3 flex items-center gap-2">
+                      <Scale size={14} className="sm:w-4 sm:h-4" />
                       Balance Preview
                     </div>
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <span className="text-text-secondary">Current {fromAsset}:</span>
-                        <span className="font-medium text-text-primary">{formatAmount(portfolio[fromAsset] || 0)}</span>
+                        <span className="text-xs sm:text-sm text-text-secondary">Current {fromAsset}:</span>
+                        <span className="text-xs sm:text-sm font-medium text-text-primary">{formatAmount(portfolio[fromAsset] || 0)}</span>
                       </div>
                       <div className="flex justify-between items-center text-error-400">
-                        <span>
+                        <span className="text-xs sm:text-sm">
                           {(fromAsset === 'ckBTC' && toAsset === 'BTC') ? 'ckBTC Gas Fees:' :
                            (fromAsset === 'ckETH' && toAsset === 'ETH') ? 'ckETH Gas Fees:' :
                            `After withdrawal ${fromAsset}:`}
                         </span>
-                        <span className="font-medium">
+                        <span className="text-xs sm:text-sm font-medium">
                           {formatAmount(Math.max(0, (portfolio[fromAsset] || 0) - parseFloat(swapAmount || '0')))}
                           <span className="text-xs ml-1">(-{formatAmount(parseFloat(swapAmount || '0'))})</span>
                         </span>
                       </div>
                       <div className="border-t border-white/10 pt-2">
                         <div className="flex justify-between items-center text-success-400">
-                          <span>You'll receive {toAsset}:</span>
-                          <span className="font-medium">
+                          <span className="text-xs sm:text-sm">You'll receive {toAsset}:</span>
+                          <span className="text-xs sm:text-sm font-medium">
                             {swapAnalysis?.outputAmount
                               ? formatAmount(swapAnalysis.outputAmount)
                               : formatAmount(parseFloat(swapAmount || '0') * 0.95)
@@ -1182,30 +1182,30 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
                         <>
                           {/* Portfolio balance preview before execution */}
                           <div className="bg-surface-2 rounded-xl p-4 mb-4">
-                            <div className="text-sm font-semibold text-text-primary mb-3 flex items-center gap-2">
-                              <Scale size={16} />
+                            <div className="text-xs sm:text-sm font-semibold text-text-primary mb-2 sm:mb-3 flex items-center gap-2">
+                              <Scale size={14} className="sm:w-4 sm:h-4" />
                               Balance Preview
                             </div>
                             <div className="space-y-2">
                               <div className="flex justify-between items-center">
-                                <span className="text-text-secondary">Current {fromAsset}:</span>
-                                <span className="font-medium text-text-primary">{formatAmount(portfolio[fromAsset] || 0)}</span>
+                                <span className="text-xs sm:text-sm text-text-secondary">Current {fromAsset}:</span>
+                                <span className="text-xs sm:text-sm font-medium text-text-primary">{formatAmount(portfolio[fromAsset] || 0)}</span>
                               </div>
                               <div className="flex justify-between items-center text-error-400">
-                                <span>After swap {fromAsset}:</span>
-                                <span className="font-medium">
+                                <span className="text-xs sm:text-sm">After swap {fromAsset}:</span>
+                                <span className="text-xs sm:text-sm font-medium">
                                   {formatAmount(Math.max(0, (portfolio[fromAsset] || 0) - parseFloat(swapAmount || '0')))}
                                   <span className="text-xs ml-1">(-{formatAmount(parseFloat(swapAmount || '0'))})</span>
                                 </span>
                               </div>
                               <div className="border-t border-white/10 pt-2">
                                 <div className="flex justify-between items-center">
-                                  <span className="text-text-secondary">Current {toAsset}:</span>
-                                  <span className="font-medium text-text-primary">{formatAmount(portfolio[toAsset] || 0)}</span>
+                                  <span className="text-xs sm:text-sm text-text-secondary">Current {toAsset}:</span>
+                                  <span className="text-xs sm:text-sm font-medium text-text-primary">{formatAmount(portfolio[toAsset] || 0)}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-success-400">
-                                  <span>After swap {toAsset}:</span>
-                                  <span className="font-medium">
+                                  <span className="text-xs sm:text-sm">After swap {toAsset}:</span>
+                                  <span className="text-xs sm:text-sm font-medium">
                                     {swapAnalysis?.outputAmount
                                       ? formatAmount((portfolio[toAsset] || 0) + swapAnalysis.outputAmount)
                                       : formatAmount((portfolio[toAsset] || 0) + (parseFloat(swapAmount || '0') * 0.95))

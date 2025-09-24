@@ -132,7 +132,7 @@ const TransactionPreviewModal: React.FC<TransactionPreviewModalProps> = ({
             <div className="info-critical mb-4">
               <div className="flex items-center gap-2 mb-3">
                 <AlertTriangle size={16} className="text-warning-400" />
-                <span className="text-sm font-semibold text-warning-400">Select Destination Wallet</span>
+                <span className="text-xs sm:text-sm font-semibold text-warning-400">Select Destination Wallet</span>
               </div>
 
               <div className="text-xs text-text-secondary mb-3">
@@ -256,13 +256,13 @@ const TransactionPreviewModal: React.FC<TransactionPreviewModalProps> = ({
           <div className="amount-display-compact mb-2">
             <div>
               <div className="text-xs font-medium text-text-muted">From</div>
-              <div className="amount-primary">
+              <div className="text-sm sm:text-lg font-semibold text-text-primary">
                 {formatAmount(transactionData.amount)} {transactionData.fromAsset}
               </div>
             </div>
             <div className="text-right">
               <div className="text-xs font-medium text-text-muted">To</div>
-              <div className="amount-primary">
+              <div className="text-sm sm:text-lg font-semibold text-text-primary">
                 {formatAmount(transactionData.outputAmount)} {transactionData.toAsset}
               </div>
             </div>
@@ -271,7 +271,7 @@ const TransactionPreviewModal: React.FC<TransactionPreviewModalProps> = ({
           {/* Exchange Rate */}
           <div className="bg-surface-2 rounded-lg p-2 sm:p-3 mb-3">
             <div className="text-xs font-medium text-text-muted mb-1">Exchange Rate</div>
-            <div className="text-sm font-semibold text-text-primary">
+            <div className="text-xs sm:text-sm font-semibold text-text-primary">
               1 {transactionData.fromAsset} = {formatAmount(transactionData.rate)} {transactionData.toAsset}
             </div>
           </div>
@@ -353,9 +353,9 @@ const TransactionPreviewModal: React.FC<TransactionPreviewModalProps> = ({
               <div className="text-xs font-medium text-text-muted mb-2">Fee Breakdown</div>
               <div className="space-y-3">
                 {transactionData.feeRequirements.map((fee: any, index: number) => (
-                  <div key={index} className="flex justify-between items-center text-sm">
-                    <span className="text-text-secondary">{fee.description}</span>
-                    <span className="font-medium text-text-primary">${fee.usdValue.toFixed(2)}</span>
+                  <div key={index} className="flex justify-between items-center">
+                    <span className="text-xs sm:text-sm text-text-secondary">{fee.description}</span>
+                    <span className="text-xs sm:text-sm font-medium text-text-primary">${fee.usdValue.toFixed(2)}</span>
                   </div>
                 ))}
               </div>
@@ -367,9 +367,9 @@ const TransactionPreviewModal: React.FC<TransactionPreviewModalProps> = ({
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <AlertTriangle size={16} className="text-warning-400" />
-                <span className="text-sm font-semibold text-text-primary">Total Fees</span>
+                <span className="text-xs sm:text-sm font-semibold text-text-primary">Total Fees</span>
               </div>
-              <span className="text-sm font-bold text-warning-400">
+              <span className="text-xs sm:text-sm font-bold text-warning-400">
                 ${transactionData.totalFeesUSD.toFixed(2)}
               </span>
             </div>
