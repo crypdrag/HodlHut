@@ -693,6 +693,59 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
                   <div className="transaction-detail-value">{swapAnalysis.route.estimatedTime}</div>
                 </div>
               </div>
+
+              {/* Gas Fee Row - Full width outside grid */}
+              {(() => {
+                // Only show for L1 withdrawals
+                if (!swapAnalysis.isL1Withdrawal || !swapAnalysis.destinationChain) {
+                  return null;
+                }
+
+                const destinationChain = swapAnalysis.destinationChain;
+                let status = '';
+                let statusColor = '';
+                let currentFee = '';
+
+                if (destinationChain === 'Bitcoin') {
+                  const btcFeeRate = Math.floor(Math.random() * 20) + 10; // 10-30 sats/vB simulation
+                  currentFee = `${btcFeeRate} sats/vB`;
+
+                  if (btcFeeRate < 15) {
+                    status = 'Low';
+                    statusColor = 'text-success-400';
+                  } else if (btcFeeRate < 25) {
+                    status = 'Average';
+                    statusColor = 'text-warning-400';
+                  } else {
+                    status = 'High';
+                    statusColor = 'text-error-400';
+                  }
+                } else if (destinationChain === 'Ethereum') {
+                  currentFee = `${currentGasPrice} gwei`;
+
+                  if (currentGasPrice < 20) {
+                    status = 'Low';
+                    statusColor = 'text-success-400';
+                  } else if (currentGasPrice < 30) {
+                    status = 'Average';
+                    statusColor = 'text-warning-400';
+                  } else {
+                    status = 'High';
+                    statusColor = 'text-error-400';
+                  }
+                } else {
+                  return null;
+                }
+
+                return (
+                  <div className="flex items-center justify-between w-full p-3 bg-surface-2 rounded-lg mt-4">
+                    <span className="text-text-secondary">Current: {currentFee}</span>
+                    <span className={`${statusColor}`}>
+                      {destinationChain === 'Bitcoin' ? 'Bitcoin fees are' : 'Gas is'} {status.toLowerCase()}
+                    </span>
+                  </div>
+                );
+              })()}
             </>
           )}
         </div>
@@ -704,12 +757,9 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
                                   (fromAsset === 'ckBTC' && toAsset === 'BTC');
 
         if (isNativeWithdrawal) {
-          // For native withdrawals: show Gas Optimization immediately, then Execute button
+          // For native withdrawals: show Execute button (gas info moved to What's Happening)
           return (
             <>
-              {/* Gas Optimization - moved up for native withdrawals */}
-              {renderGasOptimization()}
-
               {/* Direct Execute Button for Native Withdrawals */}
               {swapAnalysis && parseFloat(swapAmount || '0') > 0 && (
                 <div className="w-full max-w-lg mt-6">
@@ -763,11 +813,10 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
             </>
           );
         } else {
-          // For other swaps: show slippage settings and DEX selection
+          // For other swaps: show DEX selection (slippage settings moved to CompactDEX)
           return (
             <>
-              {/* Slippage Settings */}
-              {renderSlippageSettings()}
+              {/* DEX selection will include slippage tolerance */}
             </>
           );
         }
@@ -830,13 +879,7 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
         </div>
       )}
 
-      {/* Gas Optimization for non-native withdrawals */}
-      {(() => {
-        const isNativeWithdrawal = (fromAsset === 'ckETH' && toAsset === 'ETH') ||
-                                  (fromAsset === 'ckBTC' && toAsset === 'BTC');
-        // Only show Gas Optimization here for non-native withdrawals (native ones show it earlier)
-        return !isNativeWithdrawal ? renderGasOptimization() : null;
-      })()}
+      {/* Gas information moved to What's Happening component */}
 
       {/* STEP 3: Smart Solutions - Simple Mobile-First Design */}
       {showSmartSolutions && smartSolutions.length > 0 && (

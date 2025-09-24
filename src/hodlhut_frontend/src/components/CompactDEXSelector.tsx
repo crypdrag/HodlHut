@@ -58,6 +58,9 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
 }) => {
   const [expandedDEX, setExpandedDEX] = useState<string | null>(null);
 
+  // Local slippage tolerance state for UI interaction
+  const [localSlippageTolerance, setLocalSlippageTolerance] = useState<number>(slippageTolerance || 5.0);
+
   // State for agent-driven recommendations
   const [agentQuotes, setAgentQuotes] = useState<DEXQuote[]>([]);
   const [isLoadingQuotes, setIsLoadingQuotes] = useState(false);
@@ -166,10 +169,6 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
         const aQuote = a.agentQuote;
         const bQuote = b.agentQuote;
 
-        // Prioritize available quotes over unavailable ones
-        if (aQuote && !aQuote.quoteError && bQuote && bQuote.quoteError) return -1;
-        if (bQuote && !bQuote.quoteError && aQuote && aQuote.quoteError) return 1;
-
         // Sort by score (highest first)
         if (aQuote && bQuote) {
           return bQuote.score - aQuote.score;
@@ -226,34 +225,30 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
 
   return (
     <div className="w-full max-w-lg">
-      {/* Agent-Driven Smart Recommendation Header */}
-      {(recommendation.recommendedDEX && recommendation.reasoning) || isLoadingQuotes ? (
-        <div className="mb-4 p-3 bg-primary-600/10 border border-primary-500/20 rounded-lg">
-          <div className="flex items-center gap-2 mb-1">
-            {isLoadingQuotes ? (
-              <div className="w-4 h-4 border-2 border-primary-400 border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <Star size={16} className="text-primary-400" />
-            )}
-            <span className="text-sm font-semibold text-primary-400">
-              {isLoadingQuotes ? 'Analyzing DEX Options...' : 'Agent Recommendation'}
-            </span>
-            {recommendation.badge && !isLoadingQuotes && (
-              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                recommendation.badge === 'RECOMMENDED' ? 'bg-success-400/15 text-success-300' :
-                recommendation.badge === 'FASTEST' ? 'bg-warning-400/15 text-warning-300' :
-                recommendation.badge === 'CHEAPEST' ? 'bg-primary-600/15 text-primary-400' :
-                'bg-primary-600/15 text-primary-400'
-              }`}>
-                {recommendation.badge}
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-text-secondary">
-            {isLoadingQuotes ? 'Fetching quotes from all DEX agents...' : recommendation.reasoning}
-          </p>
+      {/* Slippage Tolerance Container */}
+      <div className="mb-4 p-3 bg-warning-400/10 border border-warning-400/20 rounded-lg">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-semibold text-warning-300">Slippage Tolerance</span>
         </div>
-      ) : null}
+        <div className="flex items-center justify-center gap-2">
+          {[0.5, 1, 3, 5].map((tolerance) => (
+            <button
+              key={tolerance}
+              onClick={() => {
+                setLocalSlippageTolerance(tolerance);
+                console.log('Selected slippage tolerance:', tolerance + '%');
+              }}
+              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                localSlippageTolerance === tolerance
+                  ? 'bg-warning-400 text-warning-900'
+                  : 'bg-surface-2 text-text-secondary hover:bg-surface-3 hover:text-text-primary'
+              }`}
+            >
+              {tolerance}%
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="space-y-2">
         {compactDEXes.map((dex) => {
@@ -270,15 +265,21 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
               }`}
               onClick={() => handleRowClick(dex.id)}
             >
+              {/* RECOMMENDED Badge - positioned above DEX info */}
+              {isRecommended && (
+                <div className="px-4 pt-3 pb-1">
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-success-400/15 text-success-300">
+                    RECOMMENDED
+                  </span>
+                </div>
+              )}
+
               {/* Main Row - Logo, Badge, Fee, Select Button */}
-              <div className="flex items-center p-4">
+              <div className={`flex items-center p-4 ${isRecommended ? 'pt-2' : ''}`}>
                 {/* DEX Logo + Name */}
                 <div className="flex items-center gap-3 flex-1">
                   <DEXIcon dex={dex.id} size={24} />
                   <span className="font-semibold text-text-primary">{dex.name}</span>
-                  {isRecommended && (
-                    <Star size={14} className="text-primary-400 fill-primary-400" />
-                  )}
                 </div>
 
                 {/* Mobile-friendly visual indicator - just a colored dot */}
@@ -289,34 +290,35 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
                 {/* Clean Fee Display */}
                 <div className="text-text-secondary font-medium mx-4">
                   {dex.primaryFee}
-                  {dex.agentQuote?.quoteError && dex.agentQuote.slippage && dex.agentQuote.slippage >= 5 ? (
-                    <div className="text-xs text-warning-400 mt-1 font-semibold">
-                      ⚠️ HIGH-SLIPPAGE
-                      <div className="text-[10px] text-error-400">
-                        {dex.agentQuote.slippage.toFixed(1)}% slippage
-                      </div>
-                      <div className="text-[9px] text-text-tertiary">
-                        Exceeds {((dex.agentQuote.quoteError.match(/tolerance (\d+(?:\.\d+)?)%/) || [])[1] || '5')}% tolerance
-                      </div>
-                    </div>
-                  ) : dex.agentQuote?.quoteError ? (
-                    <div className="text-xs text-error-400 mt-1">
-                      Unavailable
-                    </div>
-                  ) : dex.agentQuote && dex.agentQuote.slippage >= 50 ? (
-                    <div className="text-xs text-warning-400 mt-1 font-semibold">
-                      ⚠️ HIGH-SLIPPAGE
-                      <div className="text-[10px] text-error-400">
-                        {dex.agentQuote.slippage.toFixed(1)}% slippage
-                      </div>
-                    </div>
-                  ) : null}
                 </div>
 
                 {/* Select Button */}
                 <button
                 onClick={(e) => {
                   e.stopPropagation();
+
+                  // CRITICAL: High slippage validation before DEX selection
+                  if (dex.agentQuote && localSlippageTolerance) {
+                    const isHighSlippage = dex.agentQuote.slippage > localSlippageTolerance;
+                    const isExtremeSlippage = dex.agentQuote.slippage > 10.0;
+
+                    if (isExtremeSlippage) {
+                      // Block extreme slippage trades
+                      console.warn('🚨 BLOCKED: Extreme slippage', dex.agentQuote.slippage.toFixed(2), '% on', dex.id);
+                      alert(`⚠️ TRADE BLOCKED\n\nSlippage of ${dex.agentQuote.slippage.toFixed(1)}% is extremely high and could result in significant losses.\n\nConsider:\n• Reducing trade size\n• Using ICP hub routing\n• Waiting for better liquidity`);
+                      return;
+                    }
+
+                    if (isHighSlippage) {
+                      // Warn on high slippage but allow trade
+                      const proceed = window.confirm(`⚠️ HIGH SLIPPAGE WARNING\n\nThis trade has ${dex.agentQuote.slippage.toFixed(1)}% slippage, exceeding your ${localSlippageTolerance}% tolerance.\n\nProceed anyway?`);
+                      if (!proceed) {
+                        console.log('🛑 User declined high slippage trade on', dex.id);
+                        return;
+                      }
+                    }
+                  }
+
                   dex.onSelect();
 
                   // For DEX-only transactions (ICP ecosystem), trigger swap analysis and Transaction Preview
@@ -397,12 +399,6 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
                           </span>
                           <span>Speed: {dex.agentQuote.estimatedSpeed}</span>
                         </div>
-                        {/* Quick hint for expansion */}
-                        {(explanation.warningMessage || explanation.celebrationMessage || explanation.educationalNote) && (
-                          <div className="mt-2 text-xs text-primary-400">
-                            💡 Click to expand for detailed analysis
-                          </div>
-                        )}
                       </>
                     );
                   })()}
