@@ -43,7 +43,7 @@ const ResultIndicator: React.FC<ResultIndicatorProps> = ({
         badge: 'bg-warning-500 text-warning-900',
         icon: <Settings size={16} className="text-warning-400" />,
         label: 'SIMULATED',
-        description: 'Demo transaction - not executed on blockchain'
+        description: 'Transaction simulation completed'
       };
     }
   };
@@ -114,18 +114,6 @@ const ResultIndicator: React.FC<ResultIndicatorProps> = ({
         {styles.description}
       </div>
 
-      {/* Development Warning */}
-      {!actuallyReal && (
-        <div className="mt-3 p-3 bg-warning-600/10 border border-warning-500/20 rounded-lg">
-          <div className="flex items-start gap-2">
-            <AlertTriangle size={14} className="text-warning-400 mt-0.5 flex-shrink-0" />
-            <div className="text-xs text-warning-300">
-              <strong>Development Notice:</strong> This is a simulated transaction for testing purposes.
-              No real assets have been transferred or fees charged.
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -750,20 +750,20 @@ All styling must use global classes defined in @theme section - no utility class
 }
 
 .grid-transaction-details {
-  @apply grid grid-cols-1 gap-3;
-  @apply sm:grid-cols-2 sm:gap-4;
+  @apply grid grid-cols-1 gap-2;
+  @apply sm:grid-cols-2 sm:gap-3;
   @apply md:grid-cols-3 md:gap-4;
 }
 
-/* Compact transaction detail cards */
+/* Mobile-optimized transaction detail cards */
 .transaction-detail-card {
-  @apply bg-surface-2 rounded-lg p-3;
-  @apply sm:p-4;
+  @apply bg-surface-2 rounded-lg p-2;
+  @apply sm:p-3;
 }
 
 .transaction-detail-label {
   @apply text-xs font-medium text-text-secondary uppercase tracking-wide;
-  @apply mb-1;
+  @apply mb-0.5;
 }
 
 .transaction-detail-value {

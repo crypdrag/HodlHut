@@ -202,17 +202,17 @@ const ExecutionProgressModal: React.FC<ExecutionProgressModalProps> = ({
 
         {/* Content */}
         <div className={allCompleted ? "p-4" : "p-6"}>
-          {/* Transaction Overview */}
-          <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${allCompleted ? "mb-4" : "mb-6"}`}>
-            <div className="bg-surface-2 rounded-xl p-4">
-              <div className="text-xs font-medium text-text-muted mb-2">From</div>
-              <div className="text-sm sm:text-base font-semibold text-text-primary">
+          {/* Transaction Overview - Mobile Optimized */}
+          <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 ${allCompleted ? "mb-3" : "mb-4"}`}>
+            <div className="bg-surface-2 rounded-lg p-2 sm:p-3">
+              <div className="text-xs font-medium text-text-muted mb-1">From</div>
+              <div className="text-sm font-semibold text-text-primary">
                 {formatAmount(transactionData.amount)} {transactionData.fromAsset}
               </div>
             </div>
-            <div className="bg-surface-2 rounded-xl p-4">
-              <div className="text-xs font-medium text-text-muted mb-2">To</div>
-              <div className="text-sm sm:text-base font-semibold text-text-primary">
+            <div className="bg-surface-2 rounded-lg p-2 sm:p-3">
+              <div className="text-xs font-medium text-text-muted mb-1">To</div>
+              <div className="text-sm font-semibold text-text-primary">
                 {formatAmount(transactionData.outputAmount)} {transactionData.toAsset}
               </div>
             </div>
@@ -278,7 +278,6 @@ const ExecutionProgressModal: React.FC<ExecutionProgressModalProps> = ({
                 transactionId={`tx_${Date.now()}_swap_${transactionData.fromAsset}_${transactionData.toAsset}`}
                 receivedAmount={transactionData.outputAmount?.toString() || '0'}
                 assetSymbol={transactionData.toAsset}
-                details={`Swap executed via ${transactionData.route?.steps?.[0] || 'DEX'} routing. Transaction completed successfully.`}
               />
             </div>
           )}
