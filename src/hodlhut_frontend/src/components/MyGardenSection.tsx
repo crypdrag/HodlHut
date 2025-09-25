@@ -150,36 +150,6 @@ const MyGardenSection: React.FC<MyGardenSectionProps> = ({
 
   return (
     <div className="space-y-0">
-      {/* Diversity Multiplier Indicator - Sticky */}
-      <div className="diversity-multiplier-bar">
-        <div className="diversity-multiplier-content">
-          <div className="diversity-multiplier-left">
-            <div className="diversity-multiplier-icon">
-              🌱
-            </div>
-            <div className="diversity-multiplier-text">
-              <div className="diversity-multiplier-current">
-                {calculateDiversityMultiplier()}x Active
-              </div>
-              <div className="diversity-multiplier-label">
-                Diversity Multiplier
-              </div>
-            </div>
-          </div>
-          <div className="diversity-multiplier-right">
-            <div className="diversity-multiplier-next">
-              Next: {getNextMultiplier()}x
-            </div>
-            <div className="diversity-progress">
-              <div
-                className="diversity-progress-fill"
-                style={{ width: `${getDiversityProgress()}%` }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Garden Content Container */}
       <div className="rounded-2xl border border-white/10 bg-surface-1 p-4 md:p-6">
         {/* Garden Header */}
@@ -234,19 +204,49 @@ const MyGardenSection: React.FC<MyGardenSectionProps> = ({
           )}
         </div>
 
+        {/* Diversity Multiplier Indicator - Moved above Yield Stats */}
+        <div className="mt-6 diversity-multiplier-bar">
+          <div className="diversity-multiplier-content">
+            <div className="diversity-multiplier-left">
+              <div className="diversity-multiplier-icon">
+                🌱
+              </div>
+              <div className="diversity-multiplier-text">
+                <div className="diversity-multiplier-current">
+                  {calculateDiversityMultiplier()}x Active
+                </div>
+                <div className="diversity-multiplier-label">
+                  Diversity Multiplier
+                </div>
+              </div>
+            </div>
+            <div className="diversity-multiplier-right">
+              <div className="diversity-multiplier-next">
+                Next: {getNextMultiplier()}x
+              </div>
+              <div className="diversity-progress">
+                <div
+                  className="diversity-progress-fill"
+                  style={{ width: `${getDiversityProgress()}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Yield Stats - Simplified */}
         <div className="mt-6 rounded-2xl border border-white/10 bg-surface-1 p-4 sm:p-6">
           <h3 className="text-base sm:text-lg font-semibold text-text-primary mb-4">Yield Stats</h3>
 
           <div className="space-y-3">
             <div className="flex items-center justify-between py-2">
-              <span className="text-sm sm:text-base text-text-secondary">Total Garden Yield</span>
+              <span className="text-sm sm:text-base text-text-secondary">Weekly Garden Yield</span>
               <div className="text-right">
                 <div className="text-sm sm:text-base font-semibold text-text-primary">
-                  ${calculateTotalYield().toFixed(0)}
+                  ${calculateTotalYield().toFixed(2)}
                 </div>
                 <div className="text-xs text-success-400">
-                  +${(calculateTotalYield() * 0.1).toFixed(0)} this week
+                  ${(calculateTotalYield() * 52).toFixed(0)} annually
                 </div>
               </div>
             </div>

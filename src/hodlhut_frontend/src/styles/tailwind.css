@@ -1701,12 +1701,12 @@ section.relative button.bg-primary-600:hover {
    My Garden Components - Phase 1
    ---------------------------- */
 
-/* Diversity Multiplier Indicator - Sticky component */
+/* Diversity Multiplier Indicator - Non-sticky component */
 .diversity-multiplier-bar {
-  @apply sticky top-0 z-40 bg-surface-1/95 backdrop-blur border-b border-success-400/20;
-  @apply p-4 mb-6 rounded-b-2xl;
+  @apply bg-surface-2 border border-success-400/20;
+  @apply p-4 rounded-2xl;
   /* Gradient background for visual appeal */
-  background: linear-gradient(135deg, 
+  background: linear-gradient(135deg,
     var(--color-success-600) / 0.05,
     var(--color-success-400) / 0.1,
     var(--color-primary-600) / 0.05

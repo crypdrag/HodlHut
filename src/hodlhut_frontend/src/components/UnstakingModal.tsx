@@ -22,15 +22,16 @@ const UnstakingModal: React.FC<UnstakingModalProps> = ({
 }) => {
   const [unstakingAmount, setUnstakingAmount] = useState('');
 
-  // Auto-populate with staked amount when modal opens
+  // Clear field when modal opens/closes - do not auto-populate
   useEffect(() => {
-    if (isOpen && selectedAsset && stakedAmounts[selectedAsset]) {
-      setUnstakingAmount(stakedAmounts[selectedAsset].toString());
-    } else if (!isOpen) {
+    if (!isOpen) {
       // Clear field when modal closes
       setUnstakingAmount('');
+    } else {
+      // Clear field when modal opens to prevent accidental full unstaking
+      setUnstakingAmount('');
     }
-  }, [isOpen, selectedAsset, stakedAmounts]);
+  }, [isOpen, selectedAsset]);
 
   // Format amount utility (keeping existing logic)
   const formatAmount = (amount: number | string): string => {
@@ -111,12 +112,6 @@ const UnstakingModal: React.FC<UnstakingModalProps> = ({
     }
   };
 
-  const setAllAmount = () => {
-    if (selectedAsset) {
-      setUnstakingAmount((stakedAmounts[selectedAsset] || 0).toString());
-    }
-  };
-
   if (!isOpen || !selectedAsset) {
     return null;
   }
@@ -168,12 +163,6 @@ const UnstakingModal: React.FC<UnstakingModalProps> = ({
               value={unstakingAmount}
               onChange={(e) => setUnstakingAmount(e.target.value)}
             />
-            <button
-              className="absolute right-3 top-1/2 -translate-y-1/2 px-3 py-1 text-xs font-medium bg-primary-600 hover:bg-primary-500 text-on-primary rounded-lg transition-colors"
-              onClick={setAllAmount}
-            >
-              ALL
-            </button>
           </div>
         </div>
 
