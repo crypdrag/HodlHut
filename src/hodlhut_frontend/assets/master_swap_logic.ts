@@ -630,9 +630,11 @@ export function generateSmartSolutions(
   const gasNeeded = gasAsset === 'ckBTC' ? 0.0005 : 0.003; // Bitcoin: 0.0005, Ethereum: 0.003
   const gasBalance = portfolio[gasAsset] || 0;
 
-  // PRIORITY 1: Does user have the required gas asset? Use this.
+  const solutions: SmartSolution[] = [];
+
+  // OPTION 1: Does user have the required gas asset? Use this.
   if (gasBalance >= gasNeeded) {
-    return [{
+    solutions.push({
       id: `use_${gasAsset}_balance`,
       type: 'use_balance',
       title: `Use ${gasAsset} Balance`,
@@ -647,7 +649,7 @@ export function generateSmartSolutions(
         asset: gasAsset,
         description: `${network} gas fee`
       }
-    }];
+    });
   }
 
   // PRIORITY 2: Does user have other ckAssets? Choose best swap for best rate.
@@ -655,64 +657,70 @@ export function generateSmartSolutions(
     asset !== gasAsset && asset !== swapAnalysis.fromAsset && (portfolio[asset] || 0) > 0
   );
 
+  // OPTION 2: Rank available assets by USD value for cycling
   if (availableAssets.length > 0) {
-    // Find best asset (highest balance value for simplicity)
-    const bestAsset = availableAssets.reduce((best, asset) => {
-      const currentValue = (portfolio[asset] || 0) * ASSET_PRICES[asset];
-      const bestValue = (portfolio[best] || 0) * ASSET_PRICES[best];
-      return currentValue > bestValue ? asset : best;
+    const rankedAssets = availableAssets
+      .map(asset => ({
+        asset,
+        usdValue: (portfolio[asset] || 0) * ASSET_PRICES[asset]
+      }))
+      .sort((a, b) => b.usdValue - a.usdValue);
+
+    // Add swap options for each ranked asset
+    rankedAssets.forEach((rankedAsset, index) => {
+      const { asset: sourceAsset } = rankedAsset;
+
+      // Calculate swap details
+      const sourceAssetPrice = ASSET_PRICES[sourceAsset] || 0;
+      const gasAssetPrice = ASSET_PRICES[gasAsset] || 0;
+      const exchangeRate = sourceAssetPrice / gasAssetPrice;
+
+      const dexFeePercentage = selectedDEX === 'ICDEX' ? 0.1 : 0.3;
+      const sourceAmountNeeded = gasNeeded / exchangeRate;
+      const dexFee = sourceAmountNeeded * (dexFeePercentage / 100);
+      const totalSourceNeeded = sourceAmountNeeded + dexFee;
+      const totalCostUSD = totalSourceNeeded * sourceAssetPrice;
+
+      const remainingOptions = rankedAssets.length - index - 1;
+      const isLastOption = remainingOptions === 0;
+
+      solutions.push({
+        id: `swap_${sourceAsset}_for_${gasAsset}_${index}`,
+        type: 'auto_swap',
+        title: `Auto-Swap ${sourceAsset} → ${gasAsset}`,
+        description: `Swap ${totalSourceNeeded.toFixed(6)} ${sourceAsset} for ${gasNeeded.toFixed(gasAsset === 'ckBTC' ? 4 : 3)} ${gasAsset} for gas fees? (Includes DEX fees)${!isLastOption ? `\n${remainingOptions} more asset option${remainingOptions !== 1 ? 's' : ''} available` : '\nLast asset option'}`,
+        badge: index === 0 ? 'RECOMMENDED' : 'ALTERNATIVE',
+        userReceives: {
+          amount: swapAnalysis.outputAmount,
+          asset: swapAnalysis.toAsset
+        },
+        cost: {
+          amount: totalSourceNeeded.toFixed(6),
+          asset: sourceAsset,
+          description: `Includes ${dexFeePercentage}% DEX fee`
+        },
+        // Detailed swap breakdown for Transaction Preview
+        swapDetails: {
+          sourceAsset: sourceAsset,
+          sourceAmount: totalSourceNeeded,
+          targetAsset: gasAsset,
+          targetAmount: gasNeeded,
+          exchangeRate: exchangeRate,
+          dexFee: dexFee,
+          dexFeePercentage: dexFeePercentage,
+          recommendedDEX: selectedDEX,
+          totalCostUSD: totalCostUSD
+        }
+      });
     });
-
-    // Calculate actual swap details for DEX fees and costs
-    const sourceAssetPrice = ASSET_PRICES[bestAsset] || 0;
-    const gasAssetPrice = ASSET_PRICES[gasAsset] || 0;
-    const exchangeRate = sourceAssetPrice / gasAssetPrice; // How much sourceAsset = 1 gasAsset
-
-    // Amount of source asset needed (including DEX fees)
-    const dexFeePercentage = selectedDEX === 'ICDEX' ? 0.1 : 0.3; // ICDEX: 0.1%, others: 0.3%
-    const sourceAmountNeeded = gasNeeded / exchangeRate; // Raw amount needed
-    const dexFee = sourceAmountNeeded * (dexFeePercentage / 100);
-    const totalSourceNeeded = sourceAmountNeeded + dexFee;
-
-    // Total cost in USD
-    const totalCostUSD = totalSourceNeeded * sourceAssetPrice;
-
-    return [{
-      id: `swap_${bestAsset}_for_${gasAsset}`,
-      type: 'auto_swap',
-      title: `Auto-Swap ${bestAsset} → ${gasAsset}`,
-      description: `HodlHut will swap ${totalSourceNeeded.toFixed(6)} ${bestAsset} for ${gasNeeded.toFixed(gasAsset === 'ckBTC' ? 4 : 3)} ${gasAsset} to cover ${network} gas fees. This includes ${dexFeePercentage}% DEX trading fee.`,
-      badge: 'RECOMMENDED',
-      userReceives: {
-        amount: swapAnalysis.outputAmount,
-        asset: swapAnalysis.toAsset
-      },
-      cost: {
-        amount: totalSourceNeeded.toFixed(6),
-        asset: bestAsset,
-        description: `Includes ${dexFeePercentage}% DEX fee`
-      },
-      // Detailed swap breakdown for Transaction Preview
-      swapDetails: {
-        sourceAsset: bestAsset,
-        sourceAmount: totalSourceNeeded,
-        targetAsset: gasAsset,
-        targetAmount: gasNeeded,
-        exchangeRate: exchangeRate,
-        dexFee: dexFee,
-        dexFeePercentage: dexFeePercentage,
-        recommendedDEX: selectedDEX,
-        totalCostUSD: totalCostUSD
-      }
-    }];
   }
 
-  // PRIORITY 3: No gas asset? No other assets? Prompt to add required gas asset.
-  return [{
-    id: `deposit_${gasAsset}`,
+  // OPTION 3: Deposit ckETH to Your Portfolio (ICP wallet)
+  solutions.push({
+    id: `deposit_${gasAsset}_icp`,
     type: 'manual_topup',
-    title: `Deposit ${gasAsset}`,
-    description: `You need ${gasNeeded.toFixed(gasAsset === 'ckBTC' ? 4 : 3)} ${gasAsset} for ${network} gas fees. Transfer ${gasAsset} from your ICP wallet or deposit ${gasAsset.replace('ck', '')} from ${network} network.`,
+    title: `Deposit ${gasAsset} to Your Portfolio`,
+    description: `Deposit ${gasAsset} to your HodlHut portfolio to have sufficient balance for gas fees.`,
     badge: 'REQUIRED STEP',
     userReceives: {
       amount: swapAnalysis.outputAmount,
@@ -723,7 +731,29 @@ export function generateSmartSolutions(
       asset: gasAsset,
       description: `${network} gas fee`
     }
-  }];
+  });
+
+  // OPTION 4: Deposit ETH to Your Portfolio (Ethereum wallet) - Final option
+  if (gasAsset === 'ckETH') {
+    solutions.push({
+      id: `deposit_${gasAsset.replace('ck', '')}_eth`,
+      type: 'manual_topup',
+      title: `Deposit ${gasAsset.replace('ck', '')} to Your Portfolio`,
+      description: `Deposit ${gasAsset.replace('ck', '')} to your Hut sufficient balance for gas fees.`,
+      badge: 'ALTERNATIVE',
+      userReceives: {
+        amount: swapAnalysis.outputAmount,
+        asset: swapAnalysis.toAsset
+      },
+      cost: {
+        amount: gasNeeded.toString(),
+        asset: gasAsset.replace('ck', ''),
+        description: `${network} gas fee`
+      }
+    });
+  }
+
+  return solutions;
 }
 
 /**
