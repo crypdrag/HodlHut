@@ -330,19 +330,19 @@ const SmartSolutionModal: React.FC<SmartSolutionModalProps> = ({
               )}
             </div>
           ) : (
-            // Original action buttons for other solution types
+            // Mobile-optimized action buttons
             <div className="flex gap-3">
               <button
-                className="flex-1 btn-secondary btn-text"
+                className="flex-1 bg-error-600 hover:bg-error-700 text-white rounded-xl py-3 px-4 font-semibold text-sm transition-colors"
                 onClick={onCancel}
               >
-                See Other Options
+                No
               </button>
               <button
-                className="flex-1 btn-primary btn-text"
+                className="flex-1 bg-success-600 hover:bg-success-700 text-white rounded-xl py-3 px-4 font-semibold text-sm transition-colors"
                 onClick={onConfirm}
               >
-                {pendingApproval.type === 'auto_swap' ? 'Yes, Execute Automatically' : 'Yes, Proceed'}
+                Yes
               </button>
             </div>
           )}

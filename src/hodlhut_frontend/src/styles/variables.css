@@ -360,8 +360,8 @@ h6 {
   /* Color inherited from parent container */
 }
 
-/* Body Text */
-p,
+/* Body Text - Mobile-first with Tailwind utility respect */
+p:not([class*="text-"]),
 body {
   font-family: var(--font-sans);
   font-size: var(--text-base);

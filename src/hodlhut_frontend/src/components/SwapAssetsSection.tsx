@@ -883,7 +883,7 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
                 </div>
 
                 <h3 className="text-lg font-semibold text-text-primary mb-3">{solution.title}</h3>
-                <p className="text-sm text-text-secondary mb-4">{solution.description}</p>
+                <p className="text-xs sm:text-sm text-text-secondary mb-4 leading-snug sm:leading-relaxed">{solution.description}</p>
 
                 <div className="bg-surface-3 rounded-lg p-3 mb-4 space-y-2">
                   <div className="flex justify-between items-center">
@@ -900,12 +900,20 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
                   </div>
                 </div>
 
-                <button
-                  className="w-full py-3 px-4 rounded-xl font-semibold transition-colors bg-primary-600 hover:bg-primary-500 text-white"
-                  onClick={() => handleApproveSolution(index)}
-                >
-                  ✅ Yes, Execute This
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    className="flex-1 bg-error-600 hover:bg-error-700 text-white rounded-xl py-3 px-4 font-semibold text-sm transition-colors"
+                    onClick={() => handleRejectSolution(index)}
+                  >
+                    No
+                  </button>
+                  <button
+                    className="flex-1 bg-success-600 hover:bg-success-700 text-white rounded-xl py-3 px-4 font-semibold text-sm transition-colors"
+                    onClick={() => handleApproveSolution(index)}
+                  >
+                    Yes
+                  </button>
+                </div>
               </div>
             ))}
               </div>
