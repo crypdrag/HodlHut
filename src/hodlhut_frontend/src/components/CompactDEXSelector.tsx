@@ -223,6 +223,32 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
     return icpAssets.includes(from) && icpAssets.includes(to);
   };
 
+  // Slippage compatibility checking functions
+  const isDEXCompatibleWithSlippage = (dexId: string): boolean => {
+    if (!localSlippageTolerance) return true; // If no slippage set, allow all DEXs
+
+    const agentQuote = agentQuotes.find(quote => quote.dexName === dexId);
+    if (!agentQuote) return true; // If no quote data, don't disable (fallback)
+
+    return agentQuote.slippage <= localSlippageTolerance;
+  };
+
+  const getRequiredSlippageForDEX = (dexId: string): number | null => {
+    const agentQuote = agentQuotes.find(quote => quote.dexName === dexId);
+    return agentQuote ? agentQuote.slippage : null;
+  };
+
+  const getSlippageStatusMessage = (dexId: string): string | null => {
+    const requiredSlippage = getRequiredSlippageForDEX(dexId);
+    if (!requiredSlippage || !localSlippageTolerance) return null;
+
+    if (requiredSlippage > localSlippageTolerance) {
+      return `Requires ${requiredSlippage.toFixed(1)}% slippage (current: ${localSlippageTolerance}%)`;
+    }
+
+    return null;
+  };
+
   return (
     <div className="w-full max-w-full sm:max-w-lg">
       {/* Slippage Tolerance Container */}
@@ -253,17 +279,28 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
       <div className="space-y-2">
         {compactDEXes.map((dex) => {
           const isRecommended = dex.id === recommendation.recommendedDEX;
+          const isCompatible = isDEXCompatibleWithSlippage(dex.id);
+          const slippageMessage = getSlippageStatusMessage(dex.id);
 
           return (
-          <div key={dex.id} className="border border-white/10 rounded-xl bg-surface-2 overflow-hidden">
+          <div key={dex.id} className={`border rounded-xl overflow-hidden transition-all duration-200 ${
+            isCompatible
+              ? 'border-white/10 bg-surface-2'
+              : 'border-error-400/40 bg-surface-2 opacity-60'
+          }`}>
             {/* Tier 1: Compact Row (~60px height) */}
             <div
-              className={`cursor-pointer hover:bg-surface-3 transition-all duration-200 ${
-                dex.isSelected ? 'bg-primary-600/10 border-primary-500' : ''
-              } ${
-                isRecommended ? 'ring-2 ring-primary-400/30 bg-primary-600/5' : ''
+              className={`cursor-pointer transition-all duration-200 ${
+                isCompatible
+                  ? `hover:bg-surface-3 ${
+                      dex.isSelected ? 'bg-primary-600/10 border-primary-500' : ''
+                    } ${
+                      isRecommended ? 'ring-2 ring-primary-400/30 bg-primary-600/5' : ''
+                    }`
+                  : 'bg-error-600/5 hover:bg-error-600/10'
               }`}
               onClick={() => handleRowClick(dex.id)}
+              title={!isCompatible && slippageMessage ? `${slippageMessage} - Click to expand for details` : undefined}
             >
               {/* RECOMMENDED Badge - positioned above DEX info */}
               {isRecommended && (
@@ -278,8 +315,22 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
               <div className={`flex items-center p-2 sm:p-4 ${isRecommended ? 'pt-1 sm:pt-2' : ''}`}>
                 {/* DEX Logo + Name */}
                 <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                  <DEXIcon dex={dex.id} size={20} />
-                  <span className="text-sm sm:text-base font-semibold text-text-primary truncate">{dex.name}</span>
+                  <div className="relative">
+                    <DEXIcon dex={dex.id} size={20} />
+                    {!isCompatible && (
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-error-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">!</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className={`text-sm sm:text-base font-semibold truncate ${
+                      isCompatible ? 'text-text-primary' : 'text-text-secondary'
+                    }`}>{dex.name}</span>
+                    {!isCompatible && slippageMessage && (
+                      <div className="text-xs text-error-400 truncate">{slippageMessage}</div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Mobile-friendly visual indicator - just a colored dot */}
@@ -292,60 +343,61 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
                   {dex.primaryFee}
                 </div>
 
-                {/* Select Button */}
-                <button
-                onClick={(e) => {
-                  e.stopPropagation();
+                {/* Select Button - Only show for compatible DEXs */}
+                {isCompatible && (
+                  <button
+                  onClick={(e) => {
+                    e.stopPropagation();
 
-                  // CRITICAL: High slippage validation before DEX selection
-                  if (dex.agentQuote && localSlippageTolerance) {
-                    const isHighSlippage = dex.agentQuote.slippage > localSlippageTolerance;
-                    const isExtremeSlippage = dex.agentQuote.slippage > 10.0;
+                    // Original slippage validation logic for extreme cases
+                    if (dex.agentQuote && localSlippageTolerance) {
+                      const isExtremeSlippage = dex.agentQuote.slippage > 10.0;
 
-                    if (isExtremeSlippage) {
-                      // Block extreme slippage trades
-                      console.warn('🚨 BLOCKED: Extreme slippage', dex.agentQuote.slippage.toFixed(2), '% on', dex.id);
-                      alert(`⚠️ TRADE BLOCKED\n\nSlippage of ${dex.agentQuote.slippage.toFixed(1)}% is extremely high and could result in significant losses.\n\nConsider:\n• Reducing trade size\n• Using ICP hub routing\n• Waiting for better liquidity`);
-                      return;
-                    }
-
-                    if (isHighSlippage) {
-                      // Warn on high slippage but allow trade
-                      const proceed = window.confirm(`⚠️ HIGH SLIPPAGE WARNING\n\nThis trade has ${dex.agentQuote.slippage.toFixed(1)}% slippage, exceeding your ${localSlippageTolerance}% tolerance.\n\nProceed anyway?`);
-                      if (!proceed) {
-                        console.log('🛑 User declined high slippage trade on', dex.id);
+                      if (isExtremeSlippage) {
+                        // Block extreme slippage trades
+                        console.warn('🚨 BLOCKED: Extreme slippage', dex.agentQuote.slippage.toFixed(2), '% on', dex.id);
+                        alert(`⚠️ TRADE BLOCKED\n\nSlippage of ${dex.agentQuote.slippage.toFixed(1)}% is extremely high and could result in significant losses.\n\nConsider:\n• Reducing trade size\n• Using ICP hub routing\n• Waiting for better liquidity`);
                         return;
                       }
                     }
-                  }
 
-                  dex.onSelect();
+                    dex.onSelect();
 
-                  // For DEX-only transactions (ICP ecosystem), trigger swap analysis and Transaction Preview
-                  const isICPEcosystemSwap = isICPEcosystemTransaction(fromAsset, toAsset);
-                  if (isICPEcosystemSwap && fromAsset && toAsset && swapAmount) {
-                    console.log('🎯 DEX Selected for ICP ecosystem swap:', dex.id, fromAsset, '→', toAsset);
+                    // For DEX-only transactions (ICP ecosystem), trigger swap analysis and Transaction Preview
+                    const isICPEcosystemSwap = isICPEcosystemTransaction(fromAsset, toAsset);
+                    if (isICPEcosystemSwap && fromAsset && toAsset && swapAmount) {
+                      console.log('🎯 DEX Selected for ICP ecosystem swap:', dex.id, fromAsset, '→', toAsset);
 
-                    // Trigger swap analysis generation with selected DEX, then Transaction Preview
-                    if (onDEXSelectedForICPSwap) {
-                      onDEXSelectedForICPSwap(dex.id);
-                    } else if (onShowTransactionPreview) {
-                      // Fallback to direct Transaction Preview if swap analysis already exists
-                      onShowTransactionPreview();
+                      // Trigger swap analysis generation with selected DEX, then Transaction Preview
+                      if (onDEXSelectedForICPSwap) {
+                        onDEXSelectedForICPSwap(dex.id);
+                      } else if (onShowTransactionPreview) {
+                        // Fallback to direct Transaction Preview if swap analysis already exists
+                        onShowTransactionPreview();
+                      }
                     }
-                  }
-                }}
-                className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors min-h-[44px] min-w-[60px] sm:min-w-[80px] ${
-                  dex.isSelected
-                    ? 'bg-success-600 text-white'
-                    : 'bg-primary-600 hover:bg-primary-500 text-white'
-                }`}
-              >
-                {dex.isSelected ? '✓ Selected' : 'Select'}
-              </button>
+                  }}
+                  className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors min-h-[44px] min-w-[60px] sm:min-w-[80px] ${
+                    dex.isSelected
+                      ? 'bg-success-600 text-white'
+                      : 'bg-primary-600 hover:bg-primary-500 text-white'
+                  }`}
+                >
+                  {dex.isSelected ? '✓ Selected' : 'Select'}
+                </button>
+                )}
 
-              {/* Expand Arrow */}
-              <div className="ml-1 sm:ml-2 text-text-muted">
+                {/* Empty space for incompatible DEXs to maintain layout */}
+                {!isCompatible && (
+                  <div className="px-2 sm:px-4 py-2 min-h-[44px] min-w-[60px] sm:min-w-[80px]">
+                    {/* Empty space that maintains layout - no interaction needed */}
+                  </div>
+                )}
+
+              {/* Expand Arrow - More prominent for incompatible DEXs */}
+              <div className={`ml-1 sm:ml-2 transition-colors ${
+                !isCompatible ? 'text-error-400' : 'text-text-muted'
+              }`}>
                 {expandedDEX === dex.id ? (
                   <ChevronUp size={14} className="sm:w-4 sm:h-4" />
                 ) : (
