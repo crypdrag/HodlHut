@@ -169,20 +169,20 @@ const TransactionPreviewModal: React.FC<TransactionPreviewModalProps> = ({
                   {getDestinationInfo()?.wallets.map((wallet) => (
                     <button
                       key={wallet.id}
-                      className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                      className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all duration-200 transform ${
                         connectedWallet === wallet.id
-                          ? 'border-success-500 bg-success-600/10'
-                          : 'border-white/10 bg-surface-2 hover:bg-surface-3'
+                          ? 'border-success-500 bg-success-600/10 scale-[1.02] shadow-lg'
+                          : 'border-warning-400 bg-surface-2 hover:bg-surface-3 hover:border-warning-300 hover:scale-[1.01] hover:shadow-md'
                       }`}
                       onClick={() => handleWalletConnect(wallet.id)}
                     >
-                      <span className="text-lg">{wallet.icon}</span>
+                      <span className="text-lg transition-transform duration-200 hover:scale-110">{wallet.icon}</span>
                       <span className="text-sm font-medium text-text-primary">{wallet.name}</span>
-                      <div className="ml-auto">
+                      <div className="ml-auto transition-colors duration-200">
                         {connectedWallet === wallet.id ? (
                           <CheckCircle size={16} className="text-success-400" />
                         ) : (
-                          <ExternalLink size={14} className="text-text-muted" />
+                          <ExternalLink size={14} className="text-text-muted group-hover:text-warning-400" />
                         )}
                       </div>
                     </button>
@@ -268,81 +268,84 @@ const TransactionPreviewModal: React.FC<TransactionPreviewModalProps> = ({
             </div>
           </div>
 
-          {/* Exchange Rate */}
+          {/* Compact Route & Rate Information */}
           <div className="bg-surface-2 rounded-lg p-2 sm:p-3 mb-3">
-            <div className="text-xs font-medium text-text-muted mb-1">Exchange Rate</div>
-            <div className="text-xs sm:text-sm font-semibold text-text-primary">
-              1 {transactionData.fromAsset} = {formatAmount(transactionData.rate)} {transactionData.toAsset}
+            {/* Rate and Route in single row on mobile, stacked on small screens */}
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-4 mb-2">
+              <div className="flex-1">
+                <div className="text-xs font-medium text-text-muted">Rate</div>
+                <div className="text-xs font-semibold text-text-primary">
+                  1 {transactionData.fromAsset} = {formatAmount(transactionData.rate)} {transactionData.toAsset}
+                </div>
+              </div>
+              <div className="flex-1">
+                <div className="text-xs font-medium text-text-muted">Route</div>
+                <div className="flex items-center gap-1 flex-wrap">
+                  {transactionData.route.steps.map((step, index) => (
+                    <React.Fragment key={index}>
+                      <span className="text-xs font-medium text-text-primary bg-surface-3 px-1.5 py-0.5 rounded">
+                        {step}
+                      </span>
+                      {index < transactionData.route.steps.length - 1 && (
+                        <ArrowRight size={12} className="text-text-muted" />
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-
-          {/* Route Information */}
-          <div className="bg-surface-2 rounded-lg p-2 sm:p-3 mb-3">
-            <div className="text-xs font-medium text-text-muted mb-2">Swap Route</div>
-            <div className="flex items-center gap-2 flex-wrap">
-              {transactionData.route.steps.map((step, index) => (
-                <React.Fragment key={index}>
-                  <span className="text-sm font-medium text-text-primary bg-surface-3 px-2 py-1 rounded-lg">
-                    {step}
-                  </span>
-                  {index < transactionData.route.steps.length - 1 && (
-                    <ArrowRight size={14} className="text-text-muted" />
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
-            <div className="text-xs text-text-secondary mt-1">
-              Complexity: {transactionData.route.complexity} • {transactionData.route.estimatedTime}
+            <div className="text-xs text-text-secondary">
+              {transactionData.route.complexity} • {transactionData.route.estimatedTime}
             </div>
           </div>
 
           {/* Smart Solution Gas Swap Details */}
           {approvedSmartSolution?.swapDetails && (
             <div className="bg-warning-600/10 border border-warning-500/20 rounded-lg p-2 sm:p-3 mb-3">
-              <div className="text-xs font-medium text-warning-400 mb-4 flex items-center gap-2">
-                <AlertTriangle size={14} />
+              <div className="text-xs sm:text-sm font-medium text-warning-400 mb-2 sm:mb-3 flex items-center gap-1.5 sm:gap-2">
+                <AlertTriangle size={12} className="sm:w-4 sm:h-4 flex-shrink-0" />
                 Gas Asset Swap Required
               </div>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-text-secondary">Swap Amount:</span>
-                  <span className="font-medium text-text-primary">
+              <div className="space-y-1.5 sm:space-y-2">
+                <div className="flex justify-between items-center text-xs sm:text-sm">
+                  <span className="text-text-secondary">Swap:</span>
+                  <span className="font-medium text-text-primary text-right">
                     {approvedSmartSolution.swapDetails.sourceAmount.toFixed(6)} {approvedSmartSolution.swapDetails.sourceAsset}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-sm">
+                <div className="flex justify-between items-center text-xs sm:text-sm">
                   <span className="text-text-secondary">Receive:</span>
-                  <span className="font-medium text-success-400">
+                  <span className="font-medium text-success-400 text-right">
                     {approvedSmartSolution.swapDetails.targetAmount} {approvedSmartSolution.swapDetails.targetAsset}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-text-secondary">Exchange Rate:</span>
-                  <span className="font-medium text-text-primary">
+                <div className="flex justify-between items-center text-xs sm:text-sm">
+                  <span className="text-text-secondary">Rate:</span>
+                  <span className="font-medium text-text-primary text-right">
                     1 {approvedSmartSolution.swapDetails.sourceAsset} = {approvedSmartSolution.swapDetails.exchangeRate.toFixed(4)} {approvedSmartSolution.swapDetails.targetAsset}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-text-secondary">DEX Fee ({approvedSmartSolution.swapDetails.dexFeePercentage}%):</span>
-                  <span className="font-medium text-error-400">
+                <div className="flex justify-between items-center text-xs sm:text-sm">
+                  <span className="text-text-secondary">Fee:</span>
+                  <span className="font-medium text-error-400 text-right">
                     {approvedSmartSolution.swapDetails.dexFee.toFixed(6)} {approvedSmartSolution.swapDetails.sourceAsset}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-text-secondary">DEX Platform:</span>
-                  <span className="font-medium text-text-primary">
+                <div className="flex justify-between items-center text-xs sm:text-sm">
+                  <span className="text-text-secondary">DEX:</span>
+                  <span className="font-medium text-text-primary text-right">
                     {approvedSmartSolution.swapDetails.recommendedDEX}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-sm border-t border-white/10 pt-2">
-                  <span className="text-text-secondary font-medium">Total Cost USD:</span>
-                  <span className="font-semibold text-error-400">
+                <div className="flex justify-between items-center text-xs sm:text-sm border-t border-white/10 pt-1.5 sm:pt-2 mt-1.5 sm:mt-2">
+                  <span className="text-text-secondary font-medium">Total USD:</span>
+                  <span className="font-semibold text-error-400 text-right">
                     ${approvedSmartSolution.swapDetails.totalCostUSD.toFixed(2)}
                   </span>
                 </div>
               </div>
-              <div className="mt-3 text-xs text-warning-300">
-                This swap will be executed automatically to obtain {approvedSmartSolution.swapDetails.targetAsset} for gas fees.
+              <div className="mt-2 sm:mt-3 text-xs text-warning-300 leading-snug">
+                Auto-executed for {approvedSmartSolution.swapDetails.targetAsset} gas fees
               </div>
             </div>
           )}
@@ -375,15 +378,6 @@ const TransactionPreviewModal: React.FC<TransactionPreviewModalProps> = ({
             </div>
           </div>
 
-          {/* Cross-Chain Information */}
-          {transactionData.route.isCrossChain && (
-            <div className="bg-primary-600/10 border border-primary-500/20 rounded-lg p-2 sm:p-3 mb-3">
-              <div className="text-xs font-medium text-primary-400 mb-2">Cross-Chain Transaction</div>
-              <div className="text-sm text-text-secondary">
-                Chains involved: {transactionData.route.chainsInvolved?.join(' → ')}
-              </div>
-            </div>
-          )}
 
 
         </div>
