@@ -1,11 +1,6 @@
 import React from 'react';
 import {
   TrendingUp,
-  DollarSign,
-  Clock,
-  Target,
-  Trophy,
-  ChevronDown,
   Plus
 } from 'lucide-react';
 import AssetIcon from './AssetIcon';
@@ -18,9 +13,7 @@ interface MyGardenSectionProps {
   expandedAssets: Set<string>;
   claimedAssets: Set<string>;
   sparklingAssets: Set<string>;
-  statsExpanded: boolean;
   setExpandedAssets: (assets: Set<string>) => void;
-  setStatsExpanded: (expanded: boolean) => void;
   handleClaimYield: (asset: string) => void;
   openStakingModal: (asset: string) => void;
   openUnstakingModal: (asset: string) => void;
@@ -35,9 +28,7 @@ const MyGardenSection: React.FC<MyGardenSectionProps> = ({
   expandedAssets,
   claimedAssets,
   sparklingAssets,
-  statsExpanded,
   setExpandedAssets,
-  setStatsExpanded,
   handleClaimYield,
   openStakingModal,
   openUnstakingModal,
@@ -243,93 +234,53 @@ const MyGardenSection: React.FC<MyGardenSectionProps> = ({
           )}
         </div>
 
-        {/* Yield Stats - Collapsible (Moved below staking for better UX) */}
-        <div className="mt-6 rounded-2xl border border-white/10 bg-surface-1 overflow-hidden">
-          <div className="p-4 sm:p-6 cursor-pointer hover:bg-surface-2 transition-colors" onClick={() => setStatsExpanded(!statsExpanded)}>
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <div className="text-sm sm:text-base md:text-lg font-semibold text-text-primary mb-1 sm:mb-2">
-                  Yield Stats
+        {/* Yield Stats - Simplified */}
+        <div className="mt-6 rounded-2xl border border-white/10 bg-surface-1 p-4 sm:p-6">
+          <h3 className="text-base sm:text-lg font-semibold text-text-primary mb-4">Yield Stats</h3>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between py-2">
+              <span className="text-sm sm:text-base text-text-secondary">Total Garden Yield</span>
+              <div className="text-right">
+                <div className="text-sm sm:text-base font-semibold text-text-primary">
+                  ${calculateTotalYield().toFixed(0)}
                 </div>
-                <div className="space-y-1 sm:space-y-0 sm:flex sm:items-center sm:gap-4">
-                  <div className="text-lg sm:text-xl md:text-2xl font-bold text-success-400">
-                    ${calculateTotalYield().toFixed(0)}
-                  </div>
-                  <div className="text-xs sm:text-sm text-text-secondary">
-                    +${(calculateTotalYield() * 0.1).toFixed(0)} this week
-                  </div>
+                <div className="text-xs text-success-400">
+                  +${(calculateTotalYield() * 0.1).toFixed(0)} this week
                 </div>
               </div>
-              <div className="ml-4 flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-surface-3 hover:bg-surface-4 transition-colors">
-                <ChevronDown
-                  size={16}
-                  className={`text-text-secondary transition-transform duration-200 ${statsExpanded ? 'rotate-180' : ''}`}
-                />
+            </div>
+
+            <div className="flex items-center justify-between py-2">
+              <span className="text-sm sm:text-base text-text-secondary">Average Hodl Days</span>
+              <div className="text-right">
+                <div className="text-sm sm:text-base font-semibold text-text-primary">42</div>
+                <div className="text-xs text-text-muted">Longest: 127 days</div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between py-2">
+              <span className="text-sm sm:text-base text-text-secondary">Asset Diversity</span>
+              <div className="text-right">
+                <div className="text-sm sm:text-base font-semibold text-text-primary">
+                  {assetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length}/6
+                </div>
+                <div className="text-xs text-text-muted">
+                  {calculateDiversityMultiplier()}x multiplier active
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between py-2">
+              <span className="text-sm sm:text-base text-text-secondary">Total Multiplier</span>
+              <div className="text-right">
+                <div className="text-sm sm:text-base font-semibold text-text-primary">
+                  {calculateDiversityMultiplier()}x
+                </div>
+                <div className="text-xs text-text-muted">Next level: 15 days</div>
               </div>
             </div>
           </div>
-
-          {statsExpanded && (
-            <div className="border-t border-white/10 bg-surface-1 animate-in slide-in-from-top-2 duration-200">
-              <div className="p-4 sm:p-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                  <div className="text-center p-4 rounded-xl bg-surface-2 border border-white/5">
-                    <div className="w-8 h-8 mx-auto mb-3 flex items-center justify-center rounded-lg bg-primary-500/10">
-                      <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-primary-400" />
-                    </div>
-                    <div className="text-lg sm:text-xl font-bold text-text-primary mb-1">
-                      ${calculateTotalYield().toFixed(0)}
-                    </div>
-                    <div className="text-xs sm:text-sm text-text-secondary mb-1">
-                      Total Garden Yield
-                    </div>
-                    <div className="text-xs text-text-muted">
-                      This week: +${(calculateTotalYield() * 0.1).toFixed(0)}
-                    </div>
-                  </div>
-
-                  <div className="text-center p-4 rounded-xl bg-surface-2 border border-white/5">
-                    <div className="w-8 h-8 mx-auto mb-3 flex items-center justify-center rounded-lg bg-warning-500/10">
-                      <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-warning-400" />
-                    </div>
-                    <div className="text-lg sm:text-xl font-bold text-text-primary mb-1">42</div>
-                    <div className="text-xs sm:text-sm text-text-secondary mb-1">
-                      Average Hodl Days
-                    </div>
-                    <div className="text-xs text-text-muted">Longest: 127 days</div>
-                  </div>
-
-                  <div className="text-center p-4 rounded-xl bg-surface-2 border border-white/5">
-                    <div className="w-8 h-8 mx-auto mb-3 flex items-center justify-center rounded-lg bg-success-500/10">
-                      <Target className="w-4 h-4 sm:w-5 sm:h-5 text-success-400" />
-                    </div>
-                    <div className="text-lg sm:text-xl font-bold text-text-primary mb-1">
-                      {assetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length}/6
-                    </div>
-                    <div className="text-xs sm:text-sm text-text-secondary mb-1">
-                      Asset Diversity
-                    </div>
-                    <div className="text-xs text-text-muted">
-                      {calculateDiversityMultiplier()}x multiplier active
-                    </div>
-                  </div>
-
-                  <div className="text-center p-4 rounded-xl bg-surface-2 border border-white/5">
-                    <div className="w-8 h-8 mx-auto mb-3 flex items-center justify-center rounded-lg bg-warning-500/10">
-                      <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-warning-500" />
-                    </div>
-                    <div className="text-lg sm:text-xl font-bold text-text-primary mb-1">
-                      {calculateDiversityMultiplier()}x
-                    </div>
-                    <div className="text-xs sm:text-sm text-text-secondary mb-1">
-                      Total Multiplier
-                    </div>
-                    <div className="text-xs text-text-muted">Next level: 15 days</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 

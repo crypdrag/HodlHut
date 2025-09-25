@@ -19,9 +19,7 @@ interface ConsolidatedStakingModalProps {
   expandedAssets: Set<string>;
   claimedAssets: Set<string>;
   sparklingAssets: Set<string>;
-  statsExpanded: boolean;
   setExpandedAssets: (assets: Set<string>) => void;
-  setStatsExpanded: (expanded: boolean) => void;
   handleClaimYield: (asset: string) => void;
   openStakingModal: (asset: string) => void;
   openUnstakingModal: (asset: string) => void;

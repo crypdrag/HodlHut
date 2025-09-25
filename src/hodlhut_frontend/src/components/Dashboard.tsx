@@ -274,7 +274,6 @@ const Dashboard: React.FC = () => {
   // My Garden Claim Yield State
   const [claimedAssets, setClaimedAssets] = useState<Set<string>>(new Set());
   const [sparklingAssets, setSparklingAssets] = useState<Set<string>>(new Set());
-  const [statsExpanded, setStatsExpanded] = useState(false);
   
   // Asset Detail Expansion State
   const [expandedAssets, setExpandedAssets] = useState<Set<string>>(new Set());
@@ -1543,9 +1542,7 @@ const Dashboard: React.FC = () => {
             expandedAssets={expandedAssets}
             claimedAssets={claimedAssets}
             sparklingAssets={sparklingAssets}
-            statsExpanded={statsExpanded}
             setExpandedAssets={setExpandedAssets}
-            setStatsExpanded={setStatsExpanded}
             handleClaimYield={handleClaimYield}
             openStakingModal={openStakingModal}
             openUnstakingModal={openUnstakingModal}
@@ -1871,9 +1868,7 @@ const Dashboard: React.FC = () => {
         expandedAssets={expandedAssets}
         claimedAssets={claimedAssets}
         sparklingAssets={sparklingAssets}
-        statsExpanded={statsExpanded}
         setExpandedAssets={setExpandedAssets}
-        setStatsExpanded={setStatsExpanded}
         handleClaimYield={handleClaimYield}
         openStakingModal={openStakingModal}
         openUnstakingModal={openUnstakingModal}
