@@ -21,14 +21,24 @@ const StakingModal: React.FC<StakingModalProps> = ({
   onStakingConfirmation
 }) => {
   const [stakingAmount, setStakingAmount] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
-  // Clear input field when switching assets or modal closes
+  // Clear input field and error when switching assets or modal closes
   useEffect(() => {
     if (!isOpen) {
-      // Clear field when modal closes
+      // Clear field and error when modal closes
       setStakingAmount('');
+      setErrorMessage('');
     }
   }, [isOpen, selectedAsset]);
+
+  // Clear error message when user starts typing
+  const handleAmountChange = (value: string) => {
+    setStakingAmount(value);
+    if (errorMessage) {
+      setErrorMessage('');
+    }
+  };
 
   // Format amount utility (keeping existing logic)
   const formatAmount = (amount: number | string): string => {
@@ -83,18 +93,27 @@ const StakingModal: React.FC<StakingModalProps> = ({
 
 
   const handleStakeClick = () => {
+    // Check if amount is empty or just whitespace
+    if (!stakingAmount || stakingAmount.trim() === '') {
+      setErrorMessage('Enter Amount');
+      return;
+    }
+
     const amount = parseFloat(stakingAmount);
 
-    if (amount <= 0) {
-      alert('Please enter a valid amount');
+    // Check if amount is not a valid number or is zero/negative
+    if (isNaN(amount) || amount <= 0) {
+      setErrorMessage('Enter Amount');
       return;
     }
 
     if (!selectedAsset || amount > (portfolio[selectedAsset] || 0)) {
-      alert('Insufficient balance');
+      setErrorMessage('Insufficient balance');
       return;
     }
 
+    // Clear any existing error and proceed
+    setErrorMessage('');
     onStakingConfirmation(selectedAsset, amount);
   };
 
@@ -106,13 +125,13 @@ const StakingModal: React.FC<StakingModalProps> = ({
   const setPercentageAmount = (percentage: number) => {
     if (selectedAsset) {
       const amount = (portfolio[selectedAsset] || 0) * percentage;
-      setStakingAmount(amount.toString());
+      handleAmountChange(amount.toString());
     }
   };
 
   const setMaxAmount = () => {
     if (selectedAsset) {
-      setStakingAmount((portfolio[selectedAsset] || 0).toString());
+      handleAmountChange((portfolio[selectedAsset] || 0).toString());
     }
   };
 
@@ -160,12 +179,16 @@ const StakingModal: React.FC<StakingModalProps> = ({
             <input
               type="number"
               placeholder="0.0"
-              className="w-full px-4 py-3 bg-surface-2 border border-white/10 rounded-xl text-text-primary focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+              className={`w-full px-4 py-3 bg-surface-2 border rounded-xl text-text-primary focus:ring-2 focus:border-transparent ${
+                errorMessage
+                  ? 'border-error-500 focus:ring-error-400'
+                  : 'border-white/10 focus:ring-primary-400'
+              }`}
               step="any"
               min="0"
               max={portfolio[selectedAsset] || 0}
               value={stakingAmount}
-              onChange={(e) => setStakingAmount(e.target.value)}
+              onChange={(e) => handleAmountChange(e.target.value)}
             />
             <button
               className="absolute right-3 top-1/2 -translate-y-1/2 px-3 py-1 text-xs font-medium bg-primary-600 hover:bg-primary-500 text-on-primary rounded-lg transition-colors"
@@ -174,6 +197,17 @@ const StakingModal: React.FC<StakingModalProps> = ({
               MAX
             </button>
           </div>
+          {/* Error Message */}
+          {errorMessage && (
+            <div className="mt-2 p-3 bg-error-500/10 border border-error-500/20 rounded-lg">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-error-500 flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">!</span>
+                </div>
+                <span className="text-sm font-medium text-error-400">{errorMessage}</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Quick Amount Buttons */}
