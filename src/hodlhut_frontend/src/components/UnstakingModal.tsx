@@ -193,17 +193,6 @@ const UnstakingModal: React.FC<UnstakingModalProps> = ({
         {/* Impact Analysis */}
         {renderUnstakingImpactAnalysis()}
 
-        {/* Warning Notice */}
-        <div className="bg-error-400/10 border border-error-400/20 rounded-xl p-4 mb-6">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="w-4 h-4 text-error-400" />
-            <span className="text-sm font-medium text-error-300">Unstaking Notice</span>
-          </div>
-          <p className="text-xs text-error-200">
-            Unstaking will immediately stop yield generation for the withdrawn amount. Consider partial unstaking to maintain some rewards.
-          </p>
-        </div>
-
         {/* Action Buttons */}
         <div className="flex gap-3">
           <button

@@ -10,6 +10,7 @@ import ExecutionProgressModal from './ExecutionProgressModal';
 import AuthenticationModal, { AuthStep, TransactionStep } from './AuthenticationModal';
 import StakingModal from './StakingModal';
 import UnstakingModal from './UnstakingModal';
+import ConsolidatedStakingModal from './ConsolidatedStakingModal';
 import NavigationMenu from './NavigationMenu';
 import PortfolioOverview from './PortfolioOverview';
 import AddAssetsSection from './AddAssetsSection';
@@ -301,6 +302,9 @@ const Dashboard: React.FC = () => {
   const [unstakingConfirmationOpen, setUnstakingConfirmationOpen] = useState(false);
   const [pendingUnstakingAmount, setPendingUnstakingAmount] = useState<number>(0);
   const [unstakingTransactionState, setUnstakingTransactionState] = useState<'confirming' | 'processing' | 'success'>('confirming');
+
+  // Consolidated Staking Modal
+  const [consolidatedStakingModalOpen, setConsolidatedStakingModalOpen] = useState(false);
   
   // Ethereum Wallet Options for Transaction
   const ETH_WALLET_OPTIONS = [
@@ -412,10 +416,8 @@ const Dashboard: React.FC = () => {
         newSet.delete(asset);
         return newSet;
       });
-      
-      // Close modal
-      setStakingModalOpen(false);
-      setSelectedStakingAsset(null);
+
+      // Note: Modal closing is handled by confirmation flow
     }, 2000);
   };
 
@@ -486,6 +488,8 @@ const Dashboard: React.FC = () => {
     setSelectedStakingAsset(null);
     setPendingStakingAmount(0);
     setStakingTransactionState('confirming');
+    // Also close the staking modal to return to My Garden
+    setStakingModalOpen(false);
   };
 
   // Phase 3: Unstaking Functions
@@ -1546,6 +1550,7 @@ const Dashboard: React.FC = () => {
             openStakingModal={openStakingModal}
             openUnstakingModal={openUnstakingModal}
             formatAmount={formatAmount}
+            openConsolidatedModal={() => setConsolidatedStakingModalOpen(true)}
           />
         );
       case 'transactionHistory':
@@ -1773,17 +1778,6 @@ const Dashboard: React.FC = () => {
                 {/* Transaction Details */}
                 {renderStakingTransactionDetails()}
                 
-                {/* Estimated Processing Time */}
-                <div className="bg-primary-600/10 border border-primary-400/20 rounded-xl p-4 mb-6">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Clock className="w-4 h-4 text-primary-400" />
-                    <span className="text-sm font-medium text-primary-300">Processing Time</span>
-                  </div>
-                  <p className="text-xs text-primary-200">
-                    Staking typically completes in ~2-3 seconds. You'll receive a transaction hash for tracking.
-                  </p>
-                </div>
-                
                 {/* Action Buttons */}
                 <div className="flex gap-3">
                   <button 
@@ -1867,6 +1861,25 @@ const Dashboard: React.FC = () => {
         onUnstakingConfirmation={openUnstakingConfirmation}
       />
 
+      {/* Consolidated Staking Modal */}
+      <ConsolidatedStakingModal
+        isOpen={consolidatedStakingModalOpen}
+        onClose={() => setConsolidatedStakingModalOpen(false)}
+        portfolio={portfolio}
+        stakedAmounts={stakedAmounts}
+        pendingStaking={pendingStaking}
+        expandedAssets={expandedAssets}
+        claimedAssets={claimedAssets}
+        sparklingAssets={sparklingAssets}
+        statsExpanded={statsExpanded}
+        setExpandedAssets={setExpandedAssets}
+        setStatsExpanded={setStatsExpanded}
+        handleClaimYield={handleClaimYield}
+        openStakingModal={openStakingModal}
+        openUnstakingModal={openUnstakingModal}
+        formatAmount={formatAmount}
+      />
+
       {/* Execution Progress Modal */}
       <ExecutionProgressModal
         isOpen={showExecutionProgressModal}
@@ -1912,17 +1925,6 @@ const Dashboard: React.FC = () => {
                 
                 {/* Transaction Impact */}
                 {renderUnstakingTransactionImpact()}
-                
-                {/* Processing Time */}
-                <div className="bg-primary-600/10 border border-primary-400/20 rounded-xl p-4 mb-6">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Clock className="w-4 h-4 text-primary-400" />
-                    <span className="text-sm font-medium text-primary-300">Processing Time</span>
-                  </div>
-                  <p className="text-xs text-primary-200">
-                    Unstaking typically completes in ~2-3 seconds. Your assets will be available immediately after confirmation.
-                  </p>
-                </div>
                 
                 {/* Action Buttons */}
                 <div className="flex gap-3">

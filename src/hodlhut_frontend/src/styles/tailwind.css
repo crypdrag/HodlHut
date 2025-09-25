@@ -2195,3 +2195,97 @@ section.relative button.bg-primary-600:hover {
     @apply p-3 bg-surface-3/30 rounded-lg; /* Better mobile cards */
   }
 }
+
+/* ===== CONSOLIDATED STAKING MODAL STYLES ===== */
+
+.asset-row {
+  @apply mb-3;
+}
+
+.asset-row.staked {
+  @apply ring-1 ring-success-500/20;
+}
+
+.asset-row.unstaked {
+  @apply ring-1 ring-primary-500/10;
+}
+
+.asset-primary {
+  /* Horizontal layout for 80px height efficiency */
+  min-height: 64px;
+}
+
+.asset-row .asset-primary:hover {
+  @apply bg-surface-2;
+}
+
+/* Progressive disclosure animation for asset details */
+@keyframes slide-in-from-top {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-in {
+  animation: slide-in-from-top 200ms ease-out;
+}
+
+.slide-in-from-top-2 {
+  transform: translateY(-8px);
+}
+
+/* Touch-compliant interactive elements */
+@media (pointer: coarse) {
+  .asset-primary {
+    @apply p-4;
+    min-height: 72px; /* Larger touch target */
+  }
+
+  .asset-primary button {
+    @apply min-h-[48px] min-w-[48px]; /* WCAG AA compliant touch targets */
+  }
+}
+
+/* Mobile optimizations for consolidated modal */
+@media (max-width: 640px) {
+  .asset-row {
+    @apply mb-2;
+  }
+
+  .asset-primary {
+    @apply p-3 gap-3;
+    min-height: 68px;
+  }
+
+  .asset-primary .text-sm {
+    @apply text-xs;
+  }
+
+  .asset-primary button {
+    @apply px-3 py-2 text-xs min-h-[44px];
+  }
+
+  /* Make modal responsive on small screens */
+  .staking-modal-container {
+    @apply max-h-[98vh] rounded-xl;
+  }
+
+  /* Stack footer buttons vertically on very small screens */
+  .staking-footer-buttons {
+    @apply flex-col gap-2;
+  }
+}
+
+/* Enhanced hover and focus states for accessibility */
+.asset-primary:focus-within {
+  @apply ring-2 ring-primary-400/50;
+}
+
+.asset-primary button:focus {
+  @apply ring-2 ring-offset-2 ring-offset-surface-1 ring-primary-400/50;
+}

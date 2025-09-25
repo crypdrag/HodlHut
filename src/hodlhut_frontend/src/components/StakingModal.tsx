@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Rocket, Star, TrendingUp } from 'lucide-react';
+import { X, Rocket, TrendingUp } from 'lucide-react';
 import AssetIcon from './AssetIcon';
 import { MASTER_ASSETS } from '../../assets/master_asset_data';
 
@@ -81,35 +81,6 @@ const StakingModal: React.FC<StakingModalProps> = ({
     );
   };
 
-  // Render diversity boost notice for first-time stakers
-  const renderDiversityBoostNotice = () => {
-    const assetsList = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'];
-    const assetsWithBalance = assetsList.filter(asset => portfolio[asset] && portfolio[asset] > 0);
-    const currentlyStakedCount = assetsWithBalance.filter(asset => stakedAmounts[asset] > 0).length;
-    const willBeStaking = selectedAsset && stakedAmounts[selectedAsset] === 0;
-
-    if (!willBeStaking || currentlyStakedCount >= 5) return null;
-
-    const newStakedCount = currentlyStakedCount + 1;
-    const multipliers = [1.0, 1.5, 2.0, 2.25, 2.5, 2.5];
-    const nextMultiplier = multipliers[Math.min(newStakedCount, multipliers.length - 1)];
-
-    return (
-      <div className="bg-warning-950/30 border border-warning-800/50 rounded-xl p-4 mb-6">
-        <div className="flex items-center gap-2 mb-2">
-          <Star className="w-5 h-5 text-warning-400" />
-          <span className="text-sm font-medium text-warning-400">Diversity Bonus!</span>
-        </div>
-        <p className="text-sm text-text-secondary mb-2">
-          This is your {currentlyStakedCount === 0 ? 'first' : `${newStakedCount}${newStakedCount === 2 ? 'nd' : newStakedCount === 3 ? 'rd' : 'th'}`} staked asset.
-          Your APY multiplier will increase to <span className="text-warning-400 font-semibold">{nextMultiplier.toFixed(2)}x</span>!
-        </p>
-        <p className="text-xs text-text-muted">
-          Stake more diverse assets to unlock higher multipliers (max 2.5x with 5+ assets).
-        </p>
-      </div>
-    );
-  };
 
   const handleStakeClick = () => {
     const amount = parseFloat(stakingAmount);
@@ -220,9 +191,6 @@ const StakingModal: React.FC<StakingModalProps> = ({
 
         {/* Staking Benefits */}
         {renderStakingBenefits()}
-
-        {/* Diversity Boost Notice */}
-        {renderDiversityBoostNotice()}
 
         {/* Action Buttons */}
         <div className="flex gap-3">
