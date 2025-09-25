@@ -206,7 +206,7 @@ const HomePage: React.FC = () => {
             <h1 className="text-4xl font-bold text-text-primary mb-6" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>
               HodlHut
             </h1>
-            <p className="text-lg text-text-secondary mb-6 leading-snug">
+            <p className="text-sm sm:text-lg text-text-secondary mb-6 leading-snug">
               Your Sovereign Multichain Paradise
             </p>
             <button
@@ -222,7 +222,7 @@ const HomePage: React.FC = () => {
         <div className="hidden sm:flex relative z-20 justify-center items-center max-w-4xl px-8">
           <div className="rounded-2xl border border-white/10 bg-surface-2 p-6 max-w-lg text-center">
             <h1 className="text-5xl font-bold text-text-primary mb-6" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>HodlHut</h1>
-            <p className="text-xl text-text-secondary mb-8 leading-snug">
+            <p className="text-sm sm:text-xl text-text-secondary mb-8 leading-snug">
               Your Sovereign Multichain Paradise
             </p>
             <button 
@@ -238,7 +238,7 @@ const HomePage: React.FC = () => {
       {/* Features Section */}
       <section className="section bg-surface-2">
         <div className="container-app stack-lg">
-          <h2 className="hidden sm:block text-4xl font-bold text-center text-text-primary" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Your Personal Universal Router</h2>
+          <h2 className="text-xl sm:text-4xl font-bold text-center text-text-primary mb-6 sm:mb-0" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Your Personal Universal Router</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="rounded-2xl border border-white/10 bg-surface-1 p-6 text-center">
@@ -246,7 +246,7 @@ const HomePage: React.FC = () => {
                 <PersonalSovereigntyIcon />
               </div>
               <h3 className="text-2xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Personal Sovereignty</h3>
-              <p className="text-text-secondary leading-relaxed">
+              <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
                 My Hut canisters are personal smart contracts assigned to you. No shared state, no bottlenecks, infinite scalability. Create as many Huts as you need.
               </p>
             </div>
@@ -256,7 +256,7 @@ const HomePage: React.FC = () => {
                 <UniversalRouterIcon />
               </div>
               <h3 className="text-2xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Universal Router</h3>
-              <p className="text-text-secondary leading-relaxed">
+              <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
                 Bitcoin ↔ Ethereum ↔ ICP bridgeless routing. Move assets between legacy chains trustlessly with Chain Fusion.
               </p>
             </div>
@@ -266,7 +266,7 @@ const HomePage: React.FC = () => {
                 <SmartAbstractionIcon />
               </div>
               <h3 className="text-2xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Smart Abstraction</h3>
-              <p className="text-text-secondary leading-relaxed">
+              <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
                 Crosschain swaps are easy to understand and transparent. HodlHut's Smart Solutions Agents optimize routing, gas, and fees.
               </p>
             </div>
@@ -276,7 +276,7 @@ const HomePage: React.FC = () => {
                 <DEXAggregationIcon />
               </div>
               <h3 className="text-2xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>DEX Aggregation Agent</h3>
-              <p className="text-text-secondary leading-relaxed">
+              <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
                 HodlHut's DEX Aggregation Agent pulls live ICP DEX data including liquidity levels, cost, and speed to recommend the best route based upon the users trade and amount.
               </p>
             </div>
@@ -286,7 +286,7 @@ const HomePage: React.FC = () => {
                 <MyGardenRewardsIcon />
               </div>
               <h3 className="text-2xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>My Garden Rewards</h3>
-              <p className="text-text-secondary leading-relaxed">
+              <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
                 Hodl and stake legacy assets for portfolio diversity yield multipliers. Daily Reef Raffles and Tsunami Sweeps keep things growing.
               </p>
             </div>
@@ -296,7 +296,7 @@ const HomePage: React.FC = () => {
                 <MyDogParkIcon />
               </div>
               <h3 className="text-2xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>My Dog Park</h3>
-              <p className="text-text-secondary leading-relaxed">
+              <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
                 My Dog Park is a DAO-governed permissionless gaming zone for Bitcoin Runes and Ordinals fans on Bitcoin mainnet.
               </p>
             </div>
@@ -306,7 +306,7 @@ const HomePage: React.FC = () => {
                 <FullStackSecurityIcon />
               </div>
               <h3 className="text-2xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Full Stack Security</h3>
-              <p className="text-text-secondary leading-relaxed">
+              <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
                 Users authenticate via Internet Identity v2, a WebAuthn-based system with passkey support. VetKD encryption ensures each user's personal Hut is protected and recoverable, even if a device is lost.
               </p>
             </div>
@@ -316,7 +316,7 @@ const HomePage: React.FC = () => {
                 <DiversePortfolioIcon />
               </div>
               <h3 className="text-2xl font-bold text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Diverse Portfolio</h3>
-              <p className="text-text-secondary leading-relaxed">
+              <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
                 Manage ICP, ckBTC, ckETH, ckUSDC, and ckUSDT all in one place. You can hodl & farm diverse assets for Bounty, or cash out all the way to Bitcoin and Ethereum blockchains.
               </p>
             </div>
@@ -325,12 +325,12 @@ const HomePage: React.FC = () => {
       </section>
 
       {/* Supported Assets Section */}
-      <section className="section bg-bg">
+      <section className="section-tight sm:section bg-bg">
         <div className="container-app">
-          <h2 className="text-4xl font-bold text-center text-text-primary mb-12" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Supported Crosschain Assets</h2>
+          <h2 className="text-4xl font-bold text-center text-text-primary mb-8 sm:mb-12" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>Supported Crosschain Assets</h2>
           
           {/* Chain Fusion Deposits */}
-          <div className="mb-16">
+          <div className="mb-8 sm:mb-16">
             <h3 className="text-2xl font-semibold text-center text-text-secondary mb-8">Legacy assets from their native L1 chains</h3>
             
             <div className="grid-assets">
@@ -370,7 +370,7 @@ const HomePage: React.FC = () => {
           </div>
 
           {/* ICRC/ICP Assets */}
-          <div className="mb-16">
+          <div className="mb-6 sm:mb-16">
             <h3 className="text-2xl font-semibold text-center text-text-secondary mb-8">ICP ecosystem assets</h3>
 
             {/* All ICP Assets - Unified Grid */}
@@ -428,7 +428,7 @@ const HomePage: React.FC = () => {
       <section className="section-tight bg-bg">
         <div className="container-app">
           <h2 id="how-it-works" className="text-4xl font-bold text-center text-text-primary mb-4" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>How it Works</h2>
-          <p className="text-lg text-center text-text-secondary mb-16">Follow these simple steps to activate your personal Hut</p>
+          <p className="text-sm sm:text-lg text-center text-text-secondary mb-16">Follow these simple steps to activate your personal Hut</p>
           
           <div className="flex flex-wrap">
             <div className="flex relative pt-10 pb-20 sm:items-center md:w-2/3 mx-auto">
@@ -442,7 +442,7 @@ const HomePage: React.FC = () => {
                 </div>
                 <div className="flex-grow sm:pl-6 mt-6 sm:mt-0">
                   <h3 className="font-medium text-text-primary mb-1 text-xl">Log In with your Internet Identity V2</h3>
-                  <p className="leading-relaxed text-text-secondary">Internet Identity V2 is an authentication system that allows users to access Dapps on the Internet Computer securely and anonymously.</p>
+                  <p className="text-xs sm:text-sm leading-relaxed text-text-secondary">Internet Identity V2 is an authentication system that allows users to access Dapps on the Internet Computer securely and anonymously.</p>
                 </div>
               </div>
             </div>
@@ -458,7 +458,7 @@ const HomePage: React.FC = () => {
                 </div>
                 <div className="flex-grow sm:pl-6 mt-6 sm:mt-0">
                   <h3 className="font-medium text-text-primary mb-1 text-xl">Add Assets to Activate My Hut</h3>
-                  <p className="leading-relaxed text-text-secondary">Deposit any HodlHut supported assets to activate your personal, sovereign, crosschain router.</p>
+                  <p className="text-xs sm:text-sm leading-relaxed text-text-secondary">Deposit any HodlHut supported assets to activate your personal, sovereign, crosschain router.</p>
                 </div>
               </div>
             </div>
@@ -474,7 +474,7 @@ const HomePage: React.FC = () => {
                 </div>
                 <div className="flex-grow sm:pl-6 mt-6 sm:mt-0">
                   <h3 className="font-medium text-text-primary mb-1 text-xl">Swap Assets</h3>
-                  <p className="leading-relaxed text-text-secondary">Once within My Hut, you can securely swap assets within and outside of the ICP ecosystem to all supported heterogenous chains while being guided with data to choose the best routes for speed and cost.</p>
+                  <p className="text-xs sm:text-sm leading-relaxed text-text-secondary">Once within My Hut, you can securely swap assets within and outside of the ICP ecosystem to all supported heterogenous chains while being guided with data to choose the best routes for speed and cost.</p>
                 </div>
               </div>
             </div>
@@ -490,7 +490,7 @@ const HomePage: React.FC = () => {
                 </div>
                 <div className="flex-grow sm:pl-6 mt-6 sm:mt-0">
                   <h3 className="font-medium text-text-primary mb-1 text-xl">Stake, Earn & Play in My Garden & My Dog Park</h3>
-                  <p className="leading-relaxed text-text-secondary">Stake diverse assets for multiplied yield in My Garden. Join the daily Reef Raffle for a chance to win and be automatically included in the weekly Tsunami Sweep! Play Bitcoin metaprotocol games and contests in My Dog Park on the Bitcoin mainnet.</p>
+                  <p className="text-xs sm:text-sm leading-relaxed text-text-secondary">Stake diverse assets for multiplied yield in My Garden. Join the daily Reef Raffle for a chance to win and be automatically included in the weekly Tsunami Sweep! Play Bitcoin metaprotocol games and contests in My Dog Park on the Bitcoin mainnet.</p>
                 </div>
               </div>
             </div>

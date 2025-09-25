@@ -76,6 +76,7 @@ interface SwapAssetsSectionProps {
   smartSolutions: EnhancedSmartSolution[];
   selectedSolution: number | null;
   showAllSolutions: boolean;
+  currentSolutionIndex: number; // Mobile-first: track which single solution to show
   setFromAsset: (asset: string) => void;
   setToAsset: (asset: string) => void;
   setSwapAmount: (amount: string) => void;
@@ -111,6 +112,7 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
   smartSolutions,
   selectedSolution,
   showAllSolutions,
+  currentSolutionIndex,
   setFromAsset,
   setToAsset,
   setSwapAmount,
@@ -875,11 +877,78 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
               </div>
 
           <div className="space-y-4">
-            {smartSolutions.map((solution, index) => (
+            {/* Mobile-first: Show only current solution, not all solutions */}
+            {!showAllSolutions && smartSolutions[currentSolutionIndex] && (() => {
+              const solution = smartSolutions[currentSolutionIndex];
+              const index = currentSolutionIndex;
+              return (
+                <div key={index} className="bg-surface-2 rounded-xl p-6 border border-white/20">
+                  <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 badge-text mb-3 ${
+                    solution.badge === 'RECOMMENDED' ? 'bg-success-400/15 text-success-300' :
+                    solution.badge === 'REQUIRED STEP' ? 'bg-warning-400/15 text-warning-300' :
+                    'bg-primary-600/15 text-primary-400'
+                  }`}>
+                    {solution.badge === 'RECOMMENDED' ? <><CheckCircle size={16} className="inline mr-1" />RECOMMENDED</> :
+                     solution.badge === 'REQUIRED STEP' ? <><AlertTriangle size={16} className="inline mr-1" />REQUIRED STEP</> :
+                     solution.badge === 'ALTERNATIVE' ? <><Lightbulb size={16} className="inline mr-1" />ALTERNATIVE</> :
+                     <><Lightbulb size={16} className="inline mr-1" />{solution.badge}</>}
+                  </div>
+
+                  <h3 className="text-lg font-semibold text-text-primary mb-3">{solution.title}</h3>
+                  <p className="text-xs sm:text-sm text-text-secondary mb-4 leading-snug sm:leading-relaxed">{solution.description}</p>
+
+                  <div className="bg-surface-3 rounded-lg p-3 mb-4 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-text-secondary">Cost:</span>
+                      <span className="text-sm font-semibold text-error-400">
+                        {formatNumber(parseFloat(solution.cost.amount))} {solution.cost.asset}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-text-secondary">You'll receive:</span>
+                      <span className="text-sm font-semibold text-success-400">
+                        {formatNumber(solution.userReceives.amount)} {solution.userReceives.asset}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Mobile UX: Show progress indicator */}
+                  {smartSolutions.length > 1 && (
+                    <div className="text-xs text-text-secondary text-center mb-3">
+                      Option {currentSolutionIndex + 1} of {smartSolutions.length}
+                    </div>
+                  )}
+
+                  <div className="flex gap-3">
+                    <button
+                      className="flex-1 bg-error-600 hover:bg-error-700 text-white rounded-xl py-3 px-4 font-semibold text-sm transition-colors"
+                      onClick={() => handleRejectSolution(index)}
+                    >
+                      No
+                    </button>
+                    <button
+                      className="flex-1 bg-success-600 hover:bg-success-700 text-white rounded-xl py-3 px-4 font-semibold text-sm transition-colors"
+                      onClick={() => handleApproveSolution(index)}
+                    >
+                      Yes
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Fallback: Desktop mode with all solutions */}
+            {showAllSolutions && smartSolutions.map((solution, index) => (
               <div key={index} className="bg-surface-2 rounded-xl p-6 border border-white/20">
-                <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 badge-text mb-3 bg-success-400/15 text-success-300">
-                  <CheckCircle size={16} />
-                  RECOMMENDED
+                <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 badge-text mb-3 ${
+                  solution.badge === 'RECOMMENDED' ? 'bg-success-400/15 text-success-300' :
+                  solution.badge === 'REQUIRED STEP' ? 'bg-warning-400/15 text-warning-300' :
+                  'bg-primary-600/15 text-primary-400'
+                }`}>
+                  {solution.badge === 'RECOMMENDED' ? <><CheckCircle size={16} className="inline mr-1" />RECOMMENDED</> :
+                   solution.badge === 'REQUIRED STEP' ? <><AlertTriangle size={16} className="inline mr-1" />REQUIRED STEP</> :
+                   solution.badge === 'ALTERNATIVE' ? <><Lightbulb size={16} className="inline mr-1" />ALTERNATIVE</> :
+                   <><Lightbulb size={16} className="inline mr-1" />{solution.badge}</>}
                 </div>
 
                 <h3 className="text-lg font-semibold text-text-primary mb-3">{solution.title}</h3>
@@ -916,7 +985,7 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
                 </div>
               </div>
             ))}
-              </div>
+          </div>
             </>
           )}
         </div>
