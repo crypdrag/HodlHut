@@ -219,7 +219,9 @@ const Dashboard: React.FC = () => {
   // Enhanced Smart Solutions State
   const [smartSolutions, setSmartSolutions] = useState<EnhancedSmartSolution[]>([]);
   const [selectedSolution, setSelectedSolution] = useState<number | null>(null);
-  const [showAllSolutions, setShowAllSolutions] = useState(true);
+  const [showAllSolutions, setShowAllSolutions] = useState(false); // Mobile-first: show one at a time
+  const [currentSolutionIndex, setCurrentSolutionIndex] = useState(0); // Track which solution to show
+  const [isShowingFinalDepositOption, setIsShowingFinalDepositOption] = useState(false); // Track if we're showing the final deposit alternative
   
   // Mobile Navigation State
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -252,7 +254,8 @@ const Dashboard: React.FC = () => {
     setToAsset('');
     setSwapAmount('');
     setSelectedSolution(null);
-    setShowAllSolutions(true);
+    setShowAllSolutions(false); // Mobile-first: always show single solution
+    setCurrentSolutionIndex(0); // Reset to first solution
   };
 
   
@@ -576,7 +579,8 @@ const Dashboard: React.FC = () => {
       setShowSmartSolutions(false);
       setSmartSolutions([]);
       setSelectedSolution(null);
-      setShowAllSolutions(true);
+      setShowAllSolutions(false); // Mobile-first: always show single solution
+    setCurrentSolutionIndex(0); // Reset to first solution
     }
   }, [fromAsset, toAsset, swapAmount, selectedDEX, portfolio]);
 
@@ -631,6 +635,9 @@ const Dashboard: React.FC = () => {
     if (analysis.needsSmartSolutions && analysis.smartSolutions && analysis.smartSolutions.length > 0) {
       console.log('🔥 Smart Solutions Available:', analysis.smartSolutions);
       setSmartSolutions(analysis.smartSolutions);
+      setShowAllSolutions(false); // Mobile-first: show single solution
+      setCurrentSolutionIndex(0); // Start with first solution
+      setIsShowingFinalDepositOption(false); // Reset final deposit flag
 
       // For DEX + Chain Fusion: Only show Smart Solutions after DEX is selected
       const requiresDEXFirst = (analysis.route.operationType === 'DEX + Minter') && needsDEXSelection(fromAsset, toAsset);
@@ -645,7 +652,8 @@ const Dashboard: React.FC = () => {
       setShowSmartSolutions(false);
       setSmartSolutions([]);
       setSelectedSolution(null);
-      setShowAllSolutions(true);
+      setShowAllSolutions(false); // Mobile-first: always show single solution
+    setCurrentSolutionIndex(0); // Reset to first solution
     }
   };
 
@@ -660,57 +668,75 @@ const Dashboard: React.FC = () => {
   };
 
   const handleRejectSolution = (solutionIndex: number) => {
-    if (solutionIndex === 0) {
-      // If rejecting the first (recommended) solution, show all alternatives
-      setShowAllSolutions(true);
+    // Check if we're rejecting the final deposit option (already showing the deposit alternative)
+    if (isShowingFinalDepositOption) {
+      // User rejected the final deposit option - cancel transaction and clear swap
+      console.log('🚫 User rejected final deposit option - canceling transaction');
+
+      // Clear all Smart Solutions state
+      setSmartSolutions([]);
+      setShowSmartSolutions(false);
       setSelectedSolution(null);
+      setCurrentSolutionIndex(0);
+      setIsShowingFinalDepositOption(false);
 
-      // Additionally, if user rejects ALL Smart Solutions, offer deposit alternatives
-      // This creates a deposit solution for the gas asset they need
-      if (smartSolutions.length > 0) {
-        const rejectedSolution = smartSolutions[0];
-        const description = rejectedSolution.description || rejectedSolution.cost?.description || '';
+      // Clear swap form
+      setFromAsset('');
+      setToAsset('');
+      setSwapAmount('');
+      setSelectedDEX(null);
+      setSwapAnalysis(null);
+      setTransactionData(null);
 
-        // Extract what gas asset they need
-        let neededAsset = 'ckETH'; // default
-        if (description.includes('ckBTC')) neededAsset = 'ckBTC';
-        else if (description.includes('ckETH')) neededAsset = 'ckETH';
-        else if (description.includes('ckUSDC')) neededAsset = 'ckUSDC';
-        else if (description.includes('ICP')) neededAsset = 'ICP';
+      // Reset DEX selection visibility
+      setShowDEXSelection(false);
+      setShowRouteDetails(false);
 
-        // Create deposit alternative solution
-        const depositSolution = {
-          id: `deposit_${neededAsset}`,
-          type: 'manual_topup' as const,
-          title: `Deposit ${neededAsset} to Your Portfolio`,
-          description: `Transfer ${neededAsset} from your ICP wallet to your HodlHut portfolio to have sufficient balance for gas fees.`,
-          badge: 'ALTERNATIVE' as const,
-          userReceives: {
-            amount: 0, // No immediate receive since this is a deposit
-            asset: neededAsset
-          },
-          cost: {
-            asset: neededAsset,
-            amount: rejectedSolution.cost?.amount || '0',
-            description: `Deposit ${neededAsset} to portfolio`
-          },
-          portfolioImpact: {},
-          userNeedsTopup: true
-        };
+      console.log('✅ Transaction canceled - swap form cleared');
+      return;
+    }
 
-        // Add deposit alternative to solutions
-        setSmartSolutions(prev => [...prev, depositSolution]);
-      }
+    // Check if we're rejecting the very last Smart Solution (option X of X)
+    const nextIndex = currentSolutionIndex + 1;
+    const isLastSolution = nextIndex >= smartSolutions.length;
+
+    if (!isLastSolution) {
+      // Move to next solution in the cycle - single container replacement
+      setCurrentSolutionIndex(nextIndex);
+      setSelectedSolution(null);
+      console.log(`📋 Moving to option ${nextIndex + 1} of ${smartSolutions.length}`);
     } else {
-      // For other solutions, just close this specific one
-      const updatedSolutions = smartSolutions.filter((_, index) => index !== solutionIndex);
-      setSmartSolutions(updatedSolutions);
+      // User has rejected the final Smart Solution - cancel transaction and clear swap
+      console.log('🚫 User rejected final Smart Solution - canceling transaction');
+
+      // Clear all Smart Solutions state
+      setSmartSolutions([]);
+      setShowSmartSolutions(false);
+      setSelectedSolution(null);
+      setCurrentSolutionIndex(0);
+      setIsShowingFinalDepositOption(false);
+
+      // Clear swap form
+      setFromAsset('');
+      setToAsset('');
+      setSwapAmount('');
+      setSelectedDEX(null);
+      setSwapAnalysis(null);
+      setTransactionData(null);
+
+      // Reset DEX selection visibility
+      setShowDEXSelection(false);
+      setShowRouteDetails(false);
+
+      console.log('✅ Transaction canceled after rejecting all Smart Solutions - swap form cleared');
     }
   };
 
   const resetSolutionsView = () => {
     setSelectedSolution(null);
-    setShowAllSolutions(true);
+    setShowAllSolutions(false); // Mobile-first: always show single solution
+    setCurrentSolutionIndex(0); // Reset to first solution
+    setIsShowingFinalDepositOption(false); // Reset final deposit flag
   };
 
   // Number formatting helper
@@ -803,6 +829,9 @@ const Dashboard: React.FC = () => {
         if (analysis.needsSmartSolutions && analysis.smartSolutions && analysis.smartSolutions.length > 0) {
           console.log('🔥 Smart Solutions Available after DEX selection:', analysis.smartSolutions);
           setSmartSolutions(analysis.smartSolutions);
+          setShowAllSolutions(false); // Mobile-first: show single solution
+          setCurrentSolutionIndex(0); // Start with first solution
+          setIsShowingFinalDepositOption(false); // Reset final deposit flag
           setShowSmartSolutions(true);
           setShowDEXSelection(false); // Hide DEX selector when Smart Solutions appear
           console.log('🔥 DEX selected, hiding DEX selector and showing Smart Solutions');
@@ -1469,6 +1498,7 @@ const Dashboard: React.FC = () => {
             smartSolutions={smartSolutions}
             selectedSolution={selectedSolution}
             showAllSolutions={showAllSolutions}
+            currentSolutionIndex={currentSolutionIndex}
             setFromAsset={setFromAsset}
             setToAsset={setToAsset}
             setSwapAmount={setSwapAmount}
