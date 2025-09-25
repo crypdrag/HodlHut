@@ -27,3 +27,4 @@ dist/
 
 # environment variables
 .env
+chat.md
