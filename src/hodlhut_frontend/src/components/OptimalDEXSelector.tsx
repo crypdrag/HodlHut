@@ -142,13 +142,13 @@ const OptimalDEXSelector: React.FC<OptimalDEXSelectorProps> = ({
   };
 
   return (
-    <div className="w-full max-w-lg">
+    <div className="w-full max-w-full sm:max-w-lg">
       {/* Loading state */}
       {isLoadingQuotes && (
-        <div className="mb-4 p-4 bg-primary-600/10 border border-primary-500/20 rounded-xl">
-          <div className="flex items-center gap-3">
-            <div className="w-5 h-5 border-2 border-primary-400 border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm font-medium text-primary-400">Finding optimal DEX...</span>
+        <div className="mb-3 sm:mb-4 p-3 sm:p-4 bg-primary-600/10 border border-primary-500/20 rounded-xl">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-primary-400 border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs sm:text-sm font-medium text-primary-400">Finding optimal DEX...</span>
           </div>
         </div>
       )}
@@ -157,12 +157,12 @@ const OptimalDEXSelector: React.FC<OptimalDEXSelectorProps> = ({
       {!isLoadingQuotes && (
         <div className="border border-white/10 rounded-xl bg-surface-2 overflow-hidden">
           {/* Optimal Choice Header */}
-          <div className="p-4 bg-primary-600/5 border-b border-white/5">
-            <div className="flex items-center gap-2 mb-2">
-              <Star size={16} className="text-primary-400 fill-primary-400" />
-              <span className="text-sm font-semibold text-primary-400">Optimal Choice</span>
+          <div className="p-3 sm:p-4 bg-primary-600/5 border-b border-white/5">
+            <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+              <Star size={14} className="text-primary-400 fill-primary-400 sm:w-4 sm:h-4" />
+              <span className="text-xs sm:text-sm font-semibold text-primary-400">Optimal Choice</span>
               {optimalDEX.quote?.badge && (
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-medium ${
                   optimalDEX.quote.badge === 'RECOMMENDED' ? 'bg-success-400/15 text-success-300' :
                   optimalDEX.quote.badge === 'FASTEST' ? 'bg-warning-400/15 text-warning-300' :
                   optimalDEX.quote.badge === 'CHEAPEST' ? 'bg-primary-600/15 text-primary-400' :
@@ -173,58 +173,49 @@ const OptimalDEXSelector: React.FC<OptimalDEXSelectorProps> = ({
               )}
             </div>
             {optimalDEX.quote?.reason && (
-              <p className="text-xs text-text-secondary">{optimalDEX.quote.reason}</p>
+              <p className="text-xs text-text-secondary leading-snug">{optimalDEX.quote.reason}</p>
             )}
           </div>
 
           {/* Main DEX Row */}
-          <div className="p-4">
-            <div className="flex items-center justify-between">
-              {/* DEX Info */}
-              <div className="flex items-center gap-4">
-                <DEXIcon dex={optimalDEX.id} size={32} />
-                <div>
-                  <div className="font-semibold text-text-primary text-lg">{optimalDEX.data?.name || optimalDEX.id}</div>
-                  <div className="text-sm text-text-secondary">
-                    Fee: {optimalDEX.quote ? `${optimalDEX.quote.fee}%` : (optimalDEX.data?.stats?.['Trading Fee'] || '0.3%')}
-                    {optimalDEX.quote?.slippage !== undefined && (
-                      <span className="ml-2">
-                        • Slippage: ~{optimalDEX.quote.slippage.toFixed(2)}%
-                      </span>
-                    )}
+          <div className="p-3 sm:p-4">
+            {/* DEX Info - Full Width */}
+            <div className="flex items-center gap-3">
+              <DEXIcon dex={optimalDEX.id} size={28} className="sm:w-8 sm:h-8 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <div className="font-semibold text-text-primary text-base sm:text-lg">{optimalDEX.data?.name || optimalDEX.id}</div>
+                {optimalDEX.quote?.reason && (
+                  <div className="text-xs sm:text-sm text-text-secondary leading-relaxed">
+                    {optimalDEX.quote.reason}
                   </div>
+                )}
+                <div className="text-xs sm:text-sm text-text-secondary mt-1">
+                  Fee: {optimalDEX.quote ? `${optimalDEX.quote.fee}%` : (optimalDEX.data?.stats?.['Trading Fee'] || '0.3%')}
+                  {optimalDEX.quote?.slippage !== undefined && (
+                    <span className="ml-2">
+                      • Slippage: ~{optimalDEX.quote.slippage.toFixed(2)}%
+                    </span>
+                  )}
                 </div>
               </div>
-
-              {/* Select Button */}
-              <button
-                onClick={handleSelectOptimalDEX}
-                className={`px-6 py-3 rounded-xl text-sm font-semibold transition-colors ${
-                  selectedDEX === optimalDEX.id
-                    ? 'bg-success-600 text-white'
-                    : 'bg-primary-600 hover:bg-primary-500 text-white'
-                }`}
-              >
-                {selectedDEX === optimalDEX.id ? '✓ Selected' : 'Use This DEX'}
-              </button>
             </div>
 
             {/* Agent Quote Metrics */}
             {optimalDEX.quote && (
-              <div className="mt-4 p-3 bg-surface-3 rounded-lg">
-                <div className="flex items-center justify-between text-sm">
+              <div className="mt-3 sm:mt-4 p-2.5 sm:p-3 bg-surface-3 rounded-lg">
+                <div className="flex items-center justify-between text-xs sm:text-sm">
                   <span className="text-text-secondary">Agent Score:</span>
-                  <span className="font-medium text-text-primary">{optimalDEX.quote.score.toFixed(1)}/10</span>
+                  <span className="font-medium text-text-primary text-right">{optimalDEX.quote.score.toFixed(1)}/10</span>
                 </div>
                 {optimalDEX.quote.liquidityUsd && (
-                  <div className="flex items-center justify-between text-sm mt-1">
+                  <div className="flex items-center justify-between text-xs sm:text-sm mt-1">
                     <span className="text-text-secondary">Liquidity:</span>
-                    <span className="font-medium text-text-primary">${(optimalDEX.quote.liquidityUsd / 1000).toFixed(0)}K</span>
+                    <span className="font-medium text-text-primary text-right">${(optimalDEX.quote.liquidityUsd / 1000).toFixed(0)}K</span>
                   </div>
                 )}
-                <div className="flex items-center justify-between text-sm mt-1">
-                  <span className="text-text-secondary">Estimated Speed:</span>
-                  <span className="font-medium text-text-primary">{optimalDEX.quote.estimatedSpeed}</span>
+                <div className="flex items-center justify-between text-xs sm:text-sm mt-1">
+                  <span className="text-text-secondary">Speed:</span>
+                  <span className="font-medium text-text-primary text-right">{optimalDEX.quote.estimatedSpeed}</span>
                 </div>
               </div>
             )}
@@ -232,16 +223,16 @@ const OptimalDEXSelector: React.FC<OptimalDEXSelectorProps> = ({
             {/* Toggle Details */}
             <button
               onClick={() => setShowDetails(!showDetails)}
-              className="mt-4 w-full flex items-center justify-center gap-2 py-2 text-sm text-primary-400 hover:text-primary-300 transition-colors"
+              className="mt-3 sm:mt-4 w-full flex items-center justify-center gap-1.5 sm:gap-2 py-2 text-xs sm:text-sm text-primary-400 hover:text-primary-300 transition-colors min-h-[44px]"
             >
               <span>{showDetails ? 'Hide Details' : 'Show Details'}</span>
-              {showDetails ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              {showDetails ? <ChevronUp size={14} className="sm:w-4 sm:h-4" /> : <ChevronDown size={14} className="sm:w-4 sm:h-4" />}
             </button>
           </div>
 
           {/* Expanded Details */}
           {showDetails && (
-            <div className="border-t border-white/10 bg-surface-1 p-6">
+            <div className="border-t border-white/10 bg-surface-1 p-3 sm:p-6">
               {optimalDEX.quote && swapValueUSD ? (
                 (() => {
                   const metrics: DEXMetrics = {
@@ -259,46 +250,46 @@ const OptimalDEXSelector: React.FC<OptimalDEXSelectorProps> = ({
                   return (
                     <>
                       {/* Performance Assessment */}
-                      <div className="mb-6">
-                        <h4 className="text-sm font-semibold text-text-primary mb-3">Performance Assessment</h4>
-                        <div className={`text-sm ${semanticColor} font-medium mb-2`}>
+                      <div className="mb-4 sm:mb-6">
+                        <h4 className="text-xs sm:text-sm font-semibold text-text-primary mb-2 sm:mb-3">Performance Assessment</h4>
+                        <div className={`text-xs sm:text-sm ${semanticColor} font-medium mb-1.5 sm:mb-2 leading-snug sm:leading-relaxed`}>
                           {explanation.overallRecommendation}
                         </div>
                         {explanation.celebrationMessage && (
-                          <div className="text-sm text-success-400">
+                          <div className="text-xs sm:text-sm text-success-400 leading-snug sm:leading-relaxed">
                             {explanation.celebrationMessage}
                           </div>
                         )}
                         {explanation.warningMessage && (
-                          <div className="text-sm text-warning-400">
+                          <div className="text-xs sm:text-sm text-warning-400 leading-snug sm:leading-relaxed">
                             {explanation.warningMessage}
                           </div>
                         )}
                       </div>
 
                       {/* Detailed Metrics */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-surface-2 rounded-lg p-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+                        <div className="bg-surface-2 rounded-lg p-2.5 sm:p-3">
                           <div className="text-xs text-text-muted mb-1">Price Impact</div>
-                          <div className={`text-sm font-semibold ${semanticColor}`}>
+                          <div className={`text-xs sm:text-sm font-semibold ${semanticColor} leading-snug`}>
                             {metrics.slippage.toFixed(2)}% ({explanation.slippageCategory})
                           </div>
                         </div>
-                        <div className="bg-surface-2 rounded-lg p-3">
+                        <div className="bg-surface-2 rounded-lg p-2.5 sm:p-3">
                           <div className="text-xs text-text-muted mb-1">Liquidity Depth</div>
-                          <div className="text-sm font-semibold text-text-primary">
+                          <div className="text-xs sm:text-sm font-semibold text-text-primary leading-snug">
                             ${(metrics.liquidityUsd/1000).toFixed(0)}K ({explanation.liquidityCategory})
                           </div>
                         </div>
-                        <div className="bg-surface-2 rounded-lg p-3">
+                        <div className="bg-surface-2 rounded-lg p-2.5 sm:p-3">
                           <div className="text-xs text-text-muted mb-1">Trading Fee</div>
-                          <div className="text-sm font-semibold text-text-primary">
+                          <div className="text-xs sm:text-sm font-semibold text-text-primary">
                             {metrics.fee}%
                           </div>
                         </div>
-                        <div className="bg-surface-2 rounded-lg p-3">
-                          <div className="text-xs text-text-muted mb-1">Execution Speed</div>
-                          <div className="text-sm font-semibold text-text-primary">
+                        <div className="bg-surface-2 rounded-lg p-2.5 sm:p-3">
+                          <div className="text-xs text-text-muted mb-1">Speed</div>
+                          <div className="text-xs sm:text-sm font-semibold text-text-primary">
                             {metrics.estimatedSpeed}
                           </div>
                         </div>
@@ -309,23 +300,23 @@ const OptimalDEXSelector: React.FC<OptimalDEXSelectorProps> = ({
               ) : (
                 // Fallback to static data
                 <>
-                  <div className="mb-6">
-                    <h4 className="text-sm font-semibold text-text-primary mb-4">Key Features</h4>
-                    <div className="space-y-2">
+                  <div className="mb-4 sm:mb-6">
+                    <h4 className="text-xs sm:text-sm font-semibold text-text-primary mb-3 sm:mb-4">Key Features</h4>
+                    <div className="space-y-1.5 sm:space-y-2">
                       {optimalDEX.data?.advantages?.map((advantage: string, index: number) => (
                         <div key={index} className="flex items-center gap-2">
                           <div className="w-1.5 h-1.5 rounded-full bg-success-400 flex-shrink-0"></div>
-                          <span className="text-sm text-text-secondary">{advantage}</span>
+                          <span className="text-xs sm:text-sm text-text-secondary leading-snug">{advantage}</span>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
                     {optimalDEX.data?.stats && Object.entries(optimalDEX.data.stats).map(([stat, value]) => (
-                      <div key={stat} className="bg-surface-2 rounded-lg p-3">
+                      <div key={stat} className="bg-surface-2 rounded-lg p-2.5 sm:p-3">
                         <div className="text-xs text-text-muted mb-1">{stat}</div>
-                        <div className="text-sm font-semibold text-text-primary">{String(value)}</div>
+                        <div className="text-xs sm:text-sm font-semibold text-text-primary">{String(value)}</div>
                       </div>
                     ))}
                   </div>

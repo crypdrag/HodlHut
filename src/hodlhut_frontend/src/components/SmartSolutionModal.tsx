@@ -124,14 +124,11 @@ const SmartSolutionModal: React.FC<SmartSolutionModalProps> = ({
         {/* Content */}
         <div className="p-6">
           <div className="mb-6">
-            <h4 className="text-sm sm:text-lg font-semibold text-text-primary mb-2">
+            <h4 className="text-sm sm:text-lg font-semibold text-text-primary mb-4">
               {formatTextWithNumbers(pendingApproval.title)}
             </h4>
-            <p className="text-xs sm:text-sm text-text-secondary leading-snug sm:leading-relaxed">
-              {formatTextWithNumbers(pendingApproval.description)}
-            </p>
 
-            {/* Add helpful action explanation */}
+            {/* Add helpful action explanation - Hidden on mobile for space efficiency */}
             {(pendingApproval.id?.includes('use_balance_') || pendingApproval.type === 'deduct_from_swap') ? (
               <div className="mt-4 p-3 bg-success-600/10 border border-success-500/20 rounded-lg">
                 <div className="text-sm text-success-300 font-medium mb-1">✅ Using Existing Balance:</div>
@@ -140,7 +137,7 @@ const SmartSolutionModal: React.FC<SmartSolutionModalProps> = ({
                 </div>
               </div>
             ) : pendingApproval.type === 'auto_swap' && (
-              <div className="mt-4 p-3 bg-success-600/10 border border-success-500/20 rounded-lg">
+              <div className="mt-4 p-3 bg-success-600/10 border border-success-500/20 rounded-lg hidden sm:block">
                 <div className="text-sm text-success-300 font-medium mb-1">✨ HodlHut Will Handle This:</div>
                 <div className="text-xs text-text-secondary leading-relaxed">
                   {pendingApproval.title.includes('Auto-Swap') &&
