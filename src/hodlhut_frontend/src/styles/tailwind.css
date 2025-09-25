@@ -1344,8 +1344,43 @@ section.relative button.bg-primary-600:hover {
 
 /* More specific targeting for the Chain Fusion section container - removed override */
 /* section .mb-16:first-of-type {
-  margin-bottom: 80px; 
+  margin-bottom: 80px;
 } */
+
+/* ===== DEPOSIT MODAL PROGRESS METER ANIMATIONS ===== */
+
+/* Removed chaotic progress-fill animation - now using step-based progression */
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* Progress meter enhancements */
+.progress-meter {
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-meter::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: shimmer 2s ease-in-out infinite;
+}
 
 /* Consistent section spacing - removed override */
 /* section.py-20 {

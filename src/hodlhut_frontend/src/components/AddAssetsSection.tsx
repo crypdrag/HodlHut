@@ -7,10 +7,10 @@ import { MASTER_ASSETS } from '../../assets/master_asset_data';
 // Import the deposit assets configuration
 const DEPOSIT_ASSETS_CONFIG = {
   'Cross-Chain Deposits': [
-    { asset: 'BTC', label: 'Bitcoin', description: 'Native Bitcoin from the Bitcoin network', walletType: 'Bitcoin Wallet' },
-    { asset: 'ETH', label: 'Ethereum', description: 'Native Ethereum from the Ethereum network', walletType: 'Ethereum Wallet' },
-    { asset: 'USDC', label: 'USDC (Ethereum)', description: 'USDC stablecoin from Ethereum network', walletType: 'Ethereum Wallet' },
-    { asset: 'USDT', label: 'USDT (Ethereum)', description: 'USDT stablecoin from Ethereum network', walletType: 'Ethereum Wallet' },
+    { asset: 'BTC', label: 'Bitcoin', description: 'Native Bitcoin from the Bitcoin network', walletType: 'Bitcoin' },
+    { asset: 'ETH', label: 'Ethereum', description: 'Native Ethereum from the Ethereum network', walletType: 'Ethereum' },
+    { asset: 'USDC', label: 'USDC (Ethereum)', description: 'USDC stablecoin from Ethereum network', walletType: 'Ethereum' },
+    { asset: 'USDT', label: 'USDT (Ethereum)', description: 'USDT stablecoin from Ethereum network', walletType: 'Ethereum' },
   ],
   'ICP Ecosystem': [
     { asset: 'ckBTC', label: 'ckBTC', description: 'Chain-key Bitcoin on ICP', walletType: 'ICP' },
@@ -87,7 +87,6 @@ const AddAssetsSection: React.FC<AddAssetsSectionProps> = ({
         <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-1 sm:mb-2">
           {isHutActivated ? "Add Assets" : "Add Assets to Activate Your Hut"}
         </h2>
-        <p className="text-sm sm:text-base text-text-secondary">Choose an asset to deposit from Bitcoin, Ethereum or ICP ecosystem</p>
       </div>
 
       {/* Unified Deposit Interface */}
@@ -117,40 +116,6 @@ const AddAssetsSection: React.FC<AddAssetsSectionProps> = ({
           </div>
         </div>
 
-        {/* Asset Preview */}
-        {selectedAssetDetails && (
-          <div className="mb-6 p-4 bg-surface-2 border border-white/10 rounded-2xl">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 flex items-center justify-center bg-surface-3 rounded-xl">
-                <AssetIcon asset={selectedAssetDetails.asset} size={24} />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-text-primary">{selectedAssetDetails.label}</h3>
-                <p className="text-sm text-text-secondary">{selectedAssetDetails.description}</p>
-              </div>
-            </div>
-
-            {/* Wallet Type Info */}
-            <div className="flex items-center justify-between p-3 bg-surface-1 rounded-lg border border-white/5">
-              <div className="flex items-center gap-2">
-                <Wallet size={16} className="text-primary-400" />
-                <span className="text-sm font-medium text-text-secondary">Wallet Required:</span>
-              </div>
-              <span className="text-sm font-semibold text-primary-400">{selectedAssetDetails.walletType} Wallet</span>
-            </div>
-
-            {/* Category Badge */}
-            <div className="flex justify-between items-center mt-3">
-              <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                selectedAssetDetails.category === 'Cross-Chain Deposits'
-                  ? 'bg-warning-400/15 text-warning-300 border border-warning-400/30'
-                  : 'bg-success-400/15 text-success-300 border border-success-400/30'
-              }`}>
-                {selectedAssetDetails.category}
-              </span>
-            </div>
-          </div>
-        )}
 
         {/* Connect Wallet Button */}
         {selectedAssetDetails && (

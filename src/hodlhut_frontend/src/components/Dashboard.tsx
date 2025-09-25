@@ -1260,8 +1260,19 @@ const Dashboard: React.FC = () => {
         return `Balance: 0 ${selectedDepositAssetUnified}`;
       }
     } else {
-      // For L1 assets (BTC, ETH, etc.), show deposit flow message
-      return 'Deposit to receive chain-key tokens in your portfolio';
+      // For L1 assets (BTC, ETH, etc.), show deposit flow message with specific ckAsset
+      const getChainKeyAsset = (asset: string): string => {
+        const assetMap: Record<string, string> = {
+          'BTC': 'ckBTC',
+          'ETH': 'ckETH',
+          'USDC': 'ckUSDC',
+          'USDT': 'ckUSDT'
+        };
+        return assetMap[asset] || `ck${asset}`;
+      };
+
+      const ckAsset = getChainKeyAsset(selectedDepositAssetUnified);
+      return `Deposit to receive ${ckAsset} in your Hut`;
     }
   };
 
