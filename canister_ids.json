@@ -1,8 +1,8 @@
 {
-  "hodlhut_backend": {
+  "hodlprotocol_backend": {
     "ic": "vm45p-uiaaa-aaaad-ab6cq-cai"
   },
-  "hodlhut_frontend": {
+  "hodlprotocol_frontend": {
     "ic": "vf7wt-caaaa-aaaad-ab6da-cai"
   }
 }

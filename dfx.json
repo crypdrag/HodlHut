@@ -4,8 +4,8 @@
       "type": "pull",
       "id": "rdmx6-jaaaa-aaaaa-aaadq-cai"
     },
-    "hodlhut_frontend": {
-      "dependencies": ["hodlhut_backend"],
+    "hodlprotocol_frontend": {
+      "dependencies": ["hodlprotocol_backend"],
       "frontend": {
         "entrypoint": "dist/hodlhut_frontend/index.html"
       },
@@ -14,18 +14,10 @@
       ],
       "type": "assets"
     },
-    "hodlhut_backend": {
+    "hodlprotocol_backend": {
       "main": "src/hodlhut_backend/main.mo",
       "type": "motoko",
       "args": "--enhanced-orthogonal-persistence"
-    },
-    "hutfactory": {
-      "main": "src/hutfactory/main.mo",
-      "type": "motoko"
-    },
-    "myhut": {
-      "main": "src/myhut/main.mo",
-      "type": "motoko"
     }
   },
   "defaults": {
