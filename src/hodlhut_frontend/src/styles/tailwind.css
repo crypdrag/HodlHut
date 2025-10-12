@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap');
 @import url('https://pro.fontawesome.com/releases/v5.10.0/css/all.css');
 @import url('https://cdn.jsdelivr.net/npm/cryptocoins-icons@2.9.0/webfont/cryptocoins.css');
 
@@ -8,9 +8,9 @@
    =========================== */
 :root {
   /* Custom dapp color palette */
-  --dapp-primary: #668BF7;
+  --dapp-primary: oklch(0.65 0.25 280);
   --dapp-secondary: #141414;
-  --dapp-background: #0F0F0F;
+  --dapp-background: oklch(0.08 0.01 270);
   --dapp-surface: #141414;
   --dapp-surface-elevated: #1A1A1A;
   --dapp-surface-interactive: #1F1F1F;
@@ -18,6 +18,9 @@
   --dapp-accent: #56A35C;
   --dapp-warning: #E7C94E;
   --dapp-accent-alt: #E37648;
+  --dapp-accent-bitcoin: oklch(0.72 0.19 50);
+  --dapp-highlight: oklch(0.90 0.12 95);
+  --dapp-destructive: oklch(0.62 0.24 25);
   --dapp-foreground: #E5E5E5;
   --dapp-muted: #A1A1A1;
   --dapp-border: #141414;
@@ -121,10 +124,22 @@
   --color-info-900: var(--color-primary-900);
   --color-on-info:  var(--color-on-primary);
 
+  /* Bitcoin/Crypto accent colors */
+  --color-accent-bitcoin: var(--dapp-accent-bitcoin); /* oklch(0.72 0.19 50) */
+  --color-accent-bitcoin-foreground: oklch(0.15 0.05 50);
+
+  /* Highlight/Gold accent for premium features, rewards, earnings */
+  --color-highlight: var(--dapp-highlight); /* oklch(0.90 0.12 95) */
+  --color-highlight-foreground: oklch(0.15 0.05 95);
+
+  /* Destructive - vibrant red for warnings and destructive actions */
+  --color-destructive: var(--dapp-destructive); /* oklch(0.62 0.24 25) */
+  --color-destructive-foreground: oklch(0.98 0 0);
+
   /* Font families */
-  --font-sans: "Poppins", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+  --font-sans: "Lato", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
                "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
-  --font-display: "Sora", var(--font-sans);
+  --font-display: "Lato", var(--font-sans);
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
                "Liberation Mono", "Courier New", monospace;
 

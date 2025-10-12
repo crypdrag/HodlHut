@@ -4,7 +4,6 @@ import { useAuth } from '../contexts/AuthContext';
 import AssetIcon from './AssetIcon';
 import InternetIdentityLogin from './InternetIdentityLogin';
 // Tailwind CSS classes now handle all styling
-import HeroAnimationVideo from '../../assets/images/Hero_Animation.mp4';
 import {
   Radio,      // Personal Sovereignty - Broadcasting personal control
   Network,    // Universal Router - Network/routing
@@ -32,18 +31,7 @@ const DiversePortfolioIcon: React.FC = () => <PieChart size={48} className="text
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, login, logout, principal, isLoading } = useAuth();
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
-  const [showAnimation, setShowAnimation] = useState(true);
   const [showIILogin, setShowIILogin] = useState(false);
-
-  useEffect(() => {
-    // Hide animation after 4 seconds
-    const timer = setTimeout(() => {
-      setShowAnimation(false);
-    }, 4000);
-
-    return () => clearTimeout(timer);
-  }, []);
 
   const handleGetHut = async () => {
     if (isAuthenticated) {
@@ -110,95 +98,38 @@ const HomePage: React.FC = () => {
               <span className="text-2xl font-bold text-text-primary" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>HodlHut</span>
             </div>
 
-            {/* Navigation buttons - mobile centered, desktop right */}
-            <div className="flex gap-1 sm:gap-4 items-center mx-auto sm:mx-0">
-            {isAuthenticated ? (
-              <>
-                <button
-                  className="btn-bitcoin text-xs sm:text-base px-2 py-1 sm:px-4 sm:py-2 whitespace-nowrap"
-                  onClick={handleGetHut}
-                >
-                  Get Hut
-                </button>
-                <button
-                  className="btn-success text-xs sm:text-base px-2 py-1 sm:px-4 sm:py-2 whitespace-nowrap"
-                  onClick={handleMyHuts}
-                >
-                  My Huts
-                </button>
-                <div className="relative group">
-                  <button
-                    className="btn-sienna text-xs sm:text-base px-2 py-1 sm:px-4 sm:py-2 whitespace-nowrap"
-                    onClick={logout}
-                  >
-                    Logout
-                  </button>
-                  {principal && (
-                    <div className="absolute top-full right-0 mt-1 bg-surface-1 border border-white/10 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transform translate-y-2 group-hover:translate-y-0 transition-all duration-200 z-50 p-2 min-w-max">
-                      <span className="text-xs text-text-secondary px-2 py-1 rounded bg-surface-2">
-                        👤 {principal.toString().slice(0, 8)}...
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </>
-            ) : (
-              <>
-                <button
-                  className={`btn-bitcoin text-xs sm:text-base px-2 py-1 sm:px-4 sm:py-2 whitespace-nowrap transition-colors ${isLoading ? 'bg-primary-600' : ''}`}
-                  onClick={handleGetHut}
-                  disabled={isLoading}
-                >
-                  Get Hut
-                </button>
-                <button
-                  className={`btn-success text-xs sm:text-base px-2 py-1 sm:px-4 sm:py-2 whitespace-nowrap transition-colors ${isLoading ? 'bg-success-600' : ''}`}
-                  onClick={handleMyHuts}
-                  disabled={isLoading}
-                >
-                  My Huts
-                </button>
-              </>
-            )}
-            <button
-              className="btn-primary text-xs sm:text-base px-2 py-1 sm:px-4 sm:py-2 whitespace-nowrap"
-              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
-            >
-              Learn
-            </button>
+            {/* Navigation links - simple text-based modern DEX style */}
+            <div className="flex gap-6 sm:gap-8 items-center mx-auto sm:mx-0">
+              <a
+                href="/swap"
+                className="text-sm sm:text-base font-medium text-text-primary hover:text-primary-400 transition-colors duration-200"
+                onClick={(e) => { e.preventDefault(); navigate('/swap'); }}
+              >
+                Swap
+              </a>
+              <span className="text-text-muted">|</span>
+              <a
+                href="/stake"
+                className="text-sm sm:text-base font-medium text-text-primary hover:text-primary-400 transition-colors duration-200"
+                onClick={(e) => { e.preventDefault(); navigate('/stake'); }}
+              >
+                Stake
+              </a>
+              <span className="text-text-muted">|</span>
+              <a
+                href="/pool"
+                className="text-sm sm:text-base font-medium text-text-primary hover:text-primary-400 transition-colors duration-200"
+                onClick={(e) => { e.preventDefault(); navigate('/pool'); }}
+              >
+                Pool
+              </a>
             </div>
           </nav>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="relative min-h-[40vh] sm:min-h-[70vh] flex items-center justify-center overflow-hidden section bg-surface-1">
-        {/* Hero Animation - Desktop only */}
-        <div className={`hidden sm:block absolute inset-0 flex items-center justify-center z-10 transition-opacity duration-2000 ${!showAnimation ? 'opacity-0 pointer-events-none' : ''}`}>
-          <video
-            className={`absolute w-full h-full object-cover object-center transition-opacity duration-500 ${isVideoLoaded ? 'opacity-100' : 'opacity-0'}`}
-            autoPlay
-            muted
-            loop
-            playsInline
-            onLoadedData={() => setIsVideoLoaded(true)}
-          >
-            <source src={HeroAnimationVideo} type="video/mp4" />
-          </video>
-        </div>
-
-        {/* Hero Background - Desktop only */}
-        <div className="hidden sm:block absolute inset-0 z-0">
-          <video
-            className="w-full h-full object-cover object-center"
-            autoPlay
-            muted
-            loop
-            poster=""
-          >
-            <source src={HeroAnimationVideo} type="video/mp4" />
-          </video>
-        </div>
+      <section className="relative min-h-[40vh] sm:min-h-[70vh] flex items-center justify-center overflow-hidden section bg-gradient-to-br from-surface-1 via-surface-2 to-surface-3">
 
         {/* Mobile Hero Content - CTA Card */}
         <div className="sm:hidden z-20 flex flex-col items-center justify-center text-center px-4">
