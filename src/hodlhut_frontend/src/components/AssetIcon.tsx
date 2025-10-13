@@ -8,7 +8,7 @@ import ckUSDCIcon from '../../assets/images/ckUSDC.svg';
 import USDTIcon from '../../assets/images/USDT.svg';
 import ckUSDTIcon from '../../assets/images/ckUSDT.svg';
 import ICPIcon from '../../assets/images/ICP.svg';
-import HodlHutLogo from '../../assets/images/hodlhut_logo.svg';
+import HodlHutLogo from '../../assets/images/hodl_logo.svg';
 
 interface AssetIconProps {
   asset: string;
