@@ -1,0 +1,38 @@
+type PoolInfo = record {
+  pool_address : text;
+  pool_type : text;
+  total_staked : nat64;
+  active_stakes : nat32;
+};
+
+type StakeOffer = record {
+  pool_address : text;
+  amount : nat64;
+  duration : nat32;
+  finality_provider : text;
+  expected_blst : nat64;
+  protocol_fee : nat64;
+  estimated_apy : float64;
+  nonce : nat64;
+};
+
+type ExecutionResult = record {
+  tx_id : text;
+  status : text;
+  bitcoin_tx_id : opt text;
+  error : opt text;
+};
+
+service : {
+  // Pool management (query methods)
+  "get_pool_list" : () -> (vec PoolInfo) query;
+  "get_pool_info" : (text) -> (opt PoolInfo) query;
+
+  // Transaction preparation (update methods)
+  "pre_stake" : (text, nat64, nat32, text) -> (StakeOffer);
+
+  // REE Orchestrator callbacks (update methods)
+  "execute_tx" : (text, ExecutionResult) -> ();
+  "new_block" : (nat64, text) -> ();
+  "rollback_tx" : (text) -> ();
+}

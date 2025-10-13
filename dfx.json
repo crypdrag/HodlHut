@@ -18,6 +18,11 @@
       "main": "src/hodlhut_backend/main.mo",
       "type": "motoko",
       "args": "--enhanced-orthogonal-persistence"
+    },
+    "hodlprotocol_exchange": {
+      "type": "rust",
+      "package": "hodlprotocol_exchange",
+      "candid": "src/hodlprotocol_exchange/hodlprotocol_exchange.did"
     }
   },
   "defaults": {
