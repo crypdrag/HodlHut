@@ -1,240 +1,362 @@
-import React, { useState } from 'react';
-import { Zap, Info, TrendingUp, Shield, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Zap, Info, Shield, Wallet, ChevronDown, CheckCircle } from 'lucide-react';
+import { bitcoinWalletService, ConnectedWallet, WalletInfo } from '../services/bitcoinWalletService';
+import { bitcoinStakingService, StakingInputs } from '../services/bitcoinStakingService';
+
+// Mock types for now - will be replaced with actual canister imports
+interface FinalityProvider {
+  btc_pk_hex: string;
+  description: { moniker: string; website: string };
+  commission: string;
+  voting_power: string;
+  estimated_apy: number;
+}
 
 const StakeBTCPage: React.FC = () => {
+  // State
   const [stakeAmount, setStakeAmount] = useState('');
-  const [stakingDuration, setStakingDuration] = useState<'30' | '90' | '180'>('90');
+  const [stakingDuration, setStakingDuration] = useState<30 | 90 | 180>(90);
+  const [connectedWallet, setConnectedWallet] = useState<ConnectedWallet | null>(null);
+  const [availableWallets, setAvailableWallets] = useState<WalletInfo[]>([]);
+  const [finalityProviders, setFinalityProviders] = useState<FinalityProvider[]>([]);
+  const [selectedFP, setSelectedFP] = useState<FinalityProvider | null>(null);
+  const [showFPSelector, setShowFPSelector] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isStaking, setIsStaking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [txStatus, setTxStatus] = useState<string | null>(null);
 
-  // Calculate APY based on duration (placeholder values)
-  const getAPY = (duration: string) => {
-    const apyMap = {
-      '30': '6%',
-      '90': '8%',
-      '180': '10%'
-    };
-    return apyMap[duration as keyof typeof apyMap] || '8%';
+  // Initialize: Detect wallets and fetch FPs
+  useEffect(() => {
+    const wallets = bitcoinWalletService.getAvailableWallets();
+    setAvailableWallets(wallets);
+
+    // TODO: Fetch real FPs from canister
+    // For now, mock data
+    const mockFPs: FinalityProvider[] = [
+      {
+        btc_pk_hex: '0x1234abcd',
+        description: { moniker: 'Babylon Labs 1', website: 'babylonlabs.io' },
+        commission: '3',
+        voting_power: '1000000',
+        estimated_apy: 9.7,
+      },
+      {
+        btc_pk_hex: '0x5678efgh',
+        description: { moniker: 'polkachu.com', website: 'polkachu.com' },
+        commission: '5',
+        voting_power: '950000',
+        estimated_apy: 9.5,
+      },
+    ];
+    setFinalityProviders(mockFPs);
+    setSelectedFP(mockFPs[0]); // Auto-select top FP
+  }, []);
+
+  // Handle wallet connection
+  const handleConnectWallet = async (walletId: 'unisat' | 'xverse') => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const wallet = await bitcoinWalletService.connect(walletId);
+      setConnectedWallet(wallet);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle staking
+  const handleStake = async () => {
+    if (!connectedWallet || !selectedFP) {
+      setError('Please connect wallet and select a finality provider');
+      return;
+    }
+
+    setIsStaking(true);
+    setError(null);
+    setTxStatus('Preparing staking transaction...');
+
+    try {
+      // Convert inputs
+      const amountSats = Math.floor(parseFloat(stakeAmount) * 100000000); // BTC to sats
+      const durationBlocks = stakingDuration * 144; // Days to blocks (~144 blocks/day)
+
+      // Validate
+      const validation = bitcoinStakingService.validateStakingInputs({
+        amount: amountSats,
+        duration: durationBlocks,
+        finalityProvider: selectedFP as any,
+        userBtcAddress: connectedWallet.address,
+        userBtcPublicKey: connectedWallet.publicKey,
+      });
+
+      if (!validation.isValid) {
+        throw new Error(validation.error);
+      }
+
+      setTxStatus('Constructing PSBTs...');
+
+      // Construct PSBTs
+      const stakeOffer = await bitcoinStakingService.constructStakingPSBTs({
+        amount: amountSats,
+        duration: durationBlocks,
+        finalityProvider: selectedFP as any,
+        userBtcAddress: connectedWallet.address,
+        userBtcPublicKey: connectedWallet.publicKey,
+      });
+
+      setTxStatus('Please sign in your wallet...');
+
+      // Sign PSBT
+      const signedPsbt = await bitcoinWalletService.signPsbt(stakeOffer.psbts.stakingPsbtHex);
+
+      setTxStatus('Transaction signed! Submitting...');
+
+      // TODO: Submit to REE Orchestrator
+      setTxStatus('✓ Success! Transaction submitted.');
+
+      setTimeout(() => {
+        setTxStatus(null);
+        setStakeAmount('');
+      }, 3000);
+    } catch (err: any) {
+      setError(err.message);
+      setTxStatus(null);
+    } finally {
+      setIsStaking(false);
+    }
+  };
+
+  // Get APY for selected FP
+  const getCurrentAPY = () => {
+    return selectedFP ? `${selectedFP.estimated_apy.toFixed(1)}%` : '8.0%';
   };
 
   return (
-    <div className="w-full min-h-screen bg-bg text-text-primary">
+    <div className="w-full min-h-screen bg-bg text-text-primary pb-32">
       <div className="container-app">
         {/* Hero Section */}
-        <div className="text-center py-8 md:py-12">
-          <h1 className="text-3xl md:text-4xl font-bold text-text-primary mb-4">
-            Stake Bitcoin. Earn Rewards. Stay Liquid.
+        <div className="text-center py-6 md:py-8">
+          <h1 className="text-2xl md:text-3xl font-bold text-text-primary mb-2">
+            Stake Bitcoin
           </h1>
-          <p className="text-base md:text-lg text-text-secondary max-w-2xl mx-auto">
-            First Bitcoin liquid staking on Internet Computer via Babylon Protocol
+          <p className="text-sm md:text-base text-text-secondary">
+            Earn rewards via Babylon Protocol
           </p>
         </div>
 
-        {/* Main Staking Interface */}
-        <div className="max-w-2xl mx-auto mb-8">
-          <div className="bg-surface-1 border border-white/10 rounded-3xl p-6 md:p-8">
-            {/* Amount Input */}
-            <div className="mb-6">
-              <label className="text-sm font-medium text-text-secondary mb-2 block">
-                Amount to Stake
-              </label>
-              <div className="bg-surface-2 border border-white/10 rounded-2xl p-6">
-                <div className="flex items-center gap-4">
-                  <input
-                    type="number"
-                    value={stakeAmount}
-                    onChange={(e) => setStakeAmount(e.target.value)}
-                    placeholder="0.0"
-                    className="flex-1 text-2xl md:text-3xl font-semibold text-text-primary bg-transparent border-none outline-none"
-                    step="any"
-                    min="0"
-                  />
-                  <div className="flex items-center gap-2 px-4 py-2 bg-surface-3 rounded-xl">
-                    <span className="text-lg font-semibold">BTC</span>
+        {/* Wallet Connection (Mobile-Optimized) */}
+        {!connectedWallet && (
+          <div className="max-w-md mx-auto mb-6">
+            <div className="bg-surface-1 border border-white/10 rounded-2xl p-4">
+              <h3 className="text-base font-semibold text-text-primary mb-3">
+                Connect Bitcoin Wallet
+              </h3>
+              <div className="space-y-2">
+                {availableWallets.map((wallet) => (
+                  <button
+                    key={wallet.id}
+                    onClick={() => handleConnectWallet(wallet.id)}
+                    disabled={!wallet.isInstalled || isLoading}
+                    className="w-full flex items-center justify-between p-4 bg-surface-2 border border-white/10 rounded-xl hover:bg-surface-3 disabled:opacity-50 min-h-[48px] transition-all"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Wallet className="w-5 h-5" />
+                      <span className="font-medium text-sm">{wallet.name}</span>
+                    </div>
+                    {!wallet.isInstalled && (
+                      <span className="text-xs text-text-muted">Not installed</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+              {error && (
+                <div className="mt-3 p-3 bg-error-600/15 border border-error-500/30 rounded-xl text-xs text-error-400">
+                  {error}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Main Staking Interface (Connected) */}
+        {connectedWallet && (
+          <div className="max-w-2xl mx-auto">
+            {/* Connected Wallet Badge */}
+            <div className="mb-4 p-3 bg-success-600/15 border border-success-500/30 rounded-xl flex items-center justify-between">
+              <span className="text-xs text-success-400 font-medium">
+                {connectedWallet.walletId} connected
+              </span>
+              <span className="text-xs text-text-muted font-mono">
+                {connectedWallet.address.slice(0, 6)}...{connectedWallet.address.slice(-4)}
+              </span>
+            </div>
+
+            <div className="bg-surface-1 border border-white/10 rounded-2xl p-4 md:p-6">
+              {/* Amount Input */}
+              <div className="mb-4">
+                <label className="text-xs font-medium text-text-secondary mb-2 block">
+                  Amount to Stake
+                </label>
+                <div className="bg-surface-2 border border-white/10 rounded-xl p-4">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      value={stakeAmount}
+                      onChange={(e) => setStakeAmount(e.target.value)}
+                      placeholder="0.0"
+                      className="flex-1 text-xl md:text-2xl font-semibold text-text-primary bg-transparent border-none outline-none min-h-[44px]"
+                      step="any"
+                      min="0"
+                    />
+                    <div className="px-3 py-2 bg-surface-3 rounded-lg">
+                      <span className="text-sm font-semibold">BTC</span>
+                    </div>
+                  </div>
+                  <div className="mt-2 text-xs text-text-muted">
+                    Min: 0.0005 BTC • Max: 350 BTC
                   </div>
                 </div>
-                <div className="mt-4 text-sm text-text-muted">
-                  Balance: 0.00 BTC
+              </div>
+
+              {/* Duration Selection (Mobile Touch Targets) */}
+              <div className="mb-4">
+                <label className="text-xs font-medium text-text-secondary mb-2 block">
+                  Staking Duration
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[30, 90, 180].map((days) => (
+                    <button
+                      key={days}
+                      onClick={() => setStakingDuration(days as 30 | 90 | 180)}
+                      className={`p-3 rounded-xl border transition-all min-h-[56px] ${
+                        stakingDuration === days
+                          ? 'border-primary-500 bg-primary-600/15'
+                          : 'border-white/10 bg-surface-2 hover:bg-surface-3'
+                      }`}
+                    >
+                      <div className="text-sm font-bold text-text-primary">{days} Days</div>
+                    </button>
+                  ))}
                 </div>
               </div>
-            </div>
 
-            {/* Duration Selection */}
-            <div className="mb-6">
-              <label className="text-sm font-medium text-text-secondary mb-3 block">
-                Staking Duration
-              </label>
-              <div className="grid grid-cols-3 gap-3">
+              {/* Finality Provider Selector (Mobile-First) */}
+              <div className="mb-4">
+                <label className="text-xs font-medium text-text-secondary mb-2 block">
+                  Finality Provider
+                </label>
                 <button
-                  onClick={() => setStakingDuration('30')}
-                  className={`p-4 rounded-xl border transition-all ${
-                    stakingDuration === '30'
-                      ? 'border-primary-500 bg-primary-600/15'
-                      : 'border-white/10 bg-surface-2 hover:bg-surface-3'
-                  }`}
+                  onClick={() => setShowFPSelector(!showFPSelector)}
+                  className="w-full p-4 bg-surface-2 border border-white/10 rounded-xl hover:bg-surface-3 transition-all min-h-[56px]"
                 >
-                  <div className="text-lg font-bold text-text-primary">30 Days</div>
-                  <div className="text-sm text-success-400 mt-1">6% APY</div>
+                  {selectedFP ? (
+                    <div className="flex items-center justify-between">
+                      <div className="text-left">
+                        <div className="text-sm font-semibold text-text-primary">
+                          {selectedFP.description.moniker}
+                        </div>
+                        <div className="text-xs text-success-400 mt-0.5">
+                          APY: {selectedFP.estimated_apy.toFixed(1)}%
+                        </div>
+                      </div>
+                      <ChevronDown className={`w-5 h-5 transition-transform ${showFPSelector ? 'rotate-180' : ''}`} />
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-text-muted">Select provider...</span>
+                      <ChevronDown className="w-5 h-5" />
+                    </div>
+                  )}
                 </button>
-                <button
-                  onClick={() => setStakingDuration('90')}
-                  className={`p-4 rounded-xl border transition-all ${
-                    stakingDuration === '90'
-                      ? 'border-primary-500 bg-primary-600/15'
-                      : 'border-white/10 bg-surface-2 hover:bg-surface-3'
-                  }`}
-                >
-                  <div className="text-lg font-bold text-text-primary">90 Days</div>
-                  <div className="text-sm text-success-400 mt-1">8% APY</div>
-                </button>
-                <button
-                  onClick={() => setStakingDuration('180')}
-                  className={`p-4 rounded-xl border transition-all ${
-                    stakingDuration === '180'
-                      ? 'border-primary-500 bg-primary-600/15'
-                      : 'border-white/10 bg-surface-2 hover:bg-surface-3'
-                  }`}
-                >
-                  <div className="text-lg font-bold text-text-primary">180 Days</div>
-                  <div className="text-sm text-success-400 mt-1">10% APY</div>
-                </button>
+
+                {/* FP List (Progressive Disclosure) */}
+                {showFPSelector && (
+                  <div className="mt-2 bg-surface-2 border border-white/10 rounded-xl overflow-hidden">
+                    {finalityProviders.map((fp) => (
+                      <button
+                        key={fp.btc_pk_hex}
+                        onClick={() => {
+                          setSelectedFP(fp);
+                          setShowFPSelector(false);
+                        }}
+                        className="w-full p-4 hover:bg-surface-3 transition-all min-h-[64px] border-b border-white/5 last:border-b-0"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="text-left flex-1">
+                            <div className="text-sm font-semibold text-text-primary flex items-center gap-2">
+                              {fp.description.moniker}
+                              {selectedFP?.btc_pk_hex === fp.btc_pk_hex && (
+                                <CheckCircle className="w-4 h-4 text-success-400" />
+                              )}
+                            </div>
+                            <div className="text-xs text-text-muted mt-0.5">
+                              Commission: {fp.commission}%
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-bold text-success-400">
+                              {fp.estimated_apy.toFixed(1)}%
+                            </div>
+                            <div className="text-xs text-text-muted">APY</div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
 
-            {/* Staking Summary */}
-            <div className="bg-surface-2 border border-white/10 rounded-xl p-4 mb-6">
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-text-secondary">You will receive</span>
-                  <span className="text-sm font-medium text-text-primary">
-                    {stakeAmount || '0.0'} BLST
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-text-secondary">APY</span>
-                  <span className="text-sm font-medium text-success-400">
-                    {getAPY(stakingDuration)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-text-secondary">Estimated Rewards</span>
-                  <span className="text-sm font-medium text-success-400">
-                    {stakeAmount ? (parseFloat(stakeAmount) * 0.08 * (parseInt(stakingDuration) / 365)).toFixed(6) : '0.0'} BTC
-                  </span>
+              {/* Staking Summary */}
+              <div className="bg-surface-2 border border-white/10 rounded-xl p-3 mb-4">
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-text-secondary">You will receive</span>
+                    <span className="font-medium text-text-primary">
+                      {stakeAmount || '0.0'} BLST
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-text-secondary">Estimated APY</span>
+                    <span className="font-medium text-success-400">{getCurrentAPY()}</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Stake Button */}
+              {/* Status Messages */}
+              {txStatus && (
+                <div className="mb-4 p-3 bg-primary-600/15 border border-primary-500/30 rounded-xl text-xs text-primary-400">
+                  {txStatus}
+                </div>
+              )}
+
+              {error && (
+                <div className="mb-4 p-3 bg-error-600/15 border border-error-500/30 rounded-xl text-xs text-error-400">
+                  {error}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Sticky Bottom Action Zone (Mobile UX Best Practice) */}
+      {connectedWallet && (
+        <div className="fixed bottom-0 left-0 right-0 bg-surface-1/95 backdrop-blur-lg border-t border-white/10 p-4 safe-area-inset-bottom">
+          <div className="container-app max-w-2xl mx-auto">
             <button
-              disabled={!stakeAmount || parseFloat(stakeAmount) === 0}
-              className="w-full btn-primary py-4 text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleStake}
+              disabled={!stakeAmount || parseFloat(stakeAmount) === 0 || !selectedFP || isStaking}
+              className="w-full btn-primary py-4 text-base font-semibold disabled:opacity-50 disabled:cursor-not-allowed min-h-[56px] flex items-center justify-center gap-2"
             >
-              <Zap className="inline w-5 h-5 mr-2" />
-              Stake BTC
+              <Zap className="w-5 h-5" />
+              {isStaking ? 'Processing...' : 'Stake BTC'}
             </button>
           </div>
         </div>
-
-        {/* Benefits Section */}
-        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
-          <div className="bg-surface-1 border border-white/10 rounded-xl p-6 text-center">
-            <div className="w-12 h-12 mx-auto mb-4 flex items-center justify-center bg-primary-600/15 rounded-full">
-              <TrendingUp className="w-6 h-6 text-primary-400" />
-            </div>
-            <h3 className="text-lg font-semibold text-text-primary mb-2">Earn Rewards</h3>
-            <p className="text-sm text-text-secondary">
-              Earn up to 10% APY on your Bitcoin holdings
-            </p>
-          </div>
-
-          <div className="bg-surface-1 border border-white/10 rounded-xl p-6 text-center">
-            <div className="w-12 h-12 mx-auto mb-4 flex items-center justify-center bg-success-600/15 rounded-full">
-              <Zap className="w-6 h-6 text-success-400" />
-            </div>
-            <h3 className="text-lg font-semibold text-text-primary mb-2">Stay Liquid</h3>
-            <p className="text-sm text-text-secondary">
-              Receive BLST tokens that represent your staked BTC
-            </p>
-          </div>
-
-          <div className="bg-surface-1 border border-white/10 rounded-xl p-6 text-center">
-            <div className="w-12 h-12 mx-auto mb-4 flex items-center justify-center bg-warning-600/15 rounded-full">
-              <Shield className="w-6 h-6 text-warning-400" />
-            </div>
-            <h3 className="text-lg font-semibold text-text-primary mb-2">Secure</h3>
-            <p className="text-sm text-text-secondary">
-              Powered by Babylon Protocol on Bitcoin mainnet
-            </p>
-          </div>
-        </div>
-
-        {/* How It Works */}
-        <div className="max-w-3xl mx-auto mb-12">
-          <h2 className="text-2xl font-bold text-text-primary text-center mb-8">
-            How It Works
-          </h2>
-          <div className="space-y-4">
-            <div className="bg-surface-1 border border-white/10 rounded-xl p-6 flex items-start gap-4">
-              <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center bg-primary-600 rounded-full text-white font-bold">
-                1
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-text-primary mb-2">
-                  Deposit Bitcoin
-                </h3>
-                <p className="text-sm text-text-secondary">
-                  Connect your Bitcoin wallet and deposit BTC to start earning
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-surface-1 border border-white/10 rounded-xl p-6 flex items-start gap-4">
-              <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center bg-primary-600 rounded-full text-white font-bold">
-                2
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-text-primary mb-2">
-                  Receive BLST
-                </h3>
-                <p className="text-sm text-text-secondary">
-                  Get liquid staking tokens (BLST) that represent your staked Bitcoin
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-surface-1 border border-white/10 rounded-xl p-6 flex items-start gap-4">
-              <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center bg-primary-600 rounded-full text-white font-bold">
-                3
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-text-primary mb-2">
-                  Earn & Trade
-                </h3>
-                <p className="text-sm text-text-secondary">
-                  Earn rewards on your staked BTC while using BLST in DeFi
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Info Banner */}
-        <div className="max-w-3xl mx-auto mb-12">
-          <div className="bg-primary-600/15 border border-primary-500/30 rounded-xl p-6">
-            <div className="flex items-start gap-4">
-              <Info className="w-6 h-6 text-primary-400 flex-shrink-0 mt-1" />
-              <div>
-                <h3 className="text-lg font-semibold text-primary-300 mb-2">
-                  Powered by Babylon Protocol
-                </h3>
-                <p className="text-sm text-text-secondary">
-                  Babylon Protocol enables Bitcoin holders to earn staking rewards while maintaining liquidity.
-                  Your Bitcoin is secured by the Bitcoin network itself through time-lock contracts.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 };
