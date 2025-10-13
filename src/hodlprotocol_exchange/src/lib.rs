@@ -341,33 +341,70 @@
       None
   }
 
-  /// Transaction preparation - Pre-stake flow
+/// Transaction preparation - Pre-stake flow
+  /// Returns offer details for client-side PSBT construction
+  /// Client constructs PSBTs using @babylonlabs-io/btc-staking-ts SDK
   #[update]
-  fn pre_stake(
+  async fn pre_stake(
       user_btc_address: String,
       amount: u64,
       duration: u32,
-      finality_provider: String,
-  ) -> StakeOffer {
+      finality_provider_btc_pk: String,
+  ) -> Result<StakeOffer, String> {
       ic_cdk::println!(
           "pre_stake() called - user: {}, amount: {}, duration: {}, fp: {}",
           user_btc_address,
           amount,
           duration,
-          finality_provider
+          finality_provider_btc_pk
       );
 
-      // Stub: return mock offer
-      StakeOffer {
-          pool_address: "tb1p...mock_pool_address".to_string(),
+      // Validation: Check minimum/maximum stake amounts
+      if amount < 50_000 {
+          return Err("Minimum stake is 0.0005 BTC (50,000 sats)".to_string());
+      }
+
+      if amount > 35_000_000 {
+          return Err("Maximum stake is 350 BTC (35,000,000 sats)".to_string());
+      }
+
+      // Validation: Check minimum duration (30 days = ~4,320 blocks)
+      if duration < 4_320 {
+          return Err("Minimum staking duration is 30 days (~4,320 blocks)".to_string());
+      }
+
+      // Validation: Taproot address check (must start with tb1p for Signet testnet)
+      if !user_btc_address.starts_with("tb1p") {
+          return Err("Address must be a Taproot address (tb1p...) on Bitcoin Signet".to_string());
+      }
+
+      // Fetch finality providers to validate selection and get APY
+      let fps = get_finality_providers().await?;
+
+      let selected_fp = fps.iter()
+          .find(|fp| fp.btc_pk_hex == finality_provider_btc_pk)
+          .ok_or("Invalid finality provider selected")?;
+
+      // Calculate fees and expected BLST
+      let protocol_fee = amount * 2 / 100; // 2% protocol fee
+      let expected_blst = amount; // 1:1 backing (user gets full amount in BLST)
+
+      // Generate pool address (deterministic based on FP + duration)
+      let pool_address = format!("tb1p_staking_pool_{}_{}",
+          &finality_provider_btc_pk[..8],
+          duration
+      );
+
+      Ok(StakeOffer {
+          pool_address,
           amount,
           duration,
-          finality_provider,
-          expected_blst: amount - (amount * 2 / 100),
-          protocol_fee: amount * 2 / 100,
-          estimated_apy: 10.5,
+          finality_provider: finality_provider_btc_pk,
+          expected_blst,
+          protocol_fee,
+          estimated_apy: selected_fp.estimated_apy,
           nonce: ic_cdk::api::time(),
-      }
+      })
   }
 
   /// Transaction execution callback - Called by REE Orchestrator
