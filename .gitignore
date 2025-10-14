@@ -49,5 +49,11 @@ docs/REE_Babylon/
 
 # Temp files
 bfg.jar
+
+# Session and internal working files
 src/chat.md
 src/CLAUDE.md
+CLAUDE.md
+chat.md
+session*.md
+**/session*.md

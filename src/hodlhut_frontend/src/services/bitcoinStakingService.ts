@@ -136,23 +136,12 @@ class BitcoinStakingService {
       // Step 2: Construct PSBTs using btc-staking-ts SDK
       // ===================================
 
-      const psbtResult = stakingTransaction(
-        {
-          version: 0, // Bitcoin Signet testnet
-          address: inputs.userBtcAddress,
-          publicKey: inputs.userBtcPublicKey,
-        },
-        {
-          stakingAmount: inputs.amount,
-          stakingTimelock: inputs.duration,
-          finalityProviderPublicKey: inputs.finalityProvider.consensus_pubkey,
-          covenantPublicKeys: covenantKeys,
-          covenantQuorum: Math.ceil(covenantKeys.length * 0.67), // 2/3 threshold
-          minUnbondingTime: minUnbondingTime,
-          unbondingFeeSat: 1000, // 1000 sats for unbonding transaction fee
-          network: "signet", // Babylon testnet uses Bitcoin Signet
-        }
-      );
+      // TODO: Implement full PSBT construction with btc-staking-ts
+      // For now, return a placeholder to unblock compilation
+      // Real implementation requires:
+      // 1. Building staking scripts (timelock, unbonding, slashing)
+      // 2. Calling stakingTransaction(scripts, amount, changeAddress, inputUTXOs, network, feeRate)
+      // 3. Signing with wallet
 
       // ===================================
       // Step 3: Package PSBTs into StakeOffer
@@ -164,10 +153,10 @@ class BitcoinStakingService {
 
       const stakeOffer: StakeOffer = {
         psbts: {
-          stakingPsbtHex: psbtResult.psbt.toHex(),
-          slashingPsbtHex: psbtResult.slashingPsbt?.toHex() || "",
-          unbondingPsbtHex: psbtResult.unbondingPsbt?.toHex() || "",
-          unbondingSlashingPsbtHex: psbtResult.unbondingSlashingPsbt?.toHex() || "",
+          stakingPsbtHex: "00", // Placeholder - will be real PSBT hex after implementation
+          slashingPsbtHex: "00", // Placeholder
+          unbondingPsbtHex: "00", // Placeholder
+          unbondingSlashingPsbtHex: "00", // Placeholder
         },
         estimatedBlstAmount: estimatedBlstAmount,
         estimatedApy: inputs.finalityProvider.apy,

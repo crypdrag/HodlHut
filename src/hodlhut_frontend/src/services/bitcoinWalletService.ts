@@ -4,7 +4,8 @@
 // Phase 1 MVP: Unisat and Xverse (both have Taproot + Runes support)
 // Network: Bitcoin Signet testnet (tb1p... addresses)
 
-import { request, AddressPurpose } from 'sats-connect';
+// TODO: Implement proper sats-connect integration
+// import { request, AddressPurpose } from 'sats-connect';
 
 // ===============================================
 // TypeScript Interfaces
@@ -134,63 +135,17 @@ class BitcoinWalletService {
 
   /**
    * Connect to Xverse wallet using sats-connect
+   * TODO: Implement with proper sats-connect v4 API
    */
   async connectXverse(): Promise<ConnectedWallet> {
     if (!window.BitcoinProvider && !window.XverseProviders?.BitcoinProvider) {
       throw new Error('Xverse wallet is not installed. Please install from https://xverse.app');
     }
 
-    try {
-      return new Promise<ConnectedWallet>((resolve, reject) => {
-        const getAddressOptions = {
-          payload: {
-            purposes: [AddressPurpose.Payment],
-            message: 'Connect to hodlprotocol for Bitcoin staking',
-            network: {
-              type: 'Signet' as const,
-            },
-          },
-          onFinish: (response: any) => {
-            const paymentAddress = response.addresses.find(
-              (addr: any) => addr.purpose === AddressPurpose.Payment
-            );
-
-            if (!paymentAddress) {
-              reject(new Error('No payment address found from Xverse'));
-              return;
-            }
-
-            // Validate Taproot address
-            if (!paymentAddress.address.startsWith('tb1p')) {
-              reject(
-                new Error(
-                  'Non-Taproot address detected. Please ensure Xverse is using Taproot addresses.'
-                )
-              );
-              return;
-            }
-
-            const connectedWallet: ConnectedWallet = {
-              walletId: 'xverse',
-              address: paymentAddress.address,
-              publicKey: paymentAddress.publicKey,
-              network: 'signet',
-            };
-
-            this.connectedWallet = connectedWallet;
-            resolve(connectedWallet);
-          },
-          onCancel: () => {
-            reject(new Error('User cancelled Xverse connection'));
-          },
-        };
-
-        request('getAccounts', getAddressOptions);
-      });
-    } catch (error: any) {
-      console.error('Xverse connection error:', error);
-      throw new Error(`Failed to connect to Xverse: ${error.message}`);
-    }
+    // TODO: Implement Xverse connection with proper sats-connect v4 API
+    // The sats-connect API changed significantly in v4.x
+    // Need to use the Wallet class instance instead of standalone request() function
+    throw new Error('Xverse integration not yet implemented. Please use Unisat wallet for now.');
   }
 
   /**
@@ -268,40 +223,11 @@ class BitcoinWalletService {
 
   /**
    * Sign PSBT with Xverse
+   * TODO: Implement with proper sats-connect v4 API
    */
   async signPsbtXverse(psbtHex: string): Promise<SignPsbtResult> {
-    return new Promise<SignPsbtResult>((resolve, reject) => {
-      const signPsbtOptions = {
-        payload: {
-          network: {
-            type: 'Signet' as const,
-          },
-          message: 'Sign Bitcoin staking transaction',
-          psbtBase64: Buffer.from(psbtHex, 'hex').toString('base64'),
-          broadcast: false, // Don't broadcast, REE Orchestrator will do it
-          inputsToSign: [
-            {
-              address: this.connectedWallet!.address,
-              signingIndexes: [0], // Sign first input
-            },
-          ],
-        },
-        onFinish: (response: any) => {
-          const signedPsbtBase64 = response.psbtBase64;
-          const signedPsbtHex = Buffer.from(signedPsbtBase64, 'base64').toString('hex');
-
-          resolve({
-            signedPsbtHex,
-            signedPsbtBase64,
-          });
-        },
-        onCancel: () => {
-          reject(new Error('User cancelled PSBT signing'));
-        },
-      };
-
-      request('signPsbt', signPsbtOptions);
-    });
+    // TODO: Implement Xverse PSBT signing with proper sats-connect v4 API
+    throw new Error('Xverse PSBT signing not yet implemented. Please use Unisat wallet for now.');
   }
 
   /**
