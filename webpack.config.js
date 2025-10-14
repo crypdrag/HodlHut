@@ -29,6 +29,7 @@ module.exports = {
       events: require.resolve("events/"),
       stream: require.resolve("stream-browserify/"),
       util: require.resolve("util/"),
+      vm: false, // Not needed in browser
     },
   },
   output: {
@@ -49,10 +50,18 @@ module.exports = {
         loader: "ts-loader",
         exclude: /node_modules/,
       },
+      // Allow importing JS files from node_modules without fully specified paths
+      {
+        test: /\.m?js$/,
+        resolve: {
+          fullySpecified: false,
+        },
+        include: /node_modules/,
+      },
       {
         test: /\.css$/,
         use: [
-          "style-loader", 
+          "style-loader",
           "css-loader",
           "postcss-loader"
         ],

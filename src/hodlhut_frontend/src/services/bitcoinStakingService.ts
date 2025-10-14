@@ -121,87 +121,103 @@ class BitcoinStakingService {
       // Step 2: Construct PSBTs using btc-staking-ts SDK
       // ===================================
 
-      // ⚠️ TODO [DAY 3 PRIORITY]: Implement full PSBT construction with btc-staking-ts
-      //
-      // CONTEXT: Deferred to avoid technical debt during compacting phase (Day 2→3 transition)
-      // REASON: SDK API compatibility issues require careful implementation without time pressure
-      //
-      // IMPLEMENTATION REQUIREMENTS:
-      //
-      // 1. Fetch covenant public keys from Babylon testnet
-      //    - Query Babylon RPC for current covenant committee
-      //    - Format: Array of 33-byte hex public keys
-      //    - Source: babylon-testnet-api.polkachu.com/babylon/btcstaking/v1/params
-      //
-      // 2. Build Babylon staking scripts
-      //    - Timelock script (enforces minimum staking duration)
-      //    - Unbonding script (allows early exit with penalty)
-      //    - Slashing script (covenant enforcement)
-      //    - Unbonding slashing script (penalty for early unbonding)
-      //
-      // 3. Construct 4 PSBTs using stakingTransaction() from @babylonlabs-io/btc-staking-ts
-      //    ISSUE: v2.5.7 API signature incompatible with current implementation
-      //    SOLUTION OPTIONS:
-      //      a) Downgrade to compatible version
-      //      b) Update to v3.x API (check latest docs)
-      //      c) Use alternative PSBT construction library
-      //
-      // 4. Required inputs for stakingTransaction():
-      //    - scripts: BabylonStakingScripts (from step 2)
-      //    - stakingAmount: u64 (inputs.amount)
-      //    - changeAddress: string (inputs.userBtcAddress for change outputs)
-      //    - inputUTXOs: Array<UTXO> (fetch from user's Bitcoin wallet)
-      //    - network: Network ('testnet' for Signet)
-      //    - feeRate: number (fetch from mempool API or use fixed rate)
-      //
-      // 5. Return 4 unsigned PSBTs in hex format:
-      //    - Staking PSBT (main transaction)
-      //    - Slashing PSBT (covenant can slash if Byzantine behavior)
-      //    - Unbonding PSBT (early exit transaction)
-      //    - Unbonding Slashing PSBT (penalty for early unbonding)
-      //
-      // 6. User signs PSBTs via wallet (Unisat/Xverse)
-      //    - Wallet must support Taproot (tb1p... addresses)
-      //    - Wallet prompts user to review and sign each PSBT
-      //
-      // 7. Submit signed PSBTs to REE Orchestrator via invoke()
-      //    - REE Orchestrator validates signatures
-      //    - REE Orchestrator coordinates DPS (Decentralized PSBT Signing)
-      //    - REE Orchestrator broadcasts to Bitcoin network
-      //
-      // REFERENCE FILES:
-      // - docs/REE_ARCHITECTURE_CORRECTED.md (lines 122-167: PSBT construction flow)
-      // - docs/BABYLON_INTEGRATION_RESEARCH.md (Babylon SDK integration details)
-      //
-      // TESTING CHECKLIST:
-      // - [ ] Fetch real covenant keys from Babylon testnet
-      // - [ ] Construct valid Babylon staking scripts
-      // - [ ] Generate 4 PSBTs with correct structure
-      // - [ ] Validate PSBT hex format (not "00" placeholders)
-      // - [ ] Test wallet signing flow (Unisat testnet)
-      // - [ ] Verify PSBTs can be broadcast to Bitcoin Signet
-      //
-      // END TODO
+      // ===================================
+      // Step 2A: Fetch Babylon staking parameters from backend
+      // ===================================
+
+      const stakingParams = await this.fetchBabylonStakingParams();
 
       // ===================================
-      // Step 3: Package PSBTs into StakeOffer (PLACEHOLDER)
+      // Step 2B: Build Babylon staking scripts using btc-staking-ts SDK
+      // ===================================
+
+      const { Staking } = await import('@babylonlabs-io/btc-staking-ts');
+      const { networks } = await import('bitcoinjs-lib');
+
+      // Prepare staker info
+      const stakerInfo = {
+        address: inputs.userBtcAddress,
+        publicKeyNoCoordHex: inputs.userBtcPublicKey,
+      };
+
+      // Create Staking instance
+      const stakingInstance = new Staking(
+        networks.testnet, // Bitcoin Signet uses testnet network params
+        stakerInfo,
+        stakingParams,
+        [inputs.finalityProvider.consensus_pubkey], // FP public key array
+        inputs.duration // staking timelock in blocks
+      );
+
+      // Build staking scripts (timelock, unbonding, slashing, unbonding timelock)
+      const scripts = stakingInstance.buildScripts();
+
+      // ===================================
+      // Step 2C: Fetch user's Bitcoin UTXOs
+      // ===================================
+
+      const inputUTXOs = await this.fetchUserUTXOs(inputs.userBtcAddress);
+
+      // ===================================
+      // Step 2D: Get fee rate for Bitcoin transaction
+      // ===================================
+
+      const feeRate = await this.estimateFeeRate();
+
+      // ===================================
+      // Step 2E: Create unsigned staking transaction
+      // ===================================
+
+      const { transaction: stakingTx, fee: stakingFee } = stakingInstance.createStakingTransaction(
+        inputs.amount,
+        inputUTXOs,
+        feeRate
+      );
+
+      // ===================================
+      // Step 2F: Create unbonding transaction
+      // ===================================
+
+      const { transaction: unbondingTx, fee: unbondingFee } = stakingInstance.createUnbondingTransaction(
+        stakingTx
+      );
+
+      // ===================================
+      // Step 2G: Create slashing PSBTs
+      // ===================================
+
+      const { psbt: stakingSlashingPsbt, fee: stakingSlashingFee } =
+        stakingInstance.createStakingOutputSlashingPsbt(stakingTx);
+
+      const { psbt: unbondingSlashingPsbt, fee: unbondingSlashingFee } =
+        stakingInstance.createUnbondingOutputSlashingPsbt(unbondingTx);
+
+      // ===================================
+      // Step 2H: Convert transactions to PSBTs
+      // ===================================
+
+      const stakingPsbt = stakingInstance.toStakingPsbt(stakingTx, inputUTXOs);
+      const unbondingPsbt = stakingInstance.toUnbondingPsbt(unbondingTx, stakingTx);
+
+      // ===================================
+      // Step 3: Package PSBTs into StakeOffer
       // ===================================
 
       const estimatedBlstAmount = inputs.amount; // 1:1 backing
-      const protocolFee = Math.floor(inputs.amount * 0.02); // 2% protocol fee
-      const networkFee = 2000; // Estimated Bitcoin network fee
+      const protocolFee = Math.floor(inputs.amount * 0.02); // 2% protocol fee (TODO: Calculate from APY)
+      const totalNetworkFee = stakingFee + unbondingFee + stakingSlashingFee + unbondingSlashingFee;
 
       const stakeOffer: StakeOffer = {
         psbts: {
-          stakingPsbtHex: "00", // ⚠️ PLACEHOLDER - Replace with real PSBT from step 2
-          slashingPsbtHex: "00", // ⚠️ PLACEHOLDER - Replace with real PSBT from step 2
-          unbondingPsbtHex: "00", // ⚠️ PLACEHOLDER - Replace with real PSBT from step 2
-          unbondingSlashingPsbtHex: "00", // ⚠️ PLACEHOLDER - Replace with real PSBT from step 2
+          stakingPsbtHex: stakingPsbt.toHex(),
+          slashingPsbtHex: stakingSlashingPsbt.toHex(),
+          unbondingPsbtHex: unbondingPsbt.toHex(),
+          unbondingSlashingPsbtHex: unbondingSlashingPsbt.toHex(),
         },
         estimatedBlstAmount: estimatedBlstAmount,
         estimatedApy: inputs.finalityProvider.apy,
         babylonTxFee: protocolFee,
-        networkFee: networkFee,
+        networkFee: totalNetworkFee,
       };
 
       return stakeOffer;
@@ -242,6 +258,107 @@ class BitcoinStakingService {
     }
 
     return { isValid: true };
+  }
+
+  /**
+   * Fetch Babylon staking parameters (covenant keys, quorum, limits, etc.)
+   * This fetches the real-time parameters from Babylon testnet API
+   */
+  private async fetchBabylonStakingParams(): Promise<any> {
+    try {
+      // Fetch Babylon params from testnet API
+      const response = await fetch('https://babylon-testnet-api.polkachu.com/babylon/btcstaking/v1/params');
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch Babylon params: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const params = data.params;
+
+      // Convert to btc-staking-ts SDK format
+      return {
+        covenantNoCoordPks: params.covenant_pks, // Array of hex public keys
+        covenantQuorum: params.covenant_quorum,
+        unbondingTime: params.min_unbonding_time_blocks,
+        unbondingFeeSat: 1000, // Fixed unbonding fee (TODO: Make configurable)
+        maxStakingAmountSat: parseInt(params.max_staking_amount_sat),
+        minStakingAmountSat: parseInt(params.min_staking_amount_sat),
+        maxStakingTimeBlocks: params.max_staking_time_blocks,
+        minStakingTimeBlocks: params.min_staking_time_blocks,
+        slashing: params.slashing_pk_script ? {
+          slashingPkScriptHex: params.slashing_pk_script,
+          slashingRate: parseFloat(params.slashing_rate),
+          minSlashingTxFeeSat: 1000, // Fixed slashing fee (TODO: Make configurable)
+        } : undefined,
+      };
+    } catch (error) {
+      console.error('Error fetching Babylon staking params:', error);
+      throw new Error(`Failed to fetch Babylon staking parameters: ${error.message}`);
+    }
+  }
+
+  /**
+   * Fetch user's Bitcoin UTXOs from their wallet
+   * This queries the connected Bitcoin wallet (Unisat/Xverse) for available UTXOs
+   */
+  private async fetchUserUTXOs(userBtcAddress: string): Promise<any[]> {
+    try {
+      // Check if Unisat wallet is available
+      if (typeof window !== 'undefined' && (window as any).unisat) {
+        const unisat = (window as any).unisat;
+
+        // Get UTXOs from Unisat wallet
+        const utxos = await unisat.getBitcoinUtxos();
+
+        // Convert Unisat UTXO format to btc-staking-ts format
+        return utxos.map((utxo: any) => ({
+          txid: utxo.txid,
+          vout: utxo.vout,
+          value: utxo.satoshis || utxo.value,
+          scriptPubKey: utxo.scriptPubKey,
+          rawTxHex: utxo.rawTxHex,
+        }));
+      }
+
+      // Check if Xverse wallet is available
+      if (typeof window !== 'undefined' && (window as any).XverseProviders) {
+        // TODO: Implement Xverse UTXO fetching
+        throw new Error('Xverse wallet UTXO fetching not yet implemented');
+      }
+
+      throw new Error('No Bitcoin wallet detected. Please install Unisat or Xverse wallet.');
+    } catch (error) {
+      console.error('Error fetching user UTXOs:', error);
+      throw new Error(`Failed to fetch Bitcoin UTXOs: ${error.message}`);
+    }
+  }
+
+  /**
+   * Estimate fee rate for Bitcoin transaction
+   * Uses mempool.space API for Bitcoin Signet testnet
+   */
+  private async estimateFeeRate(): Promise<number> {
+    try {
+      // Fetch recommended fee rates from mempool.space Signet API
+      const response = await fetch('https://mempool.space/signet/api/v1/fees/recommended');
+
+      if (!response.ok) {
+        // Fallback to fixed rate if API fails
+        console.warn('Failed to fetch fee rates from mempool.space, using fallback rate');
+        return 5; // 5 sat/vB fallback rate for testnet
+      }
+
+      const feeRates = await response.json();
+
+      // Use "halfHourFee" for reasonable confirmation time
+      // Available: fastestFee, halfHourFee, hourFee, economyFee, minimumFee
+      return feeRates.halfHourFee || 5;
+    } catch (error) {
+      console.error('Error estimating fee rate:', error);
+      // Return fallback rate
+      return 5; // 5 sat/vB fallback rate for testnet
+    }
   }
 }
 
