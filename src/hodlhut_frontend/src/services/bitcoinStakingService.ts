@@ -5,6 +5,7 @@
 // Architecture: Construct PSBT → User signs → REE broadcasts → Babylon registers
 
 import { stakingTransaction } from '@babylonlabs-io/btc-staking-ts';
+import { hodlprotocolCanisterService } from './hodlprotocolCanisterService';
 
 // ===============================================
 // TypeScript Interfaces
@@ -61,52 +62,36 @@ class BitcoinStakingService {
    * Fetch Babylon parameters from hodlprotocol_exchange canister
    */
   async fetchBabylonParams(): Promise<BabylonParams> {
-    // TODO: Replace with actual canister call
-    // const actor = await this.getHodlprotocolActor();
-    // const result = await actor.get_babylon_params();
+    try {
+      // Fetch real Babylon params from deployed canister
+      const params = await hodlprotocolCanisterService.getBabylonParams();
 
-    // Mock data for now (will be replaced with real canister call)
-    const mockParams: BabylonParams = {
-      unbonding_time: 1814400, // ~21 days in seconds
-      max_validators: 100,
-      min_commission_rate: "0.03",
-      bond_denom: "ubbn"
-    };
+      // Cache the params
+      this.babylonParams = params;
 
-    this.babylonParams = mockParams;
-    return mockParams;
+      return params;
+    } catch (error) {
+      console.error('Error fetching Babylon params from canister:', error);
+      throw new Error(`Failed to fetch Babylon parameters: ${error.message}`);
+    }
   }
 
   /**
    * Fetch top finality providers from hodlprotocol_exchange canister
    */
   async fetchFinalityProviders(): Promise<FinalityProvider[]> {
-    // TODO: Replace with actual canister call
-    // const actor = await this.getHodlprotocolActor();
-    // const result = await actor.get_finality_providers();
+    try {
+      // Fetch real finality providers from deployed canister
+      const providers = await hodlprotocolCanisterService.getFinalityProviders();
 
-    // Mock data for now (will be replaced with real canister call)
-    const mockProviders: FinalityProvider[] = [
-      {
-        moniker: "Babylon Labs 1",
-        operator_address: "bbnvaloper1...",
-        consensus_pubkey: "bbnvalconspub1...",
-        commission_rate: "0.03",
-        voting_power: "1000000",
-        apy: 9.7
-      },
-      {
-        moniker: "polkachu.com",
-        operator_address: "bbnvaloper2...",
-        consensus_pubkey: "bbnvalconspub2...",
-        commission_rate: "0.05",
-        voting_power: "950000",
-        apy: 9.5
-      }
-    ];
+      // Cache the providers
+      this.finalityProviders = providers;
 
-    this.finalityProviders = mockProviders;
-    return mockProviders;
+      return providers;
+    } catch (error) {
+      console.error('Error fetching finality providers from canister:', error);
+      throw new Error(`Failed to fetch finality providers: ${error.message}`);
+    }
   }
 
   /**
@@ -136,15 +121,70 @@ class BitcoinStakingService {
       // Step 2: Construct PSBTs using btc-staking-ts SDK
       // ===================================
 
-      // TODO: Implement full PSBT construction with btc-staking-ts
-      // For now, return a placeholder to unblock compilation
-      // Real implementation requires:
-      // 1. Building staking scripts (timelock, unbonding, slashing)
-      // 2. Calling stakingTransaction(scripts, amount, changeAddress, inputUTXOs, network, feeRate)
-      // 3. Signing with wallet
+      // ⚠️ TODO [DAY 3 PRIORITY]: Implement full PSBT construction with btc-staking-ts
+      //
+      // CONTEXT: Deferred to avoid technical debt during compacting phase (Day 2→3 transition)
+      // REASON: SDK API compatibility issues require careful implementation without time pressure
+      //
+      // IMPLEMENTATION REQUIREMENTS:
+      //
+      // 1. Fetch covenant public keys from Babylon testnet
+      //    - Query Babylon RPC for current covenant committee
+      //    - Format: Array of 33-byte hex public keys
+      //    - Source: babylon-testnet-api.polkachu.com/babylon/btcstaking/v1/params
+      //
+      // 2. Build Babylon staking scripts
+      //    - Timelock script (enforces minimum staking duration)
+      //    - Unbonding script (allows early exit with penalty)
+      //    - Slashing script (covenant enforcement)
+      //    - Unbonding slashing script (penalty for early unbonding)
+      //
+      // 3. Construct 4 PSBTs using stakingTransaction() from @babylonlabs-io/btc-staking-ts
+      //    ISSUE: v2.5.7 API signature incompatible with current implementation
+      //    SOLUTION OPTIONS:
+      //      a) Downgrade to compatible version
+      //      b) Update to v3.x API (check latest docs)
+      //      c) Use alternative PSBT construction library
+      //
+      // 4. Required inputs for stakingTransaction():
+      //    - scripts: BabylonStakingScripts (from step 2)
+      //    - stakingAmount: u64 (inputs.amount)
+      //    - changeAddress: string (inputs.userBtcAddress for change outputs)
+      //    - inputUTXOs: Array<UTXO> (fetch from user's Bitcoin wallet)
+      //    - network: Network ('testnet' for Signet)
+      //    - feeRate: number (fetch from mempool API or use fixed rate)
+      //
+      // 5. Return 4 unsigned PSBTs in hex format:
+      //    - Staking PSBT (main transaction)
+      //    - Slashing PSBT (covenant can slash if Byzantine behavior)
+      //    - Unbonding PSBT (early exit transaction)
+      //    - Unbonding Slashing PSBT (penalty for early unbonding)
+      //
+      // 6. User signs PSBTs via wallet (Unisat/Xverse)
+      //    - Wallet must support Taproot (tb1p... addresses)
+      //    - Wallet prompts user to review and sign each PSBT
+      //
+      // 7. Submit signed PSBTs to REE Orchestrator via invoke()
+      //    - REE Orchestrator validates signatures
+      //    - REE Orchestrator coordinates DPS (Decentralized PSBT Signing)
+      //    - REE Orchestrator broadcasts to Bitcoin network
+      //
+      // REFERENCE FILES:
+      // - docs/REE_ARCHITECTURE_CORRECTED.md (lines 122-167: PSBT construction flow)
+      // - docs/BABYLON_INTEGRATION_RESEARCH.md (Babylon SDK integration details)
+      //
+      // TESTING CHECKLIST:
+      // - [ ] Fetch real covenant keys from Babylon testnet
+      // - [ ] Construct valid Babylon staking scripts
+      // - [ ] Generate 4 PSBTs with correct structure
+      // - [ ] Validate PSBT hex format (not "00" placeholders)
+      // - [ ] Test wallet signing flow (Unisat testnet)
+      // - [ ] Verify PSBTs can be broadcast to Bitcoin Signet
+      //
+      // END TODO
 
       // ===================================
-      // Step 3: Package PSBTs into StakeOffer
+      // Step 3: Package PSBTs into StakeOffer (PLACEHOLDER)
       // ===================================
 
       const estimatedBlstAmount = inputs.amount; // 1:1 backing
@@ -153,10 +193,10 @@ class BitcoinStakingService {
 
       const stakeOffer: StakeOffer = {
         psbts: {
-          stakingPsbtHex: "00", // Placeholder - will be real PSBT hex after implementation
-          slashingPsbtHex: "00", // Placeholder
-          unbondingPsbtHex: "00", // Placeholder
-          unbondingSlashingPsbtHex: "00", // Placeholder
+          stakingPsbtHex: "00", // ⚠️ PLACEHOLDER - Replace with real PSBT from step 2
+          slashingPsbtHex: "00", // ⚠️ PLACEHOLDER - Replace with real PSBT from step 2
+          unbondingPsbtHex: "00", // ⚠️ PLACEHOLDER - Replace with real PSBT from step 2
+          unbondingSlashingPsbtHex: "00", // ⚠️ PLACEHOLDER - Replace with real PSBT from step 2
         },
         estimatedBlstAmount: estimatedBlstAmount,
         estimatedApy: inputs.finalityProvider.apy,
