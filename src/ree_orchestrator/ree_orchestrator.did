@@ -1,0 +1,41 @@
+type InvokeArgs = record {
+  client_info : opt text;
+  intention_set : IntentionSet;
+  initiator_utxo_proof : blob;
+  psbt_hex : text;
+};
+
+type IntentionSet = record {
+  tx_fee_in_sats : nat64;
+  initiator_address : text;
+  intentions : vec Intention;
+};
+
+type Intention = record {
+  input_coins : vec InputCoin;
+  output_coins : vec OutputCoin;
+  action : text;
+  exchange_id : text;
+  pool_utxo_spent : vec text;
+  action_params : text;
+  nonce : nat64;
+  pool_address : text;
+  pool_utxo_received : vec Utxo;
+};
+
+type InputCoin = record { coin : CoinBalance; from : text };
+type OutputCoin = record { to : text; coin : CoinBalance };
+type CoinBalance = record { id : text; value : nat };
+
+type Utxo = record {
+  coins : vec CoinBalance;
+  sats : nat64;
+  txid : text;
+  vout : nat32;
+};
+
+type Result_3 = variant { Ok : text; Err : text };
+
+service : {
+  invoke : (InvokeArgs) -> (Result_3);
+}

@@ -18,6 +18,9 @@
  * - docs/ARCHITECTURE_DECISIONS.md (transaction phases)
  */
 
+import { reeOrchestratorCanisterService } from './reeOrchestratorCanisterService';
+import type { InvokeArgs as CanisterInvokeArgs } from './reeOrchestratorCanisterService';
+
 /**
  * Result from REE Orchestrator invoke() call
  */
@@ -32,79 +35,71 @@ export interface InvokeResult {
 }
 
 /**
- * Arguments for REE Orchestrator invoke()
+ * Metadata for Babylon staking transaction
  */
-export interface InvokeArgs {
-  exchange_canister: string;  // hodlprotocol_exchange canister principal
-  signed_psbt_hex: string;    // Hex-encoded signed PSBT
-  metadata?: Record<string, any>; // Optional metadata (Babylon staking info)
+export interface StakingMetadata {
+  action: string;
+  finality_provider: string;
+  timelock_blocks: number;
+  amount_sats: number;
 }
 
 class ReeOrchestratorService {
-  private orchestratorCanisterId = {
-    testnet: 'hvyp5-5yaaa-aaaao-qjxha-cai',
-    mainnet: 'kqs64-paaaa-aaaar-qamza-cai',
-  };
+  private hodlprotocolExchangeCanisterId = 'plkfy-gyaaa-aaaad-achpq-cai';
 
   /**
    * Submit signed PSBT to REE Orchestrator for broadcasting
    *
-   * ⚠️ TODO [PRIORITY]: Implement actual canister call
-   *
-   * IMPLEMENTATION REQUIREMENTS:
-   *
-   * 1. Import REE Orchestrator actor
-   *    - Create Candid interface (.did file) from REE Orchestrator
-   *    - Generate TypeScript types using dfx
-   *    - Import actor service
-   *
-   * 2. Call invoke() method
-   *    ```typescript
-   *    const actor = await createActor(orchestratorCanisterId.testnet);
-   *    const result = await actor.invoke({
-   *      exchange_canister: hodlprotocolCanisterId,
-   *      signed_psbt_hex: signedPsbtHex,
-   *      metadata: {
-   *        action: 'stake_babylon',
-   *        finality_provider: fpPublicKey,
-   *        timelock_blocks: duration,
-   *      }
-   *    });
-   *    return result;
-   *    ```
-   *
-   * 3. Handle responses
-   *    - Success: { tx_id, status: 'submitted' }
-   *    - Error: Validation failed, insufficient funds, network errors
-   *
-   * 4. Poll for confirmation
-   *    - Query transaction status until 'confirmed'
-   *    - Timeout after reasonable period
-   *
-   * REFERENCES:
-   * - REE Orchestrator docs: https://docs.omnity.network/docs/REE/apis
-   * - Example: https://docs.omnity.network/docs/Rich-Swap/guide (inquiry/invoke pattern)
-   *
    * @param signedPsbtHex - Hex-encoded signed PSBT from wallet
-   * @param metadata - Optional metadata for transaction tracking
+   * @param metadata - Staking metadata (finality provider, timelock, etc.)
    * @returns Bitcoin transaction ID and status
    */
   async submitSignedPsbt(
     signedPsbtHex: string,
-    metadata?: Record<string, any>
+    metadata?: StakingMetadata
   ): Promise<InvokeResult> {
     try {
-      // TODO: Implement actual REE Orchestrator canister call
-      // For now, return mock response to unblock UI testing
-      console.warn('REE Orchestrator submission not yet implemented');
-      console.log('Would submit PSBT:', signedPsbtHex.slice(0, 64) + '...');
+      // Construct InvokeArgs for REE Orchestrator
+      const invokeArgs: CanisterInvokeArgs = {
+        client_info: [], // No additional client info
+        intention_set: {
+          tx_fee_in_sats: BigInt(5000), // Estimated fee (TODO: Calculate dynamically)
+          initiator_address: '', // Will be extracted from PSBT by REE
+          intentions: [
+            {
+              input_coins: [],
+              output_coins: [],
+              action: metadata?.action || 'stake_babylon',
+              exchange_id: this.hodlprotocolExchangeCanisterId,
+              pool_utxo_spent: [],
+              action_params: JSON.stringify(metadata || {}),
+              nonce: BigInt(Date.now()),
+              pool_address: '', // Empty for Babylon staking (not using pool)
+              pool_utxo_received: [],
+            },
+          ],
+        },
+        initiator_utxo_proof: new Uint8Array(0), // Empty proof for now
+        psbt_hex: signedPsbtHex,
+      };
+
+      console.log('Submitting PSBT to REE Orchestrator...');
+      console.log('PSBT length:', signedPsbtHex.length, 'chars');
       console.log('Metadata:', metadata);
 
-      // Mock successful submission
-      return {
-        tx_id: '0x' + Math.random().toString(16).slice(2, 66), // Mock Bitcoin txid
-        status: 'submitted',
-      };
+      // Call REE Orchestrator canister
+      const result = await reeOrchestratorCanisterService.invoke(invokeArgs);
+
+      if ('Ok' in result) {
+        // Success - result.Ok contains transaction ID
+        return {
+          tx_id: result.Ok,
+          status: 'submitted',
+        };
+      } else {
+        // Error - result.Err contains error message
+        throw new Error(result.Err);
+      }
     } catch (error: any) {
       console.error('REE Orchestrator submission failed:', error);
       throw new Error(`Failed to submit transaction to REE Orchestrator: ${error.message}`);
