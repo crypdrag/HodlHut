@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Zap, Info, Shield, Wallet, ChevronDown, CheckCircle } from 'lucide-react';
 import { bitcoinWalletService, ConnectedWallet, WalletInfo } from '../services/bitcoinWalletService';
 import { bitcoinStakingService, StakingInputs } from '../services/bitcoinStakingService';
+import { reeOrchestratorService } from '../services/reeOrchestratorService';
 
 // Mock types for now - will be replaced with actual canister imports
 interface FinalityProvider {
@@ -121,12 +122,19 @@ const StakeBTCPage: React.FC = () => {
       setTxStatus('Please sign in your wallet...');
 
       // Sign PSBT
-      const signedPsbt = await bitcoinWalletService.signPsbt(stakeOffer.psbts.stakingPsbtHex);
+      const signedPsbtResult = await bitcoinWalletService.signPsbt(stakeOffer.psbts.stakingPsbtHex);
 
-      setTxStatus('Transaction signed! Submitting...');
+      setTxStatus('Transaction signed! Submitting to Bitcoin network...');
 
-      // TODO: Submit to REE Orchestrator
-      setTxStatus('✓ Success! Transaction submitted.');
+      // Submit to REE Orchestrator
+      const result = await reeOrchestratorService.submitSignedPsbt(signedPsbtResult.signedPsbtHex, {
+        action: 'stake_babylon',
+        finality_provider: selectedFP.btc_pk_hex,
+        timelock_blocks: durationBlocks,
+        amount_sats: amountSats,
+      });
+
+      setTxStatus(`✓ Success! Transaction submitted: ${result.tx_id.slice(0, 16)}...`);
 
       setTimeout(() => {
         setTxStatus(null);
