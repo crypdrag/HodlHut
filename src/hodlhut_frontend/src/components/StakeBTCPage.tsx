@@ -31,26 +31,37 @@ const StakeBTCPage: React.FC = () => {
     const wallets = bitcoinWalletService.getAvailableWallets();
     setAvailableWallets(wallets);
 
-    // TODO: Fetch real FPs from canister
-    // For now, mock data
-    const mockFPs: FinalityProvider[] = [
-      {
-        btc_pk_hex: '0x1234abcd',
-        description: { moniker: 'Babylon Labs 1', website: 'babylonlabs.io' },
-        commission: '3',
-        voting_power: '1000000',
-        estimated_apy: 9.7,
-      },
-      {
-        btc_pk_hex: '0x5678efgh',
-        description: { moniker: 'polkachu.com', website: 'polkachu.com' },
-        commission: '5',
-        voting_power: '950000',
-        estimated_apy: 9.5,
-      },
-    ];
-    setFinalityProviders(mockFPs);
-    setSelectedFP(mockFPs[0]); // Auto-select top FP
+    // Fetch real FPs from canister
+    const fetchFPs = async () => {
+      setIsLoading(true);
+      try {
+        const fps = await bitcoinStakingService.fetchFinalityProviders();
+
+        // Convert to FinalityProvider format expected by UI
+        const formattedFPs: FinalityProvider[] = fps.map(fp => ({
+          btc_pk_hex: fp.consensus_pubkey,
+          description: {
+            moniker: fp.moniker,
+            website: '' // Not provided by Babylon API
+          },
+          commission: fp.commission_rate,
+          voting_power: fp.voting_power,
+          estimated_apy: fp.apy,
+        }));
+
+        setFinalityProviders(formattedFPs);
+        if (formattedFPs.length > 0) {
+          setSelectedFP(formattedFPs[0]); // Auto-select top FP by voting power
+        }
+      } catch (err: any) {
+        console.error('Failed to fetch finality providers:', err);
+        setError(`Failed to load finality providers: ${err.message}`);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFPs();
   }, []);
 
   // Handle wallet connection
