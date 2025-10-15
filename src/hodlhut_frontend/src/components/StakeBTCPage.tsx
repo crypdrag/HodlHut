@@ -6,7 +6,7 @@ import { reeOrchestratorService } from '../services/reeOrchestratorService';
 
 // Mock types for now - will be replaced with actual canister imports
 interface FinalityProvider {
-  btc_pk_hex: string;
+  consensus_pubkey: string; // Changed from btc_pk_hex to match service interface
   description: { moniker: string; website: string };
   commission: string;
   voting_power: string;
@@ -40,7 +40,7 @@ const StakeBTCPage: React.FC = () => {
 
         // Convert to FinalityProvider format expected by UI
         const formattedFPs: FinalityProvider[] = fps.map(fp => ({
-          btc_pk_hex: fp.consensus_pubkey,
+          consensus_pubkey: fp.consensus_pubkey,
           description: {
             moniker: fp.moniker,
             website: '' // Not provided by Babylon API
@@ -129,7 +129,7 @@ const StakeBTCPage: React.FC = () => {
       // Submit to REE Orchestrator
       const result = await reeOrchestratorService.submitSignedPsbt(signedPsbtResult.signedPsbtHex, {
         action: 'stake_babylon',
-        finality_provider: selectedFP.btc_pk_hex,
+        finality_provider: selectedFP.consensus_pubkey,
         timelock_blocks: durationBlocks,
         amount_sats: amountSats,
       });
@@ -296,7 +296,7 @@ const StakeBTCPage: React.FC = () => {
                   <div className="mt-2 bg-surface-2 border border-white/10 rounded-xl overflow-hidden">
                     {finalityProviders.map((fp) => (
                       <button
-                        key={fp.btc_pk_hex}
+                        key={fp.consensus_pubkey}
                         onClick={() => {
                           setSelectedFP(fp);
                           setShowFPSelector(false);
@@ -307,7 +307,7 @@ const StakeBTCPage: React.FC = () => {
                           <div className="text-left flex-1">
                             <div className="text-sm font-semibold text-text-primary flex items-center gap-2">
                               {fp.description.moniker}
-                              {selectedFP?.btc_pk_hex === fp.btc_pk_hex && (
+                              {selectedFP?.consensus_pubkey === fp.consensus_pubkey && (
                                 <CheckCircle className="w-4 h-4 text-success-400" />
                               )}
                             </div>

@@ -41,8 +41,10 @@ declare global {
       requestAccounts: () => Promise<string[]>;
       getAccounts: () => Promise<string[]>;
       getPublicKey: () => Promise<string>;
-      getNetwork: () => Promise<string>;
-      switchNetwork: (network: string) => Promise<void>;
+      getNetwork: () => Promise<string>; // Legacy
+      switchNetwork: (network: string) => Promise<void>; // Legacy
+      getChain: () => Promise<{ enum: string; name: string; network: string }>; // New API
+      switchChain: (chain: string) => Promise<void>; // New API
       signPsbt: (psbtHex: string, options?: any) => Promise<string>;
       pushPsbt: (psbtHex: string) => Promise<string>;
       getBalance: () => Promise<{ confirmed: number; unconfirmed: number; total: number }>;
@@ -100,15 +102,20 @@ class BitcoinWalletService {
 
       const address = accounts[0];
 
-      // Get public key
-      const publicKey = await window.unisat.getPublicKey();
+      // Get public key (Unisat returns 33-byte compressed key with coordinate)
+      const publicKeyFull = await window.unisat.getPublicKey();
 
-      // Check network
-      const network = await window.unisat.getNetwork();
+      // Remove coordinate byte (first byte) for btc-staking-ts SDK
+      // SDK expects "publicKeyNoCoordHex" = 32-byte x-coordinate only
+      const publicKey = publicKeyFull.slice(2); // Remove first byte (02 or 03)
 
-      // Switch to Signet if not already
-      if (network !== 'signet') {
-        await window.unisat.switchNetwork('signet');
+      // Check chain using new API
+      const chain = await window.unisat.getChain();
+      console.log('Unisat chain:', chain); // Debug log
+
+      // Switch to Bitcoin Signet if not already
+      if (chain.enum !== 'BITCOIN_SIGNET') {
+        await window.unisat.switchChain('BITCOIN_SIGNET');
       }
 
       // Validate Taproot address

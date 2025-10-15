@@ -59,37 +59,70 @@ class BitcoinStakingService {
   private finalityProviders: FinalityProvider[] = [];
 
   /**
-   * Fetch Babylon parameters from hodlprotocol_exchange canister
+   * Fetch Babylon parameters directly from Babylon testnet API
+   * NOTE: We don't need this anymore since fetchBabylonStakingParams() gets everything
    */
   async fetchBabylonParams(): Promise<BabylonParams> {
     try {
-      // Fetch real Babylon params from deployed canister
-      const params = await hodlprotocolCanisterService.getBabylonParams();
+      // Fetch from Babylon testnet API
+      const response = await fetch('https://babylon-testnet-api.polkachu.com/babylon/btcstaking/v1/params');
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch Babylon params: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const params = data.params;
+
+      // Convert to simplified format
+      const babylonParams: BabylonParams = {
+        unbonding_time: params.min_unbonding_time_blocks || 301,
+        max_validators: 100, // Not provided by API
+        min_commission_rate: params.min_commission_rate || '0.03',
+        bond_denom: 'usat', // Standard denomination
+      };
 
       // Cache the params
-      this.babylonParams = params;
+      this.babylonParams = babylonParams;
 
-      return params;
-    } catch (error) {
-      console.error('Error fetching Babylon params from canister:', error);
+      return babylonParams;
+    } catch (error: any) {
+      console.error('Error fetching Babylon params from API:', error);
       throw new Error(`Failed to fetch Babylon parameters: ${error.message}`);
     }
   }
 
   /**
-   * Fetch top finality providers from hodlprotocol_exchange canister
+   * Fetch top finality providers directly from Babylon testnet API
    */
   async fetchFinalityProviders(): Promise<FinalityProvider[]> {
     try {
-      // Fetch real finality providers from deployed canister
-      const providers = await hodlprotocolCanisterService.getFinalityProviders();
+      // Fetch directly from Babylon testnet API
+      const response = await fetch('https://babylon-testnet-api.polkachu.com/babylon/btcstaking/v1/finality_providers?pagination.limit=40');
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch finality providers: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const fps = data.finality_providers || [];
+
+      // Convert to our FinalityProvider format
+      const providers: FinalityProvider[] = fps.map((fp: any) => ({
+        moniker: fp.description?.moniker || 'Unknown',
+        operator_address: fp.addr || '',
+        consensus_pubkey: fp.btc_pk || '', // Babylon API uses 'btc_pk' not 'btc_pk_hex'
+        commission_rate: fp.commission || '0',
+        voting_power: fp.voting_power || '0',
+        apy: parseFloat(fp.commission) > 0 ? (10 - parseFloat(fp.commission)) : 8.0, // Estimate APY
+      }));
 
       // Cache the providers
       this.finalityProviders = providers;
 
       return providers;
-    } catch (error) {
-      console.error('Error fetching finality providers from canister:', error);
+    } catch (error: any) {
+      console.error('Error fetching finality providers from Babylon API:', error);
       throw new Error(`Failed to fetch finality providers: ${error.message}`);
     }
   }
@@ -131,14 +164,24 @@ class BitcoinStakingService {
       // Step 2B: Build Babylon staking scripts using btc-staking-ts SDK
       // ===================================
 
-      const { Staking } = await import('@babylonlabs-io/btc-staking-ts');
+      const { Staking, initBTCCurve } = await import('@babylonlabs-io/btc-staking-ts');
       const { networks } = await import('bitcoinjs-lib');
+
+      // Initialize ECC library (required for address validation)
+      initBTCCurve();
 
       // Prepare staker info
       const stakerInfo = {
         address: inputs.userBtcAddress,
         publicKeyNoCoordHex: inputs.userBtcPublicKey,
       };
+
+      // Debug logging
+      console.log('Staker info:', stakerInfo);
+      console.log('Network:', networks.testnet);
+      console.log('Staking params:', stakingParams);
+      console.log('FP public key:', inputs.finalityProvider.consensus_pubkey);
+      console.log('Duration:', inputs.duration);
 
       // Create Staking instance
       const stakingInstance = new Staking(
@@ -157,6 +200,9 @@ class BitcoinStakingService {
       // ===================================
 
       const inputUTXOs = await this.fetchUserUTXOs(inputs.userBtcAddress);
+
+      // Debug: Log UTXOs to see what we're getting
+      console.log('Input UTXOs:', JSON.stringify(inputUTXOs, null, 2));
 
       // ===================================
       // Step 2D: Get fee rate for Bitcoin transaction
@@ -237,14 +283,19 @@ class BitcoinStakingService {
       return { isValid: false, error: "Minimum stake is 0.0005 BTC (50,000 sats)" };
     }
 
-    // Maximum stake: 350 BTC (35,000,000 sats) per Babylon testnet
-    if (inputs.amount > 35000000) {
+    // Maximum stake: 350 BTC (35,000,000,000 sats) per Babylon testnet
+    if (inputs.amount > 35000000000) {
       return { isValid: false, error: "Maximum stake is 350 BTC" };
     }
 
-    // Minimum duration: 30 days (~4,320 blocks)
-    if (inputs.duration < 4320) {
-      return { isValid: false, error: "Minimum staking duration is 30 days (~4,320 blocks)" };
+    // Minimum duration: 10,000 blocks per Babylon testnet (69.4 days)
+    if (inputs.duration < 10000) {
+      return { isValid: false, error: "Minimum staking duration is 10,000 blocks (~69 days)" };
+    }
+
+    // Maximum duration: 64,000 blocks per Babylon testnet (444 days)
+    if (inputs.duration > 64000) {
+      return { isValid: false, error: "Maximum staking duration is 64,000 blocks (~444 days)" };
     }
 
     // Validate Taproot address (must start with tb1p for testnet)
@@ -252,9 +303,10 @@ class BitcoinStakingService {
       return { isValid: false, error: "Address must be a Taproot address (tb1p...) on Bitcoin Signet" };
     }
 
-    // Validate public key is 33 bytes hex (66 characters)
-    if (inputs.userBtcPublicKey.length !== 66) {
-      return { isValid: false, error: "Public key must be 33 bytes (66 hex characters)" };
+    // Validate public key is 32 bytes hex (64 characters) - no coordinate byte
+    // The btc-staking-ts SDK expects "publicKeyNoCoordHex" format
+    if (inputs.userBtcPublicKey.length !== 64) {
+      return { isValid: false, error: "Public key must be 32 bytes (64 hex characters, no coordinate byte)" };
     }
 
     return { isValid: true };
@@ -280,16 +332,16 @@ class BitcoinStakingService {
       return {
         covenantNoCoordPks: params.covenant_pks, // Array of hex public keys
         covenantQuorum: params.covenant_quorum,
-        unbondingTime: params.min_unbonding_time_blocks,
-        unbondingFeeSat: 1000, // Fixed unbonding fee (TODO: Make configurable)
-        maxStakingAmountSat: parseInt(params.max_staking_amount_sat),
-        minStakingAmountSat: parseInt(params.min_staking_amount_sat),
+        unbondingTime: params.unbonding_time_blocks || params.min_unbonding_time_blocks || 301,
+        unbondingFeeSat: parseInt(params.unbonding_fee_sat) || 1000,
+        maxStakingAmountSat: parseInt(params.max_staking_value_sat) || 35000000000,
+        minStakingAmountSat: parseInt(params.min_staking_value_sat) || 50000,
         maxStakingTimeBlocks: params.max_staking_time_blocks,
         minStakingTimeBlocks: params.min_staking_time_blocks,
         slashing: params.slashing_pk_script ? {
           slashingPkScriptHex: params.slashing_pk_script,
           slashingRate: parseFloat(params.slashing_rate),
-          minSlashingTxFeeSat: 1000, // Fixed slashing fee (TODO: Make configurable)
+          minSlashingTxFeeSat: parseInt(params.min_slashing_tx_fee_sat) || 1000,
         } : undefined,
       };
     } catch (error) {
@@ -311,14 +363,44 @@ class BitcoinStakingService {
         // Get UTXOs from Unisat wallet
         const utxos = await unisat.getBitcoinUtxos();
 
-        // Convert Unisat UTXO format to btc-staking-ts format
-        return utxos.map((utxo: any) => ({
-          txid: utxo.txid,
-          vout: utxo.vout,
-          value: utxo.satoshis || utxo.value,
-          scriptPubKey: utxo.scriptPubKey,
-          rawTxHex: utxo.rawTxHex,
-        }));
+        // Debug: Log raw Unisat UTXOs
+        console.log('Raw Unisat UTXOs:', JSON.stringify(utxos, null, 2));
+
+        // Unisat's getBitcoinUtxos() doesn't return scriptPubKey or rawTxHex
+        // We need to fetch the full transaction data from mempool.space API
+        const enrichedUtxos = await Promise.all(
+          utxos.map(async (utxo: any) => {
+            try {
+              // Fetch transaction data from mempool.space Signet API
+              const txResponse = await fetch(`https://mempool.space/signet/api/tx/${utxo.txid}`);
+              if (!txResponse.ok) {
+                throw new Error(`Failed to fetch tx ${utxo.txid}`);
+              }
+              const txData = await txResponse.json();
+
+              // Get the output for this UTXO
+              const output = txData.vout[utxo.vout];
+              if (!output) {
+                throw new Error(`Output ${utxo.vout} not found in tx ${utxo.txid}`);
+              }
+
+              // Return enriched UTXO with all required fields
+              // Note: rawTxHex not needed for Taproot (P2TR) addresses
+              // Unisat returns "satoshis" not "value"
+              return {
+                txid: utxo.txid,
+                vout: utxo.vout,
+                value: utxo.satoshis, // Unisat uses "satoshis" field
+                scriptPubKey: output.scriptpubkey, // From mempool.space API (hex string)
+              };
+            } catch (error) {
+              console.error(`Error enriching UTXO ${utxo.txid}:${utxo.vout}:`, error);
+              throw error;
+            }
+          })
+        );
+
+        return enrichedUtxos;
       }
 
       // Check if Xverse wallet is available
