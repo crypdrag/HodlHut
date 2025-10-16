@@ -51,11 +51,13 @@ class ReeOrchestratorService {
    * Submit signed PSBT to REE Orchestrator for broadcasting
    *
    * @param signedPsbtHex - Hex-encoded signed PSBT from wallet
+   * @param nonce - Unique nonce from pre_stake() offer (REQUIRED for exchange validation)
    * @param metadata - Staking metadata (finality provider, timelock, etc.)
    * @returns Bitcoin transaction ID and status
    */
   async submitSignedPsbt(
     signedPsbtHex: string,
+    nonce: bigint,
     metadata?: StakingMetadata
   ): Promise<InvokeResult> {
     try {
@@ -70,10 +72,10 @@ class ReeOrchestratorService {
               input_coins: [],
               output_coins: [],
               action: metadata?.action || 'stake_babylon',
-              exchange_id: this.hodlprotocolExchangeCanisterId,
+              exchange_id: this.hodlprotocolExchangeCanisterId, // CRITICAL: Exchange canister ID
               pool_utxo_spent: [],
               action_params: JSON.stringify(metadata || {}),
-              nonce: BigInt(Date.now()),
+              nonce: nonce, // CRITICAL: Use nonce from pre_stake() to match exchange validation
               pool_address: '', // Empty for Babylon staking (not using pool)
               pool_utxo_received: [],
             },

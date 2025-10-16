@@ -1,43 +1,166 @@
- use candid::{CandidType, Deserialize};
-  use ic_cdk_macros::*;
-  use serde::Serialize;
-  use std::cell::RefCell;
+use candid::{CandidType, Deserialize};
+use ic_cdk_macros::*;
+use serde::Serialize;
+use std::cell::RefCell;
+use ic_stable_structures::{
+    DefaultMemoryImpl, StableBTreeMap,
+    memory_manager::{MemoryId, MemoryManager, VirtualMemory},
+    Storable, storable::Bound,
+};
+use ree_types::{bitcoin::Network, schnorr::request_ree_pool_address};
 
-  // ============================
-  // TYPE DEFINITIONS - REE Exchange API
-  // ============================
+// ============================
+// TYPE DEFINITIONS - Pool & Deposit Tracking
+// ============================
 
-  #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
-  pub struct PoolInfo {
-      pub pool_address: String,
-      pub pool_type: String,
-      pub total_staked: u64,
-      pub active_stakes: u32,
-  }
+/// Configuration for the liquid staking pool
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct PoolConfig {
+    pub address: String,              // Bitcoin Taproot address (tb1p...)
+    pub finality_provider: String,    // Top FP pubkey from Babylon
+    pub timelock_blocks: u32,          // 12,960 blocks (≈90 days)
+    pub blst_rune_id: Option<String>,  // Populated after etching
+    pub total_deposited_sats: u64,     // Total BTC deposited
+    pub total_blst_minted: u64,        // Total BLST issued (in BLST units)
+    pub created_at: u64,               // Timestamp
+}
 
-  #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
-  pub struct StakeOffer {
-      pub pool_address: String,
-      pub amount: u64,
-      pub duration: u32,
-      pub finality_provider: String,
-      pub expected_blst: u64,
-      pub protocol_fee: u64,
-      pub estimated_apy: f64,
-      pub nonce: u64,
-  }
+/// User deposit intent (created by pre_deposit, consumed by execute_tx)
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct DepositIntent {
+    pub user_btc_address: String,
+    pub amount_sats: u64,
+    pub duration_blocks: u32,
+    pub finality_provider_key: String,
+    pub created_at: u64,
+    pub nonce: u64,
+}
 
-  #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
-  pub struct ExecutionResult {
-      pub tx_id: String,
-      pub status: String,
-      pub bitcoin_tx_id: Option<String>,
-      pub error: Option<String>,
-  }
+/// BLST mint record (permanent record of minted BLST with Babylon params)
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct BlstMintRecord {
+    // User info
+    pub user_btc_address: String,
+    pub amount_blst: u64,         // In BLST units (100,000 per BTC)
+    pub amount_sats: u64,          // Original BTC deposit
 
-  // ============================
-  // TYPE DEFINITIONS - Babylon Integration
-  // ============================
+    // Pool params (reference to pool registry)
+    pub pool_address: String,
+    pub finality_provider: String,
+    pub timelock_blocks: u32,      // 12,960
+
+    // Tracking
+    pub deposit_tx_hash: String,
+    pub mint_tx_hash: Option<String>,
+    pub mint_timestamp: u64,
+    pub babylon_stake_tx: Option<String>,  // Populated when pool stakes
+}
+
+/// Response from pre_deposit() - tells user where to send BTC
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct DepositOffer {
+    pub pool_address: String,      // Real Bitcoin address to deposit to
+    pub nonce: u64,                 // For REE tracking
+    pub expected_blst: u64,         // How much BLST user will receive
+    pub protocol_fee: u64,          // Fee (0 for testnet demo)
+    pub estimated_apy: f64,         // From selected FP
+}
+
+/// Pool statistics for UI
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct PoolStats {
+    pub pool_address: String,
+    pub tvl_sats: u64,
+    pub total_blst_minted: u64,
+    pub finality_provider: String,
+    pub timelock_blocks: u32,
+    pub estimated_apy: f64,
+}
+
+// ============================
+// STORABLE IMPLEMENTATIONS - For stable storage
+// ============================
+
+impl Storable for DepositIntent {
+    const BOUND: Bound = Bound::Unbounded;
+
+    fn to_bytes(&self) -> std::borrow::Cow<'_, [u8]> {
+        let mut bytes = vec![];
+        ciborium::ser::into_writer(self, &mut bytes).expect("Failed to serialize DepositIntent");
+        std::borrow::Cow::Owned(bytes)
+    }
+
+    fn from_bytes(bytes: std::borrow::Cow<'_, [u8]>) -> Self {
+        ciborium::de::from_reader(bytes.as_ref()).expect("Failed to deserialize DepositIntent")
+    }
+}
+
+impl Storable for BlstMintRecord {
+    const BOUND: Bound = Bound::Unbounded;
+
+    fn to_bytes(&self) -> std::borrow::Cow<'_, [u8]> {
+        let mut bytes = vec![];
+        ciborium::ser::into_writer(self, &mut bytes).expect("Failed to serialize BlstMintRecord");
+        std::borrow::Cow::Owned(bytes)
+    }
+
+    fn from_bytes(bytes: std::borrow::Cow<'_, [u8]>) -> Self {
+        ciborium::de::from_reader(bytes.as_ref()).expect("Failed to deserialize BlstMintRecord")
+    }
+}
+
+impl Storable for PoolConfig {
+    const BOUND: Bound = Bound::Unbounded;
+
+    fn to_bytes(&self) -> std::borrow::Cow<'_, [u8]> {
+        let mut bytes = vec![];
+        ciborium::ser::into_writer(self, &mut bytes).expect("Failed to serialize PoolConfig");
+        std::borrow::Cow::Owned(bytes)
+    }
+
+    fn from_bytes(bytes: std::borrow::Cow<'_, [u8]>) -> Self {
+        ciborium::de::from_reader(bytes.as_ref()).expect("Failed to deserialize PoolConfig")
+    }
+}
+
+// ============================
+// STABLE STORAGE - Memory Management
+// ============================
+
+type Memory = VirtualMemory<DefaultMemoryImpl>;
+
+thread_local! {
+    static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
+        RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
+
+    // Pool configuration (single pool for MVP)
+    static POOL_CONFIG: RefCell<Option<PoolConfig>> = RefCell::new(None);
+
+    // Pending deposits: nonce → DepositIntent
+    static PENDING_DEPOSITS: RefCell<StableBTreeMap<u64, DepositIntent, Memory>> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(0))),
+        )
+    );
+
+    // BLST mint records: deposit_tx_hash → BlstMintRecord
+    static BLST_MINT_RECORDS: RefCell<StableBTreeMap<String, BlstMintRecord, Memory>> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(1))),
+        )
+    );
+
+    // User BLST balances: btc_address → balance (in BLST units)
+    static USER_BLST_BALANCES: RefCell<StableBTreeMap<String, u64, Memory>> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(2))),
+        )
+    );
+}
+
+// ============================
+// TYPE DEFINITIONS - Babylon Integration
+// ============================
 
   #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
   pub struct BabylonParams {
@@ -76,6 +199,98 @@
 
   const CACHE_DURATION_NANOS: u64 = 24 * 60 * 60 * 1_000_000_000; // 24 hours
   const BABYLON_API_URL: &str = "https://babylon-testnet-api.polkachu.com";
+  // REE library accepts: "test_key_1" (testnet/local) or "key_1" (mainnet)
+  const SCHNORR_KEY_NAME: &str = "test_key_1";  // Use "key_1" for mainnet
+  const POOL_TIMELOCK_BLOCKS: u32 = 12_960;  // 90 days
+
+  // ============================
+  // POOL INITIALIZATION - ICP Chain Key
+  // ============================
+
+  /// Initialize the liquid staking pool with ICP Chain Key
+  #[update]
+  async fn init_pool() -> Result<String, String> {
+      let caller = ic_cdk::api::caller();
+      if !ic_cdk::api::is_controller(&caller) {
+          return Err("Not authorized - only controller can initialize pool".to_string());
+      }
+
+      // Check if pool already initialized
+      let existing_pool = POOL_CONFIG.with(|p| p.borrow().clone());
+      if existing_pool.is_some() {
+          return Err("Pool already initialized".to_string());
+      }
+
+      ic_cdk::println!("Initializing liquid staking pool...");
+
+      // For local testing: Use mock address since dfx_test_key != test_key_1
+      // For testnet/mainnet: Use real ICP Chain Key
+      let addr = if cfg!(target_arch = "wasm32") {
+          // Try to detect if we're on local dfx by attempting real key generation
+          match request_ree_pool_address(
+              SCHNORR_KEY_NAME,
+              vec![b"hodlprotocol_blst_pool".to_vec()],
+              Network::Testnet4,
+          )
+          .await
+          {
+              Ok((untweaked, tweaked, address)) => {
+                  ic_cdk::println!("Pool address generated: {}", address);
+                  ic_cdk::println!("Untweaked pubkey: {:?}", untweaked);
+                  ic_cdk::println!("Tweaked pubkey: {:?}", tweaked);
+                  address.to_string()
+              }
+              Err(e) => {
+                  // If key generation fails, use mock address for local testing
+                  ic_cdk::println!("⚠️  Chain Key generation failed (local dfx?): {}", e);
+                  ic_cdk::println!("📍 Using mock pool address for local testing");
+                  // Mock Bitcoin Signet Taproot address
+                  "tb1pqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqfmkg5p".to_string()
+              }
+          }
+      } else {
+          // Non-wasm compilation (shouldn't happen, but just in case)
+          "tb1pqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqfmkg5p".to_string()
+      };
+
+      ic_cdk::println!("Pool address: {}", addr);
+
+      // Get top finality provider
+      let fps = get_finality_providers().await?;
+      let top_fp = fps.first()
+          .ok_or("No finality providers available")?;
+
+      ic_cdk::println!("Selected top FP: {} (APY: {}%)", top_fp.description.moniker, top_fp.estimated_apy);
+
+      // Create pool config
+      let pool_config = PoolConfig {
+          address: addr.to_string(),
+          finality_provider: top_fp.btc_pk_hex.clone(),
+          timelock_blocks: POOL_TIMELOCK_BLOCKS,
+          blst_rune_id: None,  // Will be populated after etching
+          total_deposited_sats: 0,
+          total_blst_minted: 0,
+          created_at: ic_cdk::api::time(),
+      };
+
+      // Store pool config
+      POOL_CONFIG.with(|p| {
+          *p.borrow_mut() = Some(pool_config.clone());
+      });
+
+      ic_cdk::println!("✅ Pool initialized successfully!");
+      ic_cdk::println!("   Address: {}", pool_config.address);
+      ic_cdk::println!("   FP: {}", pool_config.finality_provider);
+      ic_cdk::println!("   Timelock: {} blocks (≈90 days)", pool_config.timelock_blocks);
+
+      Ok(pool_config.address)
+  }
+
+  /// Query current pool configuration
+  #[query]
+  fn get_pool_config() -> Option<PoolConfig> {
+      POOL_CONFIG.with(|p| p.borrow().clone())
+  }
 
   // ============================
   // TRANSFORM FUNCTION - Normalize HTTP responses for consensus
@@ -324,90 +539,123 @@
   }
 
   // ============================
-  // REE EXCHANGE API - STUBS (Phase 1)
+  // REE EXECUTION TYPES - Transaction Callbacks
   // ============================
 
-  /// Pool management - Query pool list
-  #[query]
-  fn get_pool_list() -> Vec<PoolInfo> {
-      ic_cdk::println!("get_pool_list() called - returning empty vec (stub)");
-      vec![]
+  /// Result of transaction execution from REE Orchestrator
+  #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+  pub struct ExecutionResult {
+      pub status: String,              // "success" or "failed"
+      pub tx_hash: String,              // Bitcoin transaction hash
+      pub amount_sats: u64,             // Amount deposited
+      pub from_address: String,         // User's Bitcoin address
+      pub to_address: String,           // Pool address
+      pub nonce: u64,                   // Nonce for matching DepositIntent
+      pub confirmations: u32,           // Block confirmations
   }
 
-  /// Pool management - Query specific pool info
-  #[query]
-  fn get_pool_info(pool_address: String) -> Option<PoolInfo> {
-      ic_cdk::println!("get_pool_info({}) called - returning None (stub)", pool_address);
-      None
-  }
+  // ============================
+  // DEPOSIT FLOW - Liquid Staking
+  // ============================
 
-/// Transaction preparation - Pre-stake flow
-  /// Returns offer details for client-side PSBT construction
-  /// Client constructs PSBTs using @babylonlabs-io/btc-staking-ts SDK
+  /// Pre-deposit: User requests deposit info before sending BTC
+  /// Returns pool address and nonce for REE tracking
   #[update]
-  async fn pre_stake(
+  async fn pre_deposit(
       user_btc_address: String,
-      amount: u64,
-      duration: u32,
-      finality_provider_btc_pk: String,
-  ) -> Result<StakeOffer, String> {
+      amount_sats: u64,
+  ) -> Result<DepositOffer, String> {
       ic_cdk::println!(
-          "pre_stake() called - user: {}, amount: {}, duration: {}, fp: {}",
+          "pre_deposit() called - user: {}, amount: {} sats",
           user_btc_address,
-          amount,
-          duration,
-          finality_provider_btc_pk
+          amount_sats
       );
 
-      // Validation: Check minimum/maximum stake amounts
-      if amount < 50_000 {
-          return Err("Minimum stake is 0.0005 BTC (50,000 sats)".to_string());
+      // Get pool config
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().clone())
+          .ok_or("Pool not initialized - call init_pool() first")?;
+
+      // Validation: Check minimum/maximum amounts
+      if amount_sats < 50_000 {
+          return Err("Minimum deposit is 0.0005 BTC (50,000 sats = 50 BLST)".to_string());
       }
 
-      if amount > 35_000_000 {
-          return Err("Maximum stake is 350 BTC (35,000,000 sats)".to_string());
+      if amount_sats > 35_000_000_000 {
+          return Err("Maximum deposit is 350 BTC".to_string());
       }
 
-      // Validation: Check minimum duration (30 days = ~4,320 blocks)
-      if duration < 4_320 {
-          return Err("Minimum staking duration is 30 days (~4,320 blocks)".to_string());
+      // Validation: Taproot address check
+      if !user_btc_address.starts_with("tb1p") && !user_btc_address.starts_with("bc1p") {
+          return Err("Address must be a Taproot address (tb1p... or bc1p...)".to_string());
       }
 
-      // Validation: Taproot address check (must start with tb1p for Signet testnet)
-      if !user_btc_address.starts_with("tb1p") {
-          return Err("Address must be a Taproot address (tb1p...) on Bitcoin Signet".to_string());
-      }
+      // Calculate expected BLST: 100,000 BLST = 1 BTC
+      // So: BLST = sats / 10
+      let expected_blst = amount_sats / 10;
 
-      // Fetch finality providers to validate selection and get APY
+      ic_cdk::println!("Expected BLST for {} sats: {} BLST", amount_sats, expected_blst);
+
+      // Generate nonce (using timestamp)
+      let nonce = ic_cdk::api::time();
+
+      // Create deposit intent
+      let deposit_intent = DepositIntent {
+          user_btc_address: user_btc_address.clone(),
+          amount_sats,
+          duration_blocks: pool_config.timelock_blocks,
+          finality_provider_key: pool_config.finality_provider.clone(),
+          created_at: ic_cdk::api::time(),
+          nonce,
+      };
+
+      // Store deposit intent
+      PENDING_DEPOSITS.with(|deposits| {
+          deposits.borrow_mut().insert(nonce, deposit_intent);
+      });
+
+      ic_cdk::println!("✅ Deposit intent created - nonce: {}", nonce);
+
+      // Get FP info for APY
       let fps = get_finality_providers().await?;
-
       let selected_fp = fps.iter()
-          .find(|fp| fp.btc_pk_hex == finality_provider_btc_pk)
-          .ok_or("Invalid finality provider selected")?;
+          .find(|fp| fp.btc_pk_hex == pool_config.finality_provider)
+          .ok_or("Finality provider not found")?;
 
-      // Calculate fees and expected BLST
-      let protocol_fee = amount * 2 / 100; // 2% protocol fee
-      let expected_blst = amount; // 1:1 backing (user gets full amount in BLST)
-
-      // Generate pool address (deterministic based on FP + duration)
-      let pool_address = format!("tb1p_staking_pool_{}_{}",
-          &finality_provider_btc_pk[..8],
-          duration
-      );
-
-      Ok(StakeOffer {
-          pool_address,
-          amount,
-          duration,
-          finality_provider: finality_provider_btc_pk,
+      Ok(DepositOffer {
+          pool_address: pool_config.address,
+          nonce,
           expected_blst,
-          protocol_fee,
+          protocol_fee: 0,  // No fee for testnet demo
           estimated_apy: selected_fp.estimated_apy,
-          nonce: ic_cdk::api::time(),
+      })
+  }
+
+  /// Query pool statistics
+  #[query]
+  fn get_pool_stats() -> Result<PoolStats, String> {
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().clone())
+          .ok_or("Pool not initialized")?;
+
+      Ok(PoolStats {
+          pool_address: pool_config.address,
+          tvl_sats: pool_config.total_deposited_sats,
+          total_blst_minted: pool_config.total_blst_minted,
+          finality_provider: pool_config.finality_provider,
+          timelock_blocks: pool_config.timelock_blocks,
+          estimated_apy: 12.0,  // Placeholder - fetch from FP
+      })
+  }
+
+  /// Query user's BLST balance
+  #[query]
+  fn get_blst_balance(user_address: String) -> u64 {
+      USER_BLST_BALANCES.with(|balances| {
+          balances.borrow().get(&user_address).unwrap_or(0)
       })
   }
 
   /// Transaction execution callback - Called by REE Orchestrator
+  /// This is triggered when a Bitcoin deposit to the pool address is confirmed
   #[update]
   fn execute_tx(tx_id: String, execution_result: ExecutionResult) {
       ic_cdk::println!(
@@ -415,6 +663,124 @@
           tx_id,
           execution_result.status
       );
+
+      // Only process successful transactions
+      if execution_result.status != "success" {
+          ic_cdk::println!("❌ Transaction failed, skipping: {}", tx_id);
+          return;
+      }
+
+      ic_cdk::println!(
+          "Processing deposit: {} sats from {} (nonce: {})",
+          execution_result.amount_sats,
+          execution_result.from_address,
+          execution_result.nonce
+      );
+
+      // Look up deposit intent by nonce
+      let deposit_intent = PENDING_DEPOSITS.with(|deposits| {
+          deposits.borrow().get(&execution_result.nonce)
+      });
+
+      let intent = match deposit_intent {
+          Some(intent) => intent,
+          None => {
+              ic_cdk::println!("⚠️  No matching deposit intent found for nonce: {}", execution_result.nonce);
+              return;
+          }
+      };
+
+      // Verify deposit matches intent
+      if intent.amount_sats != execution_result.amount_sats {
+          ic_cdk::println!(
+              "⚠️  Amount mismatch! Expected: {} sats, Got: {} sats",
+              intent.amount_sats,
+              execution_result.amount_sats
+          );
+          // For testnet demo, we'll accept the actual amount
+      }
+
+      if intent.user_btc_address != execution_result.from_address {
+          ic_cdk::println!(
+              "⚠️  Address mismatch! Expected: {}, Got: {}",
+              intent.user_btc_address,
+              execution_result.from_address
+          );
+          return;
+      }
+
+      // Calculate BLST to mint: 100,000 BLST = 1 BTC
+      // So: BLST = sats / 10
+      let blst_amount = execution_result.amount_sats / 10;
+
+      ic_cdk::println!("Minting {} BLST for {} sats", blst_amount, execution_result.amount_sats);
+
+      // Get pool config
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().clone());
+      let pool_config = match pool_config {
+          Some(config) => config,
+          None => {
+              ic_cdk::println!("❌ Pool not initialized!");
+              return;
+          }
+      };
+
+      // Create BLST mint record
+      let mint_record = BlstMintRecord {
+          user_btc_address: execution_result.from_address.clone(),
+          amount_blst: blst_amount,
+          amount_sats: execution_result.amount_sats,
+          pool_address: pool_config.address.clone(),
+          finality_provider: pool_config.finality_provider.clone(),
+          timelock_blocks: pool_config.timelock_blocks,
+          deposit_tx_hash: execution_result.tx_hash.clone(),
+          mint_tx_hash: None,  // Will be populated when BLST rune is minted on Bitcoin
+          mint_timestamp: ic_cdk::api::time(),
+          babylon_stake_tx: None,  // Will be populated when pool stakes to Babylon
+      };
+
+      // Store mint record
+      BLST_MINT_RECORDS.with(|records| {
+          records.borrow_mut().insert(execution_result.tx_hash.clone(), mint_record);
+      });
+
+      // Update user balance
+      USER_BLST_BALANCES.with(|balances| {
+          let mut balances = balances.borrow_mut();
+          let current_balance = balances.get(&execution_result.from_address).unwrap_or(0);
+          let new_balance = current_balance + blst_amount;
+          balances.insert(execution_result.from_address.clone(), new_balance);
+          ic_cdk::println!("✅ User balance updated: {} BLST (+ {})", new_balance, blst_amount);
+      });
+
+      // Update pool stats
+      let mut config = match POOL_CONFIG.with(|p| p.borrow().clone()) {
+          Some(config) => config,
+          None => {
+              ic_cdk::println!("❌ Pool config missing during update!");
+              return;
+          }
+      };
+
+      config.total_deposited_sats += execution_result.amount_sats;
+      config.total_blst_minted += blst_amount;
+
+      POOL_CONFIG.with(|p| {
+          *p.borrow_mut() = Some(config.clone());
+      });
+
+      ic_cdk::println!("✅ Pool stats updated:");
+      ic_cdk::println!("   Total deposited: {} sats", config.total_deposited_sats);
+      ic_cdk::println!("   Total BLST minted: {}", config.total_blst_minted);
+
+      // Remove from pending deposits
+      PENDING_DEPOSITS.with(|deposits| {
+          deposits.borrow_mut().remove(&execution_result.nonce);
+      });
+
+      ic_cdk::println!("✅ Deposit processed successfully - tx: {}", tx_id);
+      ic_cdk::println!("   User: {}", execution_result.from_address);
+      ic_cdk::println!("   Amount: {} sats = {} BLST", execution_result.amount_sats, blst_amount);
   }
 
   /// Blockchain state management - New block notification

@@ -1,38 +1,112 @@
-type PoolInfo = record {
-  pool_address : text;
-  pool_type : text;
-  total_staked : nat64;
-  active_stakes : nat32;
+// ============================
+// TYPE DEFINITIONS
+// ============================
+
+type PoolConfig = record {
+  address : text;
+  finality_provider : text;
+  timelock_blocks : nat32;
+  blst_rune_id : opt text;
+  total_deposited_sats : nat64;
+  total_blst_minted : nat64;
+  created_at : nat64;
 };
 
-type StakeOffer = record {
+type DepositOffer = record {
   pool_address : text;
-  amount : nat64;
-  duration : nat32;
-  finality_provider : text;
+  nonce : nat64;
   expected_blst : nat64;
   protocol_fee : nat64;
   estimated_apy : float64;
-  nonce : nat64;
+};
+
+type PoolStats = record {
+  pool_address : text;
+  tvl_sats : nat64;
+  total_blst_minted : nat64;
+  finality_provider : text;
+  timelock_blocks : nat32;
+  estimated_apy : float64;
 };
 
 type ExecutionResult = record {
-  tx_id : text;
   status : text;
-  bitcoin_tx_id : opt text;
-  error : opt text;
+  tx_hash : text;
+  amount_sats : nat64;
+  from_address : text;
+  to_address : text;
+  nonce : nat64;
+  confirmations : nat32;
 };
 
+type BabylonParams = record {
+  unbonding_time_seconds : nat64;
+  max_validators : nat32;
+  min_commission_rate : text;
+  bond_denom : text;
+  last_updated : nat64;
+};
+
+type FPDescription = record {
+  moniker : text;
+  identity : text;
+  website : text;
+  details : text;
+};
+
+type FinalityProvider = record {
+  btc_pk_hex : text;
+  description : FPDescription;
+  commission : text;
+  voting_power : text;
+  estimated_apy : float64;
+};
+
+type Result = variant {
+  Ok : text;
+  Err : text;
+};
+
+type Result_1 = variant {
+  Ok : DepositOffer;
+  Err : text;
+};
+
+type Result_2 = variant {
+  Ok : PoolStats;
+  Err : text;
+};
+
+type Result_3 = variant {
+  Ok : BabylonParams;
+  Err : text;
+};
+
+type Result_4 = variant {
+  Ok : vec FinalityProvider;
+  Err : text;
+};
+
+// ============================
+// SERVICE INTERFACE
+// ============================
+
 service : {
-  // Pool management (query methods)
-  "get_pool_list" : () -> (vec PoolInfo) query;
-  "get_pool_info" : (text) -> (opt PoolInfo) query;
+  // Pool management
+  "init_pool" : () -> (Result);
+  "get_pool_config" : () -> (opt PoolConfig) query;
+  "get_pool_stats" : () -> (Result_2) query;
 
-  // Transaction preparation (update methods)
-  "pre_stake" : (text, nat64, nat32, text) -> (StakeOffer);
+  // Deposit flow
+  "pre_deposit" : (text, nat64) -> (Result_1);
+  "get_blst_balance" : (text) -> (nat64) query;
 
-  // REE Orchestrator callbacks (update methods)
+  // REE Orchestrator callbacks
   "execute_tx" : (text, ExecutionResult) -> ();
   "new_block" : (nat64, text) -> ();
   "rollback_tx" : (text) -> ();
+
+  // Babylon integration
+  "get_babylon_params" : () -> (Result_3);
+  "get_finality_providers" : () -> (Result_4);
 }

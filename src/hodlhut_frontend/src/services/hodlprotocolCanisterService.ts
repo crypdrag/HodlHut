@@ -35,17 +35,31 @@
     apy: number;
   }
 
-  export interface StakeOffer {
-    estimated_blst_amount: bigint;
+  export interface DepositOffer {
+    pool_address: string;
+    nonce: bigint;
+    expected_blst: bigint;
+    protocol_fee: bigint;
     estimated_apy: number;
-    babylon_tx_fee: bigint;
-    network_fee: bigint;
   }
 
-  export interface PoolInfo {
+  export interface PoolStats {
     pool_address: string;
-    total_liquidity: bigint;
-    // Add other pool fields as needed
+    tvl_sats: bigint;
+    total_blst_minted: bigint;
+    finality_provider: string;
+    timelock_blocks: number;
+    estimated_apy: number;
+  }
+
+  export interface PoolConfig {
+    address: string;
+    finality_provider: string;
+    timelock_blocks: number;
+    blst_rune_id: string | null;
+    total_deposited_sats: bigint;
+    total_blst_minted: bigint;
+    created_at: bigint;
   }
 
   // Result types
@@ -74,34 +88,62 @@
       apy: IDL.Float64,
     });
 
-    const StakeOffer = IDL.Record({
-      estimated_blst_amount: IDL.Nat64,
+    const DepositOffer = IDL.Record({
+      pool_address: IDL.Text,
+      nonce: IDL.Nat64,
+      expected_blst: IDL.Nat64,
+      protocol_fee: IDL.Nat64,
       estimated_apy: IDL.Float64,
-      babylon_tx_fee: IDL.Nat64,
-      network_fee: IDL.Nat64,
     });
 
-    const PoolInfo = IDL.Record({
+    const PoolStats = IDL.Record({
       pool_address: IDL.Text,
-      total_liquidity: IDL.Nat64,
+      tvl_sats: IDL.Nat64,
+      total_blst_minted: IDL.Nat64,
+      finality_provider: IDL.Text,
+      timelock_blocks: IDL.Nat32,
+      estimated_apy: IDL.Float64,
+    });
+
+    const PoolConfig = IDL.Record({
+      address: IDL.Text,
+      finality_provider: IDL.Text,
+      timelock_blocks: IDL.Nat32,
+      blst_rune_id: IDL.Opt(IDL.Text),
+      total_deposited_sats: IDL.Nat64,
+      total_blst_minted: IDL.Nat64,
+      created_at: IDL.Nat64,
     });
 
     return IDL.Service({
       get_babylon_params: IDL.Func(
         [],
         [IDL.Variant({ ok: BabylonParams, err: IDL.Text })],
-        ['query']
+        []
       ),
       get_finality_providers: IDL.Func(
         [],
         [IDL.Variant({ ok: IDL.Vec(FinalityProvider), err: IDL.Text })],
+        []
+      ),
+      get_pool_stats: IDL.Func(
+        [],
+        [IDL.Variant({ ok: PoolStats, err: IDL.Text })],
         ['query']
       ),
-      get_pool_list: IDL.Func([], [IDL.Vec(PoolInfo)], ['query']),
-      get_pool_info: IDL.Func([IDL.Text], [IDL.Opt(PoolInfo)], ['query']),
-      pre_stake: IDL.Func(
-        [IDL.Text, IDL.Nat64, IDL.Nat64, IDL.Text],
-        [IDL.Variant({ ok: StakeOffer, err: IDL.Text })],
+      get_pool_config: IDL.Func(
+        [],
+        [IDL.Opt(PoolConfig)],
+        ['query']
+      ),
+      get_blst_balance: IDL.Func(
+        [IDL.Text],
+        [IDL.Nat64],
+        ['query']
+      ),
+      pre_deposit: IDL.Func(
+        [IDL.Text, IDL.Nat64],
+        [IDL.Variant({ ok: DepositOffer, err: IDL.Text })],
         []
       ),
     });
@@ -190,65 +232,74 @@
     }
 
     /**
-     * Get stake offer (called from server for validation)
-     * Note: Frontend will construct PSBTs locally, but server validates inputs
+     * Pre-deposit: Validate deposit and get nonce for REE tracking
+     * Returns pool address where user should send BTC
      */
-    async preStake(
+    async preDeposit(
       userBtcAddress: string,
-      amount: number,
-      duration: number,
-      finalityProviderKey: string
-    ): Promise<StakeOffer> {
+      amountSats: number
+    ): Promise<DepositOffer> {
       try {
         const actor = await this.getActor();
-        const result: Result<StakeOffer, string> = await actor.pre_stake(
+        const result: Result<DepositOffer, string> = await actor.pre_deposit(
           userBtcAddress,
-          BigInt(amount),
-          BigInt(duration),
-          finalityProviderKey
+          BigInt(amountSats)
         );
 
         if ('ok' in result) {
-          // Convert BigInt fields to numbers
-          return {
-            estimated_blst_amount: result.ok.estimated_blst_amount,
-            estimated_apy: result.ok.estimated_apy,
-            babylon_tx_fee: result.ok.babylon_tx_fee,
-            network_fee: result.ok.network_fee,
-          };
+          return result.ok;
         } else {
-          throw new Error(`Pre-stake validation failed: ${result.err}`);
+          throw new Error(`Pre-deposit validation failed: ${result.err}`);
         }
       } catch (error: any) {
-        console.error('Error in pre_stake:', error);
+        console.error('Error in pre_deposit:', error);
         throw new Error(`Canister call failed: ${error.message}`);
       }
     }
 
     /**
-     * Get list of staking pools
+     * Get pool statistics
      */
-    async getPoolList(): Promise<PoolInfo[]> {
+    async getPoolStats(): Promise<PoolStats> {
       try {
         const actor = await this.getActor();
-        const result: PoolInfo[] = await actor.get_pool_list();
-        return result;
+        const result: Result<PoolStats, string> = await actor.get_pool_stats();
+
+        if ('ok' in result) {
+          return result.ok;
+        } else {
+          throw new Error(`Failed to fetch pool stats: ${result.err}`);
+        }
       } catch (error: any) {
-        console.error('Error fetching pool list:', error);
+        console.error('Error fetching pool stats:', error);
         throw new Error(`Canister call failed: ${error.message}`);
       }
     }
 
     /**
-     * Get info for specific pool
+     * Get pool configuration
      */
-    async getPoolInfo(poolAddress: string): Promise<PoolInfo | null> {
+    async getPoolConfig(): Promise<PoolConfig | null> {
       try {
         const actor = await this.getActor();
-        const result: [PoolInfo] | [] = await actor.get_pool_info(poolAddress);
+        const result: [PoolConfig] | [] = await actor.get_pool_config();
         return result.length > 0 ? result[0] : null;
       } catch (error: any) {
-        console.error('Error fetching pool info:', error);
+        console.error('Error fetching pool config:', error);
+        throw new Error(`Canister call failed: ${error.message}`);
+      }
+    }
+
+    /**
+     * Get user's BLST balance
+     */
+    async getBlstBalance(userBtcAddress: string): Promise<bigint> {
+      try {
+        const actor = await this.getActor();
+        const balance: bigint = await actor.get_blst_balance(userBtcAddress);
+        return balance;
+      } catch (error: any) {
+        console.error('Error fetching BLST balance:', error);
         throw new Error(`Canister call failed: ${error.message}`);
       }
     }
