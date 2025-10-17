@@ -4,7 +4,7 @@ use serde::Serialize;
 use std::cell::RefCell;
 use std::str::FromStr;
 use ic_stable_structures::{
-    DefaultMemoryImpl, StableBTreeMap,
+    DefaultMemoryImpl, StableBTreeMap, StableCell,
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     Storable, storable::Bound,
 };
@@ -18,7 +18,7 @@ use ordinals::{Etching, Rune, Runestone};
 // ============================
 
 /// Configuration for the liquid staking pool
-#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug, Default)]
 pub struct PoolConfig {
     pub address: String,              // Bitcoin Taproot address (tb1p...)
     pub finality_provider: String,    // Top FP pubkey from Babylon
@@ -236,8 +236,13 @@ thread_local! {
     static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
 
-    // Pool configuration (single pool for MVP)
-    static POOL_CONFIG: RefCell<Option<PoolConfig>> = RefCell::new(None);
+    // Pool configuration (single pool for MVP) - NOW IN STABLE STORAGE!
+    static POOL_CONFIG: RefCell<StableCell<PoolConfig, Memory>> = RefCell::new(
+        StableCell::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(4))),
+            PoolConfig::default(),
+        ).expect("Failed to initialize POOL_CONFIG")
+    );
 
     // Pending deposits: nonce → DepositIntent
     static PENDING_DEPOSITS: RefCell<StableBTreeMap<u64, DepositIntent, Memory>> = RefCell::new(
@@ -338,9 +343,9 @@ thread_local! {
           return Err("Not authorized - only controller can initialize pool".to_string());
       }
 
-      // Check if pool already initialized
-      let existing_pool = POOL_CONFIG.with(|p| p.borrow().clone());
-      if existing_pool.is_some() {
+      // Check if pool already initialized (check if address is set)
+      let existing_pool = POOL_CONFIG.with(|p| p.borrow().get().clone());
+      if !existing_pool.address.is_empty() {
           return Err("Pool already initialized".to_string());
       }
 
@@ -396,9 +401,9 @@ thread_local! {
           created_at: ic_cdk::api::time(),
       };
 
-      // Store pool config
+      // Store pool config in stable storage
       POOL_CONFIG.with(|p| {
-          *p.borrow_mut() = Some(pool_config.clone());
+          p.borrow_mut().set(pool_config.clone()).expect("Failed to set POOL_CONFIG");
       });
 
       ic_cdk::println!("✅ Pool initialized successfully!");
@@ -412,7 +417,13 @@ thread_local! {
   /// Query current pool configuration
   #[query]
   fn get_pool_config() -> Option<PoolConfig> {
-      POOL_CONFIG.with(|p| p.borrow().clone())
+      let config = POOL_CONFIG.with(|p| p.borrow().get().clone());
+      // Return None if pool not initialized (address is empty)
+      if config.address.is_empty() {
+          None
+      } else {
+          Some(config)
+      }
   }
 
   /// Update pool config with rune ID after manual etching
@@ -424,8 +435,10 @@ thread_local! {
       }
 
       // Get current pool config
-      let mut pool_config = POOL_CONFIG.with(|p| p.borrow().clone())
-          .ok_or("Pool not initialized")?;
+      let mut pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
+      if pool_config.address.is_empty() {
+          return Err("Pool not initialized".to_string());
+      }
 
       // Validate rune_id format (should be "BLOCK:TX" like "201234:5")
       if !rune_id.contains(':') {
@@ -439,7 +452,7 @@ thread_local! {
 
       // Save updated config
       POOL_CONFIG.with(|p| {
-          *p.borrow_mut() = Some(pool_config);
+          p.borrow_mut().set(pool_config).expect("Failed to set POOL_CONFIG");
       });
 
       ic_cdk::println!("✅ Pool config updated with BLST rune ID");
@@ -731,8 +744,10 @@ thread_local! {
       }
 
       // Check if already etched
-      let pool_config = POOL_CONFIG.with(|p| p.borrow().clone())
-          .ok_or("Pool not initialized - call init_pool() first")?;
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
+      if pool_config.address.is_empty() {
+          return Err("Pool not initialized".to_string());
+      }
 
       if pool_config.blst_rune_id.is_some() {
           return Err(format!("BLST rune already etched: {}", pool_config.blst_rune_id.unwrap()));
@@ -1081,8 +1096,10 @@ thread_local! {
           http_request, CanisterHttpRequestArgument, HttpHeader, HttpMethod, TransformContext,
       };
 
-      let pool_config = POOL_CONFIG.with(|p| p.borrow().clone())
-          .ok_or("Pool not initialized")?;
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
+      if pool_config.address.is_empty() {
+          return Err("Pool not initialized".to_string());
+      }
 
       let url = format!(
           "https://mempool.space/signet/api/address/{}/utxo",
@@ -1179,8 +1196,10 @@ thread_local! {
 
   /// Query Runes Indexer for pool UTXOs containing BLST
   async fn query_pool_blst_utxos(min_blst: u64) -> Result<Vec<RuneUtxo>, String> {
-      let pool_config = POOL_CONFIG.with(|p| p.borrow().clone())
-          .ok_or("Pool not initialized")?;
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
+      if pool_config.address.is_empty() {
+          return Err("Pool not initialized".to_string());
+      }
 
       let rune_id = pool_config.blst_rune_id
           .ok_or("BLST rune not yet etched - call update_pool_rune_id() first")?;
@@ -1335,8 +1354,10 @@ thread_local! {
       ic_cdk::println!("🔷 stake_pool_to_babylon() called - threshold: {} sats", threshold_sats);
 
       // Get pool config
-      let pool_config = POOL_CONFIG.with(|p| p.borrow().clone())
-          .ok_or("Pool not initialized")?;
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
+      if pool_config.address.is_empty() {
+          return Err("Pool not initialized".to_string());
+      }
 
       // Check if pool has enough deposited funds
       if pool_config.total_deposited_sats < threshold_sats {
@@ -1861,8 +1882,10 @@ thread_local! {
       );
 
       // Get pool config
-      let pool_config = POOL_CONFIG.with(|p| p.borrow().clone())
-          .ok_or("Pool not initialized - call init_pool() first")?;
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
+      if pool_config.address.is_empty() {
+          return Err("Pool not initialized".to_string());
+      }
 
       // Validation: Check minimum/maximum amounts
       if amount_sats < 50_000 {
@@ -1940,8 +1963,10 @@ thread_local! {
   /// Query pool statistics
   #[query]
   fn get_pool_stats() -> Result<PoolStats, String> {
-      let pool_config = POOL_CONFIG.with(|p| p.borrow().clone())
-          .ok_or("Pool not initialized")?;
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
+      if pool_config.address.is_empty() {
+          return Err("Pool not initialized".to_string());
+      }
 
       Ok(PoolStats {
           pool_address: pool_config.address,
@@ -2063,14 +2088,11 @@ thread_local! {
           blst_amount, blst_amount / 1000, blst_amount % 1000, execution_result.amount_sats);
 
       // Get pool config
-      let pool_config = POOL_CONFIG.with(|p| p.borrow().clone());
-      let pool_config = match pool_config {
-          Some(config) => config,
-          None => {
-              ic_cdk::println!("❌ Pool not initialized!");
-              return;
-          }
-      };
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
+      if pool_config.address.is_empty() {
+          ic_cdk::println!("❌ Pool not initialized!");
+          return;
+      }
 
       // Create BLST mint record
       let mint_record = BlstMintRecord {
@@ -2101,19 +2123,17 @@ thread_local! {
       });
 
       // Update pool stats
-      let mut config = match POOL_CONFIG.with(|p| p.borrow().clone()) {
-          Some(config) => config,
-          None => {
-              ic_cdk::println!("❌ Pool config missing during update!");
-              return;
-          }
-      };
+      let mut config = POOL_CONFIG.with(|p| p.borrow().get().clone());
+      if config.address.is_empty() {
+          ic_cdk::println!("❌ Pool config missing during update!");
+          return;
+      }
 
       config.total_deposited_sats += execution_result.amount_sats;
       config.total_blst_minted += blst_amount;
 
       POOL_CONFIG.with(|p| {
-          *p.borrow_mut() = Some(config.clone());
+          p.borrow_mut().set(config.clone()).expect("Failed to set POOL_CONFIG");
       });
 
       ic_cdk::println!("✅ Pool stats updated:");
@@ -2137,8 +2157,10 @@ thread_local! {
       ic_cdk::println!("🪙 Minting BLST for deposit tx: {}", deposit_tx_hash);
 
       // Get pool config
-      let pool_config = POOL_CONFIG.with(|p| p.borrow().clone())
-          .ok_or("Pool not initialized")?;
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
+      if pool_config.address.is_empty() {
+          return Err("Pool not initialized".to_string());
+      }
 
       // Check if rune has been etched
       let rune_id = pool_config.blst_rune_id
