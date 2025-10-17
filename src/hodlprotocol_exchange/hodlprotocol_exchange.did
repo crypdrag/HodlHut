@@ -91,6 +91,30 @@ type Result_4 = variant {
   Err : text;
 };
 
+// Step 3-4: Babylon Staking & Omnity Hub types
+type BabylonStakingRecord = record {
+  staking_tx_hash : text;
+  amount_sats : nat64;
+  timelock_blocks : nat32;
+  finality_provider : text;
+  covenant_pks : vec text;
+  covenant_quorum : nat32;
+  babylon_delegated : bool;
+  delegation_ticket_id : opt text;
+  delegation_timestamp : opt nat64;
+  accrued_baby_rewards : nat64;
+  last_reward_claim : opt nat64;
+  created_at : nat64;
+  confirmed_height : opt nat64;
+};
+
+type BabylonStakingStats = record {
+  total_staked_to_babylon : nat64;
+  active_delegations : nat32;
+  total_baby_rewards : nat64;
+  pending_babylon_txs : nat32;
+};
+
 // ============================
 // SERVICE INTERFACE
 // ============================
@@ -116,4 +140,13 @@ service : {
   // Babylon integration
   "get_babylon_params" : () -> (Result_3);
   "get_finality_providers" : () -> (Result_4);
+
+  // Step 3: Babylon Staking (Pool-level)
+  "stake_pool_to_babylon" : (nat64) -> (Result);
+  "get_babylon_staking_stats" : () -> (BabylonStakingStats) query;
+  "get_babylon_staking_record" : (text) -> (opt BabylonStakingRecord) query;
+
+  // Step 4: Omnity Hub Delegation
+  "submit_babylon_delegation" : (text) -> (Result);
+  "check_delegation_status" : (text) -> (Result);
 }
