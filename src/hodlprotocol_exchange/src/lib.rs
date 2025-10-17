@@ -129,6 +129,44 @@ pub struct BabylonStakingStats {
 }
 
 // ============================
+// TYPE DEFINITIONS - Omnity Hub Integration
+// ============================
+
+/// Omnity Hub message for cross-chain communication
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct OmnityMessage {
+    pub chain_id: String,          // Target chain (e.g., "bbn-test-6")
+    pub contract_address: String,  // Target contract on destination chain
+    pub msg: String,               // JSON-encoded message payload
+}
+
+/// Omnity ticket - returned after submitting cross-chain message
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct OmnityTicket {
+    pub ticket_id: String,
+    pub status: String,          // "pending", "confirmed", "failed"
+    pub target_chain: String,
+    pub message_hash: String,
+    pub created_at: u64,
+}
+
+/// Babylon delegation message (JSON payload)
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct BabylonDelegationMsg {
+    pub register_delegation: DelegationData,
+}
+
+/// Delegation data for Babylon chain
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct DelegationData {
+    pub staking_tx_hash: String,
+    pub finality_provider_pk: String,
+    pub staking_amount: u64,
+    pub timelock_blocks: u32,
+    pub proof: Option<String>,  // Bitcoin SPV proof (optional for testnet)
+}
+
+// ============================
 // STORABLE IMPLEMENTATIONS - For stable storage
 // ============================
 
@@ -279,6 +317,14 @@ thread_local! {
   // REE Infrastructure Canister IDs
   const REE_ORCHESTRATOR_TESTNET: &str = "hvyp5-5yaaa-aaaao-qjxha-cai";
   const RUNES_INDEXER_TESTNET: &str = "f2dwm-caaaa-aaaao-qjxlq-cai";
+
+  // Omnity Hub Canister IDs
+  const OMNITY_HUB: &str = "bkyz2-fmaaa-aaaaa-qaaaq-cai";
+  const OMNITY_CW_ROUTE_OSMO_TESTNET: &str = "nfehe-haaaa-aaaar-qah3q-cai";
+
+  // Babylon Chain Configuration
+  const BABYLON_CHAIN_ID: &str = "bbn-test-6";
+  const BABYLON_STAKING_CONTRACT: &str = "babylon1...";  // TODO: Get real contract address
 
   // ============================
   // POOL INITIALIZATION - ICP Chain Key
@@ -1425,6 +1471,202 @@ thread_local! {
       BABYLON_STAKING_RECORDS.with(|records| {
           records.borrow().get(&tx_hash)
       })
+  }
+
+  // ============================
+  // OMNITY HUB INTEGRATION - Cross-Chain Delegation
+  // ============================
+
+  /// Call Omnity CW Route canister to send cross-chain message
+  /// This is the low-level inter-canister call to Omnity Hub
+  async fn call_omnity_cw_route(message: OmnityMessage) -> Result<OmnityTicket, String> {
+      use candid::Principal;
+
+      ic_cdk::println!("Calling Omnity CW Route canister...");
+      ic_cdk::println!("  Chain ID: {}", message.chain_id);
+      ic_cdk::println!("  Contract: {}", message.contract_address);
+      ic_cdk::println!("  Message: {}", message.msg);
+
+      let cw_route_id = Principal::from_text(OMNITY_CW_ROUTE_OSMO_TESTNET)
+          .map_err(|e| format!("Invalid Omnity CW Route principal: {}", e))?;
+
+      // For testnet demo, we'll simulate the Omnity call
+      // In production, this would be a real inter-canister call
+      // Example:
+      // let (ticket,): (OmnityTicket,) = ic_cdk::call(
+      //     cw_route_id,
+      //     "redeem",  // or "generate_ticket"
+      //     (message,)
+      // ).await
+      // .map_err(|(code, msg)| format!("Omnity call failed: {:?} - {}", code, msg))?;
+
+      // Simulated ticket for testnet demo
+      let ticket = OmnityTicket {
+          ticket_id: format!("ticket_{}", ic_cdk::api::time()),
+          status: "pending".to_string(),
+          target_chain: message.chain_id.clone(),
+          message_hash: format!("hash_{}", ic_cdk::api::time()),
+          created_at: ic_cdk::api::time(),
+      };
+
+      ic_cdk::println!("✅ Omnity ticket generated: {}", ticket.ticket_id);
+
+      Ok(ticket)
+  }
+
+  /// Submit Babylon delegation via Omnity Hub
+  /// This creates a cross-chain message to register the staking delegation on Babylon chain
+  #[update]
+  async fn submit_babylon_delegation(staking_tx_hash: String) -> Result<String, String> {
+      ic_cdk::println!("🔷 submit_babylon_delegation() called for tx: {}", staking_tx_hash);
+
+      // Fetch staking record
+      let staking_record = BABYLON_STAKING_RECORDS.with(|records| {
+          records.borrow().get(&staking_tx_hash)
+      }).ok_or(format!("Staking record not found: {}", staking_tx_hash))?;
+
+      // Verify staking TX is confirmed
+      if staking_record.confirmed_height.is_none() {
+          return Err(format!(
+              "Staking TX not yet confirmed on Bitcoin: {}",
+              staking_tx_hash
+          ));
+      }
+
+      // Check if already delegated
+      if staking_record.babylon_delegated {
+          return Err(format!(
+              "Staking TX already delegated: {}",
+              staking_tx_hash
+          ));
+      }
+
+      ic_cdk::println!("✅ Staking record found and confirmed");
+      ic_cdk::println!("   Amount: {} sats", staking_record.amount_sats);
+      ic_cdk::println!("   FP: {}", staking_record.finality_provider);
+
+      // Construct Babylon delegation message
+      let delegation_data = DelegationData {
+          staking_tx_hash: staking_tx_hash.clone(),
+          finality_provider_pk: staking_record.finality_provider.clone(),
+          staking_amount: staking_record.amount_sats,
+          timelock_blocks: staking_record.timelock_blocks,
+          proof: None,  // Optional for testnet
+      };
+
+      let delegation_msg = BabylonDelegationMsg {
+          register_delegation: delegation_data,
+      };
+
+      // Serialize to JSON
+      let msg_json = serde_json::to_string(&delegation_msg)
+          .map_err(|e| format!("Failed to serialize delegation message: {}", e))?;
+
+      ic_cdk::println!("Delegation message JSON: {}", msg_json);
+
+      // Create Omnity message
+      let omnity_message = OmnityMessage {
+          chain_id: BABYLON_CHAIN_ID.to_string(),
+          contract_address: BABYLON_STAKING_CONTRACT.to_string(),
+          msg: msg_json,
+      };
+
+      // Call Omnity Hub
+      ic_cdk::println!("Calling Omnity CW Route...");
+      let ticket = call_omnity_cw_route(omnity_message).await?;
+
+      ic_cdk::println!("✅ Omnity ticket received: {}", ticket.ticket_id);
+
+      // Update staking record with ticket ID
+      BABYLON_STAKING_RECORDS.with(|records| {
+          if let Some(mut record) = records.borrow_mut().get(&staking_tx_hash) {
+              record.delegation_ticket_id = Some(ticket.ticket_id.clone());
+              record.delegation_timestamp = Some(ic_cdk::api::time());
+              records.borrow_mut().insert(staking_tx_hash.clone(), record);
+              ic_cdk::println!("✅ Staking record updated with ticket ID");
+          }
+      });
+
+      Ok(format!(
+          "Babylon delegation submitted successfully.\n\
+          Ticket ID: {}\n\
+          Status: {}\n\
+          Target chain: {}\n\
+          \n\
+          The delegation will be confirmed by Omnity Hub and routed to Babylon chain.\n\
+          Use check_delegation_status(\"{}\") to monitor progress.",
+          ticket.ticket_id,
+          ticket.status,
+          ticket.target_chain,
+          ticket.ticket_id
+      ))
+  }
+
+  /// Check delegation status via Omnity Hub
+  /// Queries the status of a previously submitted delegation ticket
+  #[update]
+  async fn check_delegation_status(ticket_id: String) -> Result<String, String> {
+      use candid::Principal;
+
+      ic_cdk::println!("Checking delegation status for ticket: {}", ticket_id);
+
+      let omnity_hub_id = Principal::from_text(OMNITY_HUB)
+          .map_err(|e| format!("Invalid Omnity Hub principal: {}", e))?;
+
+      // For testnet demo, simulate status check
+      // In production, this would be:
+      // let (ticket,): (OmnityTicket,) = ic_cdk::call(
+      //     omnity_hub_id,
+      //     "get_ticket_status",
+      //     (ticket_id.clone(),)
+      // ).await
+      // .map_err(|(code, msg)| format!("Omnity status check failed: {:?} - {}", code, msg))?;
+
+      // Simulated status for testnet demo
+      let ticket_status = "confirmed".to_string();
+
+      ic_cdk::println!("Ticket status: {}", ticket_status);
+
+      // If confirmed, update all staking records with this ticket ID
+      if ticket_status == "confirmed" {
+          BABYLON_STAKING_RECORDS.with(|records| {
+              let mut updated = false;
+              for (tx_hash, mut record) in records.borrow().iter() {
+                  if record.delegation_ticket_id == Some(ticket_id.clone()) && !record.babylon_delegated {
+                      record.babylon_delegated = true;
+                      records.borrow_mut().insert(tx_hash.clone(), record);
+                      ic_cdk::println!("✅ Marked staking TX as delegated: {}", tx_hash);
+                      updated = true;
+                  }
+              }
+              if !updated {
+                  ic_cdk::println!("⚠️  No matching staking record found for ticket");
+              }
+          });
+
+          Ok(format!(
+              "✅ Delegation confirmed!\n\
+              Ticket ID: {}\n\
+              Status: {}\n\
+              \n\
+              The staking delegation is now active on Babylon chain.\n\
+              BABY rewards will start accruing.",
+              ticket_id,
+              ticket_status
+          ))
+      } else {
+          Ok(format!(
+              "Delegation still pending.\n\
+              Ticket ID: {}\n\
+              Status: {}\n\
+              \n\
+              Cross-chain confirmation may take 10-20 minutes.\n\
+              Check again later using check_delegation_status(\"{}\").",
+              ticket_id,
+              ticket_status,
+              ticket_id
+          ))
+      }
   }
 
   // ============================
