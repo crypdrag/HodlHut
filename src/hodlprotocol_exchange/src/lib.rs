@@ -11,7 +11,7 @@ use ic_stable_structures::{
 use ree_types::{bitcoin::Network, schnorr::request_ree_pool_address};
 
 // Bitcoin Runes support
-use ordinals::{Etching, Rune, Runestone, Terms};
+use ordinals::{Etching, Rune, Runestone};
 
 // ============================
 // TYPE DEFINITIONS - Pool & Deposit Tracking
@@ -96,6 +96,38 @@ pub struct PoolStats {
     pub estimated_apy: f64,
 }
 
+/// Babylon staking record - tracks pool's staking to Babylon
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct BabylonStakingRecord {
+    pub staking_tx_hash: String,
+    pub amount_sats: u64,
+    pub timelock_blocks: u32,
+    pub finality_provider: String,
+    pub covenant_pks: Vec<String>,
+    pub covenant_quorum: u32,
+
+    // Delegation tracking
+    pub babylon_delegated: bool,
+    pub delegation_ticket_id: Option<String>,
+    pub delegation_timestamp: Option<u64>,
+
+    // Reward tracking
+    pub accrued_baby_rewards: u64,
+    pub last_reward_claim: Option<u64>,
+
+    pub created_at: u64,
+    pub confirmed_height: Option<u64>,
+}
+
+/// Babylon staking statistics for UI
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct BabylonStakingStats {
+    pub total_staked_to_babylon: u64,
+    pub active_delegations: u32,
+    pub total_baby_rewards: u64,
+    pub pending_babylon_txs: u32,
+}
+
 // ============================
 // STORABLE IMPLEMENTATIONS - For stable storage
 // ============================
@@ -142,6 +174,20 @@ impl Storable for PoolConfig {
     }
 }
 
+impl Storable for BabylonStakingRecord {
+    const BOUND: Bound = Bound::Unbounded;
+
+    fn to_bytes(&self) -> std::borrow::Cow<'_, [u8]> {
+        let mut bytes = vec![];
+        ciborium::ser::into_writer(self, &mut bytes).expect("Failed to serialize BabylonStakingRecord");
+        std::borrow::Cow::Owned(bytes)
+    }
+
+    fn from_bytes(bytes: std::borrow::Cow<'_, [u8]>) -> Self {
+        ciborium::de::from_reader(bytes.as_ref()).expect("Failed to deserialize BabylonStakingRecord")
+    }
+}
+
 // ============================
 // STABLE STORAGE - Memory Management
 // ============================
@@ -173,6 +219,13 @@ thread_local! {
     static USER_BLST_BALANCES: RefCell<StableBTreeMap<String, u64, Memory>> = RefCell::new(
         StableBTreeMap::init(
             MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(2))),
+        )
+    );
+
+    // Babylon staking records: staking_tx_hash → BabylonStakingRecord
+    static BABYLON_STAKING_RECORDS: RefCell<StableBTreeMap<String, BabylonStakingRecord, Memory>> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(3))),
         )
     );
 }
@@ -218,6 +271,7 @@ thread_local! {
 
   const CACHE_DURATION_NANOS: u64 = 24 * 60 * 60 * 1_000_000_000; // 24 hours
   const BABYLON_API_URL: &str = "https://babylon-testnet-api.polkachu.com";
+  const BABYLON_STAKING_API_URL: &str = "https://staking-api.testnet.babylonlabs.io";
   // REE library accepts: "test_key_1" (testnet/local) or "key_1" (mainnet)
   const SCHNORR_KEY_NAME: &str = "test_key_1";  // Use "key_1" for mainnet
   const POOL_TIMELOCK_BLOCKS: u32 = 12_960;  // 90 days
@@ -1079,8 +1133,6 @@ thread_local! {
 
   /// Query Runes Indexer for pool UTXOs containing BLST
   async fn query_pool_blst_utxos(min_blst: u64) -> Result<Vec<RuneUtxo>, String> {
-      use candid::Principal;
-
       let pool_config = POOL_CONFIG.with(|p| p.borrow().clone())
           .ok_or("Pool not initialized")?;
 
@@ -1135,6 +1187,244 @@ thread_local! {
       // }
       //
       // Ok(blst_utxos)
+  }
+
+  // ============================
+  // BABYLON STAKING - Bitcoin L1 Integration
+  // ============================
+
+  /// Construct Babylon staking PSBT using Babylon Staking API
+  /// Returns PSBT hex string ready for REE Orchestrator signing
+  async fn construct_babylon_staking_psbt(
+      pool_address: &str,
+      pool_pubkey: &str,
+      amount_sats: u64,
+      timelock_blocks: u32,
+      finality_provider_pk: &str,
+      covenant_pks: Vec<String>,
+      covenant_quorum: u32,
+  ) -> Result<String, String> {
+      use ic_cdk::api::management_canister::http_request::{
+          http_request, CanisterHttpRequestArgument, HttpHeader, HttpMethod, TransformContext,
+      };
+
+      ic_cdk::println!("Constructing Babylon staking PSBT via API...");
+      ic_cdk::println!("  Pool address: {}", pool_address);
+      ic_cdk::println!("  Amount: {} sats", amount_sats);
+      ic_cdk::println!("  Timelock: {} blocks", timelock_blocks);
+      ic_cdk::println!("  FP: {}", finality_provider_pk);
+
+      // Build request body (JSON)
+      let request_body = serde_json::json!({
+          "staker_address": pool_address,
+          "staker_public_key": pool_pubkey,
+          "amount": amount_sats,
+          "timelock": timelock_blocks,
+          "finality_provider_pk": finality_provider_pk,
+          "covenant_pks": covenant_pks,
+          "covenant_quorum": covenant_quorum
+      });
+
+      let body_str = serde_json::to_string(&request_body)
+          .map_err(|e| format!("Failed to serialize request body: {}", e))?;
+
+      ic_cdk::println!("Request body: {}", body_str);
+
+      let url = format!("{}/v1/staking/transactions", BABYLON_STAKING_API_URL);
+
+      let request = CanisterHttpRequestArgument {
+          url: url.clone(),
+          method: HttpMethod::POST,
+          headers: vec![
+              HttpHeader {
+                  name: "User-Agent".to_string(),
+                  value: "hodlprotocol".to_string(),
+              },
+              HttpHeader {
+                  name: "Content-Type".to_string(),
+                  value: "application/json".to_string(),
+              },
+          ],
+          body: Some(body_str.as_bytes().to_vec()),
+          max_response_bytes: Some(100_000),
+          transform: Some(TransformContext::from_name("transform_http_response".to_string(), vec![])),
+      };
+
+      match http_request(request, 5_000_000_000).await {
+          Ok((response,)) => {
+              let body = String::from_utf8(response.body)
+                  .map_err(|e| format!("Failed to parse response body: {}", e))?;
+
+              ic_cdk::println!("Babylon staking API response: {}", body);
+
+              // Parse JSON response
+              let parsed: serde_json::Value = serde_json::from_str(&body)
+                  .map_err(|e| format!("Failed to parse JSON: {}", e))?;
+
+              // Extract PSBT hex from response
+              let psbt_hex = parsed.get("psbt_hex")
+                  .and_then(|v| v.as_str())
+                  .ok_or("Missing psbt_hex in response")?;
+
+              ic_cdk::println!("✅ Babylon staking PSBT constructed ({} bytes hex)", psbt_hex.len());
+
+              Ok(psbt_hex.to_string())
+          },
+          Err((code, msg)) => {
+              ic_cdk::println!("❌ Babylon staking API call failed: {:?} - {}", code, msg);
+              Err(format!("Babylon staking API request failed: {:?} - {}", code, msg))
+          }
+      }
+  }
+
+  /// Stake pooled BTC to Babylon protocol
+  /// This aggregates user deposits and creates a Babylon staking transaction
+  #[update]
+  async fn stake_pool_to_babylon(threshold_sats: u64) -> Result<String, String> {
+      let caller = ic_cdk::api::caller();
+      if !ic_cdk::api::is_controller(&caller) {
+          return Err("Not authorized - only controller can trigger Babylon staking".to_string());
+      }
+
+      ic_cdk::println!("🔷 stake_pool_to_babylon() called - threshold: {} sats", threshold_sats);
+
+      // Get pool config
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().clone())
+          .ok_or("Pool not initialized")?;
+
+      // Check if pool has enough deposited funds
+      if pool_config.total_deposited_sats < threshold_sats {
+          return Err(format!(
+              "Pool has insufficient deposits: {} sats (threshold: {} sats)",
+              pool_config.total_deposited_sats,
+              threshold_sats
+          ));
+      }
+
+      ic_cdk::println!("✅ Pool has sufficient deposits: {} sats", pool_config.total_deposited_sats);
+
+      // Fetch Babylon parameters
+      ic_cdk::println!("Fetching Babylon staking parameters...");
+      let babylon_params = get_babylon_params().await?;
+
+      // For testnet demo, use fixed covenant parameters
+      // In production, fetch these from Babylon params API
+      let covenant_pks = vec![
+          "02d3a963bf9ff6cc1d01bdbb7ab0e70fe8c31e35d51dc06bc82b0fafe9b1bfc60a".to_string(),
+          "03d22b1bf12d4f17a3afe527c7b5e3e5bc5e91e0a51ac4e6821e2edb6c4e15fa1e".to_string(),
+          "03d7e1c3a8f66d8b8e5f0a4c2d3b1e9f8a7c6b5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f".to_string(),
+      ];
+      let covenant_quorum = 2;
+
+      ic_cdk::println!("Babylon unbonding time: {} seconds", babylon_params.unbonding_time_seconds);
+
+      // Get pool public key (needed for Babylon staking)
+      // For now, use a placeholder since we need to implement key derivation
+      // TODO: Implement proper public key extraction from pool address
+      let pool_pubkey = "0x0000000000000000000000000000000000000000000000000000000000000000".to_string();
+      ic_cdk::println!("⚠️  Using placeholder pool pubkey (TODO: implement Chain Key pubkey extraction)");
+
+      // Determine staking amount (use all deposited funds for simplicity)
+      let staking_amount = pool_config.total_deposited_sats;
+      ic_cdk::println!("Staking amount: {} sats", staking_amount);
+
+      // Construct Babylon staking PSBT
+      ic_cdk::println!("Constructing Babylon staking PSBT...");
+      let psbt_hex = construct_babylon_staking_psbt(
+          &pool_config.address,
+          &pool_pubkey,
+          staking_amount,
+          pool_config.timelock_blocks,
+          &pool_config.finality_provider,
+          covenant_pks.clone(),
+          covenant_quorum,
+      ).await?;
+
+      ic_cdk::println!("✅ Babylon staking PSBT constructed");
+
+      // TODO: Submit PSBT to REE Orchestrator
+      // For now, return the PSBT hex for manual testing
+      ic_cdk::println!("⚠️  Manual REE submission required (auto-submission TODO)");
+
+      // Create staking record
+      let staking_record = BabylonStakingRecord {
+          staking_tx_hash: "pending".to_string(), // Will be updated when TX broadcasts
+          amount_sats: staking_amount,
+          timelock_blocks: pool_config.timelock_blocks,
+          finality_provider: pool_config.finality_provider.clone(),
+          covenant_pks,
+          covenant_quorum,
+          babylon_delegated: false,
+          delegation_ticket_id: None,
+          delegation_timestamp: None,
+          accrued_baby_rewards: 0,
+          last_reward_claim: None,
+          created_at: ic_cdk::api::time(),
+          confirmed_height: None,
+      };
+
+      // Store staking record (will update with real tx_hash after broadcast)
+      BABYLON_STAKING_RECORDS.with(|records| {
+          records.borrow_mut().insert("pending".to_string(), staking_record);
+      });
+
+      ic_cdk::println!("✅ Babylon staking record created");
+
+      Ok(format!(
+          "Babylon staking PSBT constructed successfully.\n\
+          Amount: {} sats\n\
+          Timelock: {} blocks\n\
+          FP: {}\n\
+          PSBT hex ({} bytes): {}\n\
+          \n\
+          TODO: Submit to REE Orchestrator for signing and broadcast.",
+          staking_amount,
+          pool_config.timelock_blocks,
+          pool_config.finality_provider,
+          psbt_hex.len(),
+          psbt_hex
+      ))
+  }
+
+  /// Query Babylon staking statistics
+  #[query]
+  fn get_babylon_staking_stats() -> BabylonStakingStats {
+      let (total_staked, active_delegations, total_rewards, pending_txs) =
+          BABYLON_STAKING_RECORDS.with(|records| {
+              let mut total_staked = 0;
+              let mut active_delegations = 0;
+              let mut total_rewards = 0;
+              let mut pending_txs = 0;
+
+              for (_, record) in records.borrow().iter() {
+                  if record.confirmed_height.is_some() {
+                      total_staked += record.amount_sats;
+                      if record.babylon_delegated {
+                          active_delegations += 1;
+                      }
+                      total_rewards += record.accrued_baby_rewards;
+                  } else {
+                      pending_txs += 1;
+                  }
+              }
+
+              (total_staked, active_delegations, total_rewards, pending_txs)
+          });
+
+      BabylonStakingStats {
+          total_staked_to_babylon: total_staked,
+          active_delegations,
+          total_baby_rewards: total_rewards,
+          pending_babylon_txs: pending_txs,
+      }
+  }
+
+  /// Query specific Babylon staking record
+  #[query]
+  fn get_babylon_staking_record(tx_hash: String) -> Option<BabylonStakingRecord> {
+      BABYLON_STAKING_RECORDS.with(|records| {
+          records.borrow().get(&tx_hash)
+      })
   }
 
   // ============================
@@ -1356,13 +1646,14 @@ thread_local! {
   }
 
   /// Transaction execution callback - Called by REE Orchestrator
-  /// This is triggered when a Bitcoin deposit to the pool address is confirmed
+  /// This is triggered when a Bitcoin transaction is confirmed
   #[update]
   fn execute_tx(tx_id: String, execution_result: ExecutionResult) {
       ic_cdk::println!(
-          "execute_tx() called - tx_id: {}, status: {}",
+          "execute_tx() called - tx_id: {}, status: {}, action: {:?}",
           tx_id,
-          execution_result.status
+          execution_result.status,
+          "user_deposit" // Would come from execution_result in real implementation
       );
 
       // Only process successful transactions
@@ -1371,8 +1662,39 @@ thread_local! {
           return;
       }
 
+      // Check if this is a Babylon staking transaction
+      // In real implementation, this would come from execution_result.action
+      let is_babylon_staking = BABYLON_STAKING_RECORDS.with(|records| {
+          records.borrow().contains_key(&"pending".to_string())
+      });
+
+      if is_babylon_staking && execution_result.to_address.starts_with("tb1p") {
+          ic_cdk::println!("🔷 Processing Babylon staking TX confirmation: {}", tx_id);
+
+          // Update staking record with real tx_hash
+          BABYLON_STAKING_RECORDS.with(|records| {
+              if let Some(mut record) = records.borrow_mut().remove(&"pending".to_string()) {
+                  record.staking_tx_hash = execution_result.tx_hash.clone();
+                  record.confirmed_height = Some(execution_result.confirmations as u64);
+                  records.borrow_mut().insert(execution_result.tx_hash.clone(), record);
+                  ic_cdk::println!("✅ Babylon staking record updated with tx_hash: {}", execution_result.tx_hash);
+              }
+          });
+
+          // TODO: Trigger Omnity delegation automatically
+          // ic_cdk::spawn(async move {
+          //     let _ = submit_babylon_delegation(execution_result.tx_hash).await;
+          // });
+
+          ic_cdk::println!("✅ Babylon staking TX confirmed: {}", execution_result.tx_hash);
+          ic_cdk::println!("   Amount: {} sats", execution_result.amount_sats);
+          ic_cdk::println!("   Block height: {}", execution_result.confirmations);
+          return;
+      }
+
+      // Otherwise, process as user deposit
       ic_cdk::println!(
-          "Processing deposit: {} sats from {} (nonce: {})",
+          "Processing user deposit: {} sats from {} (nonce: {})",
           execution_result.amount_sats,
           execution_result.from_address,
           execution_result.nonce

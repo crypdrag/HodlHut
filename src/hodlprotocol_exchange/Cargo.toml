@@ -19,9 +19,14 @@ ree-types = { git = "https://github.com/octopus-network/ree-types.git", rev = "3
 # Stable storage
 ic-stable-structures = "0.6"
 
+# Bitcoin Runes protocol (BABYLON•LST token)
+ordinals = "0.0.10"
+bitcoin = { version = "0.30", features = ["no-std"], default-features = false }
+
 # Utilities
 thiserror = "1.0"
 ciborium = "0.2"
+hex = "0.4"
 
 [profile.release]
 opt-level = "z"

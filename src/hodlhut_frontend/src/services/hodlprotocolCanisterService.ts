@@ -41,6 +41,11 @@
     expected_blst: bigint;
     protocol_fee: bigint;
     estimated_apy: number;
+    // Atomic swap fields (for PSBT construction)
+    pool_utxo_txid: string;
+    pool_utxo_vout: number;
+    pool_utxo_amount_sats: bigint;
+    pool_utxo_blst_amount: bigint;
   }
 
   export interface PoolStats {
@@ -94,6 +99,11 @@
       expected_blst: IDL.Nat64,
       protocol_fee: IDL.Nat64,
       estimated_apy: IDL.Float64,
+      // Atomic swap fields
+      pool_utxo_txid: IDL.Text,
+      pool_utxo_vout: IDL.Nat32,
+      pool_utxo_amount_sats: IDL.Nat64,
+      pool_utxo_blst_amount: IDL.Nat64,
     });
 
     const PoolStats = IDL.Record({

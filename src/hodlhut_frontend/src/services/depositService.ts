@@ -335,6 +335,202 @@ class DepositService {
   }
 
   /**
+   * Construct Atomic Swap PSBT for BLST deposit
+   *
+   * This creates a PSBT with 2 inputs and rune transfer edict:
+   * - Input 0: User's BTC UTXO (user signs)
+   * - Input 1: Pool's BLST UTXO (canister signs via REE)
+   * - Output 0: OP_RETURN (runestone with transfer edict)
+   * - Output 1: Pool change (sats + remaining BLST)
+   * - Output 2: User receives BLST
+   * - Output 3: User change (if needed)
+   *
+   * @param offer - DepositOffer from pre_deposit() containing pool UTXO info
+   * @param userAddress - User's Bitcoin address
+   * @param amountSats - Amount of BTC to deposit (in satoshis)
+   * @returns Unsigned PSBT hex string (user must sign input 0)
+   */
+  async constructAtomicSwapPSBT(
+    offer: DepositOffer,
+    userAddress: string,
+    amountSats: number
+  ): Promise<string> {
+    console.log('Constructing atomic swap PSBT for BLST deposit...');
+    console.log('Offer:', {
+      pool_address: offer.pool_address,
+      expected_blst: offer.expected_blst.toString(),
+      pool_utxo_txid: offer.pool_utxo_txid,
+      pool_utxo_vout: offer.pool_utxo_vout,
+      pool_utxo_blst_amount: offer.pool_utxo_blst_amount.toString()
+    });
+
+    try {
+      // Import required libraries
+      const { Psbt, networks } = await import('bitcoinjs-lib');
+      const { Runestone, Edict, RuneId } = await import('runelib');
+
+      // Bitcoin Signet uses testnet network parameters
+      const network = networks.testnet;
+
+      // Step 1: Fetch user's UTXOs
+      console.log('Step 1: Fetching user UTXOs...');
+      const userUtxos = await this.fetchUserUTXOs(userAddress);
+      if (userUtxos.length === 0) {
+        throw new Error('No UTXOs found. Please ensure your wallet has Bitcoin.');
+      }
+      console.log(`Found ${userUtxos.length} user UTXOs`);
+
+      // Step 2: Get pool config to retrieve rune_id
+      console.log('Step 2: Fetching pool config for rune_id...');
+      const poolConfig = await hodlprotocolCanisterService.getPoolConfig();
+      if (!poolConfig || !poolConfig.blst_rune_id) {
+        throw new Error('Pool rune_id not set. Rune must be etched first.');
+      }
+      const runeIdStr = poolConfig.blst_rune_id;
+      console.log(`Using rune_id: ${runeIdStr}`);
+
+      // Parse rune_id (format: "BLOCK:TX")
+      const [block, txIndex] = runeIdStr.split(':').map(Number);
+      const runeId = new RuneId(block, txIndex);
+
+      // Step 3: Estimate fee rate
+      console.log('Step 3: Estimating fee rate...');
+      const feeRate = await this.estimateFeeRate();
+      console.log(`Using fee rate: ${feeRate} sat/vB`);
+
+      // Step 4: Select user UTXOs for BTC input
+      // Estimate transaction size:
+      // - 2 inputs: ~116 vBytes (58 per P2TR input)
+      // - 4 outputs: ~172 vBytes (43 per output)
+      // - OP_RETURN (runestone): ~50 vBytes (varies by edict size)
+      // - Base: ~11 vBytes
+      const ESTIMATED_SIZE = 350; // Conservative estimate
+      const estimatedFee = Math.ceil(ESTIMATED_SIZE * feeRate);
+
+      console.log(`Estimated fee: ${estimatedFee} sats`);
+
+      // Select UTXOs to cover amount + fees
+      let selectedValue = 0;
+      let selectedUtxos: any[] = [];
+      const sortedUtxos = [...userUtxos].sort((a, b) => b.value - a.value);
+
+      for (const utxo of sortedUtxos) {
+        selectedUtxos.push(utxo);
+        selectedValue += utxo.value;
+        if (selectedValue >= amountSats + estimatedFee) {
+          break;
+        }
+      }
+
+      if (selectedValue < amountSats + estimatedFee) {
+        throw new Error(
+          `Insufficient funds. Need ${amountSats + estimatedFee} sats, have ${selectedValue} sats`
+        );
+      }
+
+      console.log(`Selected ${selectedUtxos.length} UTXOs totaling ${selectedValue} sats`);
+
+      // Step 5: Fetch pool UTXO transaction hex
+      console.log('Step 5: Fetching pool UTXO transaction...');
+      const poolTxHex = await this.fetchTransactionHex(offer.pool_utxo_txid);
+      const poolTxResponse = await fetch(
+        `https://mempool.space/signet/api/tx/${offer.pool_utxo_txid}`
+      );
+      if (!poolTxResponse.ok) {
+        throw new Error(`Failed to fetch pool transaction ${offer.pool_utxo_txid}`);
+      }
+      const poolTxData = await poolTxResponse.json();
+      const poolOutput = poolTxData.vout[offer.pool_utxo_vout];
+      if (!poolOutput) {
+        throw new Error(`Pool output ${offer.pool_utxo_vout} not found`);
+      }
+
+      // Step 6: Create PSBT
+      console.log('Step 6: Creating PSBT with 2 inputs...');
+      const psbt = new Psbt({ network });
+
+      // Input 0: User's BTC UTXO (user will sign this)
+      for (const utxo of selectedUtxos) {
+        psbt.addInput({
+          hash: utxo.txid,
+          index: utxo.vout,
+          witnessUtxo: {
+            script: Buffer.from(utxo.scriptPubKey, 'hex'),
+            value: utxo.value,
+          },
+        });
+      }
+
+      // Input 1: Pool's BLST UTXO (canister will sign via REE)
+      psbt.addInput({
+        hash: offer.pool_utxo_txid,
+        index: offer.pool_utxo_vout,
+        witnessUtxo: {
+          script: Buffer.from(poolOutput.scriptpubkey, 'hex'),
+          value: Number(offer.pool_utxo_amount_sats),
+        },
+      });
+
+      // Step 7: Create runestone with transfer edict
+      console.log('Step 7: Creating runestone with transfer edict...');
+      const edict = new Edict(
+        runeId,
+        Number(offer.expected_blst), // Amount of BLST to transfer
+        2 // Output index 2 (user receives BLST)
+      );
+
+      const runestone = new Runestone(
+        [edict], // Edicts array
+        undefined, // No etching
+        undefined, // No mint
+        1 // Pointer: remaining runes go to output 1 (pool change)
+      );
+
+      const runestoneScript = runestone.encipher();
+
+      // Output 0: OP_RETURN (runestone)
+      psbt.addOutput({
+        script: runestoneScript,
+        value: 0,
+      });
+
+      // Output 1: Pool change (sats + remaining BLST via pointer)
+      const DUST_LIMIT = 546;
+      psbt.addOutput({
+        address: offer.pool_address,
+        value: DUST_LIMIT,
+      });
+
+      // Output 2: User receives BLST
+      psbt.addOutput({
+        address: userAddress,
+        value: DUST_LIMIT, // Dust amount for rune
+      });
+
+      // Output 3: User change (if needed)
+      const changeAmount = selectedValue - amountSats - estimatedFee;
+      if (changeAmount >= 1000) {
+        console.log(`Adding change output: ${changeAmount} sats`);
+        psbt.addOutput({
+          address: userAddress,
+          value: changeAmount,
+        });
+      } else if (changeAmount > 0) {
+        console.log(`Change ${changeAmount} sats too small, adding to fee`);
+      }
+
+      // Return unsigned PSBT as hex
+      const psbtHex = psbt.toHex();
+      console.log(`Atomic swap PSBT constructed successfully (${psbtHex.length / 2} bytes)`);
+
+      return psbtHex;
+    } catch (error: any) {
+      console.error('Error constructing atomic swap PSBT:', error);
+      throw new Error(`Failed to construct atomic swap PSBT: ${error.message}`);
+    }
+  }
+
+  /**
    * Get user's current BLST balance
    */
   async getBlstBalance(userBtcAddress: string): Promise<number> {
