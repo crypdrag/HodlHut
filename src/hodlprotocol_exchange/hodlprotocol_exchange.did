@@ -18,6 +18,10 @@ type DepositOffer = record {
   expected_blst : nat64;
   protocol_fee : nat64;
   estimated_apy : float64;
+  pool_utxo_txid : text;
+  pool_utxo_vout : nat32;
+  pool_utxo_amount_sats : nat64;
+  pool_utxo_blst_amount : nat64;
 };
 
 type PoolStats = record {
@@ -96,6 +100,9 @@ service : {
   "init_pool" : () -> (Result);
   "get_pool_config" : () -> (opt PoolConfig) query;
   "get_pool_stats" : () -> (Result_2) query;
+
+  // Rune operations (BABYLON•LST token)
+  "etch_blst_rune" : () -> (Result);
 
   // Deposit flow
   "pre_deposit" : (text, nat64) -> (Result_1);

@@ -2,12 +2,16 @@ use candid::{CandidType, Deserialize};
 use ic_cdk_macros::*;
 use serde::Serialize;
 use std::cell::RefCell;
+use std::str::FromStr;
 use ic_stable_structures::{
     DefaultMemoryImpl, StableBTreeMap,
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     Storable, storable::Bound,
 };
 use ree_types::{bitcoin::Network, schnorr::request_ree_pool_address};
+
+// Bitcoin Runes support
+use ordinals::{Etching, Rune, Runestone, Terms};
 
 // ============================
 // TYPE DEFINITIONS - Pool & Deposit Tracking
@@ -56,14 +60,29 @@ pub struct BlstMintRecord {
     pub babylon_stake_tx: Option<String>,  // Populated when pool stakes
 }
 
-/// Response from pre_deposit() - tells user where to send BTC
+/// Response from pre_deposit() - provides pool UTXO for atomic swap
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct DepositOffer {
-    pub pool_address: String,      // Real Bitcoin address to deposit to
+    pub pool_address: String,      // Pool Bitcoin address
     pub nonce: u64,                 // For REE tracking
     pub expected_blst: u64,         // How much BLST user will receive
     pub protocol_fee: u64,          // Fee (0 for testnet demo)
     pub estimated_apy: f64,         // From selected FP
+
+    // Atomic swap: Pool UTXO with BLST runes for atomic transfer
+    pub pool_utxo_txid: String,         // Pool UTXO transaction ID
+    pub pool_utxo_vout: u32,            // Pool UTXO output index
+    pub pool_utxo_amount_sats: u64,     // Pool UTXO satoshi amount
+    pub pool_utxo_blst_amount: u64,     // BLST runes in this UTXO
+}
+
+/// UTXO with rune balance (for querying Runes Indexer)
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct RuneUtxo {
+    pub txid: String,
+    pub vout: u32,
+    pub value: u64,
+    pub rune_balance: u64,
 }
 
 /// Pool statistics for UI
@@ -203,6 +222,10 @@ thread_local! {
   const SCHNORR_KEY_NAME: &str = "test_key_1";  // Use "key_1" for mainnet
   const POOL_TIMELOCK_BLOCKS: u32 = 12_960;  // 90 days
 
+  // REE Infrastructure Canister IDs
+  const REE_ORCHESTRATOR_TESTNET: &str = "hvyp5-5yaaa-aaaao-qjxha-cai";
+  const RUNES_INDEXER_TESTNET: &str = "f2dwm-caaaa-aaaao-qjxlq-cai";
+
   // ============================
   // POOL INITIALIZATION - ICP Chain Key
   // ============================
@@ -290,6 +313,400 @@ thread_local! {
   #[query]
   fn get_pool_config() -> Option<PoolConfig> {
       POOL_CONFIG.with(|p| p.borrow().clone())
+  }
+
+  /// Update pool config with rune ID after manual etching
+  #[update]
+  fn update_pool_rune_id(rune_id: String) -> Result<String, String> {
+      let caller = ic_cdk::api::caller();
+      if !ic_cdk::api::is_controller(&caller) {
+          return Err("Not authorized - only controller can update rune ID".to_string());
+      }
+
+      // Get current pool config
+      let mut pool_config = POOL_CONFIG.with(|p| p.borrow().clone())
+          .ok_or("Pool not initialized")?;
+
+      // Validate rune_id format (should be "BLOCK:TX" like "201234:5")
+      if !rune_id.contains(':') {
+          return Err(format!("Invalid rune_id format: {}. Expected format: BLOCK:TX (e.g., 201234:5)", rune_id));
+      }
+
+      ic_cdk::println!("Updating pool config with rune_id: {}", rune_id);
+
+      // Update rune ID
+      pool_config.blst_rune_id = Some(rune_id.clone());
+
+      // Save updated config
+      POOL_CONFIG.with(|p| {
+          *p.borrow_mut() = Some(pool_config);
+      });
+
+      ic_cdk::println!("✅ Pool config updated with BLST rune ID");
+
+      Ok(format!("Pool config updated successfully with rune_id: {}", rune_id))
+  }
+
+  // ============================
+  // RUNE ETCHING - BABYLON•LST Token
+  // ============================
+
+  /// Create the BABYLON•LST rune etching runestone
+  /// Returns the OP_RETURN script for the etching transaction
+  fn create_blst_etching() -> Result<Vec<u8>, String> {
+      ic_cdk::println!("Creating BABYLON•LST rune etching...");
+
+      // Parse "BABYLONLST" as rune name
+      // Spacers will be added: BABYLON•LST (spacer at position 7)
+      let rune_name = Rune::from_str("BABYLONLST")
+          .map_err(|e| format!("Invalid rune name: {:?}", e))?;
+
+      // Create etching configuration
+      let etching = Etching {
+          divisibility: Some(3),              // 0.001 precision (1 sat = 0.001 BLST)
+          premine: Some(100_000_000_000),     // All 100B units created at etching
+          rune: Some(rune_name),
+          spacers: Some(128),                  // Binary: 10000000 = spacer after 7th char (BABYLON•LST)
+          symbol: Some('Ƀ'),                   // Bitcoin-like symbol
+          terms: None,                         // No open minting - premine only
+          turbo: true,                         // Future-proof protocol changes
+      };
+
+      // Create runestone with etching
+      let runestone = Runestone {
+          edicts: vec![],                      // No transfers in etching tx
+          etching: Some(etching),
+          mint: None,                          // Not minting, just etching
+          pointer: None,                       // Default pointer behavior
+      };
+
+      // Encode to OP_RETURN script
+      let script = runestone.encipher();
+
+      ic_cdk::println!("✅ BLST runestone created:");
+      ic_cdk::println!("   Name: BABYLON•LST");
+      ic_cdk::println!("   Divisibility: 3 (0.001 precision)");
+      ic_cdk::println!("   Symbol: Ƀ");
+      ic_cdk::println!("   OP_RETURN script size: {} bytes", script.len());
+
+      Ok(script.to_bytes())
+  }
+
+  /// Construct PSBT for rune etching transaction
+  /// Input: Pool UTXO for fees
+  /// Output 0: OP_RETURN with etching runestone
+  /// Output 1: Change back to pool address
+  fn construct_etching_psbt(
+      pool_utxo: &BitcoinUtxo,
+      pool_address: &str,
+      op_return_script: Vec<u8>,
+      fee_rate_sat_per_vb: u64,
+  ) -> Result<String, String> {
+      use bitcoin::{Transaction, TxIn, TxOut, OutPoint, ScriptBuf, Sequence};
+      use bitcoin::psbt::Psbt;
+      use bitcoin::Txid;
+
+      ic_cdk::println!("Constructing etching PSBT...");
+      ic_cdk::println!("  Input UTXO: {}:{} ({}  sats)", pool_utxo.txid, pool_utxo.vout, pool_utxo.value);
+      ic_cdk::println!("  Pool address: {}", pool_address);
+      ic_cdk::println!("  OP_RETURN size: {} bytes", op_return_script.len());
+
+      // Parse UTXO txid
+      let txid = Txid::from_str(&pool_utxo.txid)
+          .map_err(|e| format!("Invalid txid: {:?}", e))?;
+
+      // Estimate transaction size
+      // 1 Taproot input (~58 vB) + 2 outputs (OP_RETURN ~45 vB + P2TR change ~43 vB) + overhead (~11 vB)
+      // Total: ~157 vB
+      let estimated_vsize = 157;
+      let fee_sats = estimated_vsize * fee_rate_sat_per_vb;
+
+      ic_cdk::println!("  Estimated vsize: {} vB", estimated_vsize);
+      ic_cdk::println!("  Fee rate: {} sat/vB", fee_rate_sat_per_vb);
+      ic_cdk::println!("  Total fee: {} sats", fee_sats);
+
+      // Check if UTXO is sufficient
+      if pool_utxo.value < fee_sats + 1000 {
+          return Err(format!("Insufficient UTXO value: {} sats (need {} sats for fee + 1000 dust)", pool_utxo.value, fee_sats));
+      }
+
+      let change_amount = pool_utxo.value - fee_sats;
+      ic_cdk::println!("  Change amount: {} sats", change_amount);
+
+      // Build transaction
+      let tx_in = TxIn {
+          previous_output: OutPoint {
+              txid,
+              vout: pool_utxo.vout,
+          },
+          script_sig: ScriptBuf::new(),  // Taproot uses witness, not script_sig
+          sequence: Sequence::MAX,     // RBF disabled
+          witness: bitcoin::Witness::new(),  // Empty witness for unsigned
+      };
+
+      // Output 0: OP_RETURN with etching runestone
+      // The ordinals crate already returns a complete Script, just wrap it
+      let op_return_script_buf = ScriptBuf::from_bytes(op_return_script);
+
+      let op_return_output = TxOut {
+          value: 0,  // OP_RETURN has no value
+          script_pubkey: op_return_script_buf,
+      };
+
+      // Output 1: Change back to pool address (P2TR)
+      let pool_addr = bitcoin::Address::from_str(pool_address)
+          .map_err(|e| format!("Invalid pool address: {:?}", e))?
+          .require_network(bitcoin::Network::Signet)
+          .map_err(|e| format!("Address network mismatch: {:?}", e))?;
+
+      let change_output = TxOut {
+          value: change_amount,
+          script_pubkey: pool_addr.script_pubkey(),
+      };
+
+      // Create unsigned transaction
+      let unsigned_tx = Transaction {
+          version: 2,  // Version 2 for Bitcoin transactions
+          lock_time: bitcoin::absolute::LockTime::ZERO,
+          input: vec![tx_in],
+          output: vec![op_return_output, change_output],
+      };
+
+      // Create PSBT from unsigned transaction
+      let mut psbt = Psbt::from_unsigned_tx(unsigned_tx)
+          .map_err(|e| format!("Failed to create PSBT: {:?}", e))?;
+
+      // Add witness UTXO data for Taproot input (required by REE)
+      psbt.inputs[0].witness_utxo = Some(bitcoin::TxOut {
+          value: pool_utxo.value,
+          script_pubkey: pool_addr.script_pubkey(),
+      });
+
+      // Serialize PSBT to hex
+      let psbt_hex = hex::encode(psbt.serialize());
+
+      ic_cdk::println!("✅ PSBT constructed ({} bytes hex)", psbt_hex.len());
+
+      Ok(psbt_hex)
+  }
+
+  /// Construct PSBT for rune minting transaction
+  /// Input: Pool UTXO for fees
+  /// Output 0: OP_RETURN with mint runestone
+  /// Output 1: Rune recipient (user address)
+  /// Output 2: Change back to pool address
+  fn construct_minting_psbt(
+      pool_utxo: &BitcoinUtxo,
+      pool_address: &str,
+      user_address: &str,
+      rune_id: &str,
+      amount_blst: u64,
+      fee_rate_sat_per_vb: u64,
+  ) -> Result<String, String> {
+      use bitcoin::{Transaction, TxIn, TxOut, OutPoint, ScriptBuf, Sequence};
+      use bitcoin::psbt::Psbt;
+      use bitcoin::Txid;
+      use ordinals::{Edict, RuneId};
+
+      ic_cdk::println!("Constructing minting PSBT...");
+      ic_cdk::println!("  Input UTXO: {}:{} ({} sats)", pool_utxo.txid, pool_utxo.vout, pool_utxo.value);
+      ic_cdk::println!("  Pool address: {}", pool_address);
+      ic_cdk::println!("  User address: {}", user_address);
+      ic_cdk::println!("  Minting: {} BLST base units", amount_blst);
+
+      // Parse rune_id (format: "block:tx" e.g. "840000:1")
+      let rune_id_parsed = RuneId::from_str(rune_id)
+          .map_err(|e| format!("Invalid rune_id: {:?}", e))?;
+
+      // Parse UTXO txid
+      let txid = Txid::from_str(&pool_utxo.txid)
+          .map_err(|e| format!("Invalid txid: {:?}", e))?;
+
+      // Estimate transaction size
+      // 1 Taproot input (~58 vB) + 3 outputs (OP_RETURN ~50 vB + 2x P2TR ~86 vB) + overhead (~15 vB)
+      // Total: ~209 vB
+      let estimated_vsize = 209;
+      let fee_sats = estimated_vsize * fee_rate_sat_per_vb;
+
+      ic_cdk::println!("  Estimated vsize: {} vB", estimated_vsize);
+      ic_cdk::println!("  Fee rate: {} sat/vB", fee_rate_sat_per_vb);
+      ic_cdk::println!("  Total fee: {} sats", fee_sats);
+
+      // Check if UTXO is sufficient
+      if pool_utxo.value < fee_sats + 2000 {
+          return Err(format!("Insufficient UTXO value: {} sats (need {} sats for fee + dust)", pool_utxo.value, fee_sats + 2000));
+      }
+
+      let change_amount = pool_utxo.value - fee_sats - 1000;  // 1000 sats for rune output
+      ic_cdk::println!("  Rune output: 1000 sats");
+      ic_cdk::println!("  Change amount: {} sats", change_amount);
+
+      // Build transaction input
+      let tx_in = TxIn {
+          previous_output: OutPoint {
+              txid,
+              vout: pool_utxo.vout,
+          },
+          script_sig: ScriptBuf::new(),
+          sequence: Sequence::MAX,
+          witness: bitcoin::Witness::new(),
+      };
+
+      // Create mint runestone with edict
+      let edict = Edict {
+          id: rune_id_parsed,
+          amount: amount_blst as u128,
+          output: 1,  // Send to output index 1 (user address)
+      };
+
+      let runestone = Runestone {
+          edicts: vec![edict],
+          etching: None,
+          mint: None,                          // NOT minting - transferring from pool UTXO
+          pointer: Some(2),                    // Remaining runes to pool change output
+      };
+
+      let op_return_script = runestone.encipher();
+      let op_return_script_buf = ScriptBuf::from_bytes(op_return_script.to_bytes());
+
+      // Output 0: OP_RETURN with mint runestone
+      let op_return_output = TxOut {
+          value: 0,
+          script_pubkey: op_return_script_buf,
+      };
+
+      // Output 1: Rune recipient (user address)
+      let user_addr = bitcoin::Address::from_str(user_address)
+          .map_err(|e| format!("Invalid user address: {:?}", e))?
+          .require_network(bitcoin::Network::Signet)
+          .map_err(|e| format!("Address network mismatch: {:?}", e))?;
+
+      let user_output = TxOut {
+          value: 1000,  // Dust amount for rune
+          script_pubkey: user_addr.script_pubkey(),
+      };
+
+      // Output 2: Change back to pool address
+      let pool_addr = bitcoin::Address::from_str(pool_address)
+          .map_err(|e| format!("Invalid pool address: {:?}", e))?
+          .require_network(bitcoin::Network::Signet)
+          .map_err(|e| format!("Address network mismatch: {:?}", e))?;
+
+      let change_output = TxOut {
+          value: change_amount,
+          script_pubkey: pool_addr.script_pubkey(),
+      };
+
+      // Create unsigned transaction
+      let unsigned_tx = Transaction {
+          version: 2,
+          lock_time: bitcoin::absolute::LockTime::ZERO,
+          input: vec![tx_in],
+          output: vec![op_return_output, user_output, change_output],
+      };
+
+      // Create PSBT
+      let mut psbt = Psbt::from_unsigned_tx(unsigned_tx)
+          .map_err(|e| format!("Failed to create PSBT: {:?}", e))?;
+
+      // Add witness UTXO data for Taproot input (required by REE)
+      psbt.inputs[0].witness_utxo = Some(bitcoin::TxOut {
+          value: pool_utxo.value,
+          script_pubkey: pool_addr.script_pubkey(),
+      });
+
+      let psbt_hex = hex::encode(psbt.serialize());
+
+      ic_cdk::println!("✅ Minting PSBT constructed ({} bytes hex)", psbt_hex.len());
+
+      Ok(psbt_hex)
+  }
+
+  /// Etch the BABYLON•LST rune on Bitcoin via REE Orchestrator
+  #[update]
+  async fn etch_blst_rune() -> Result<String, String> {
+      let caller = ic_cdk::api::caller();
+      if !ic_cdk::api::is_controller(&caller) {
+          return Err("Not authorized - only controller can etch rune".to_string());
+      }
+
+      // Check if already etched
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().clone())
+          .ok_or("Pool not initialized - call init_pool() first")?;
+
+      if pool_config.blst_rune_id.is_some() {
+          return Err(format!("BLST rune already etched: {}", pool_config.blst_rune_id.unwrap()));
+      }
+
+      ic_cdk::println!("🔨 Etching BABYLON•LST rune via REE Orchestrator...");
+
+      // Step 1: Create the etching runestone
+      let op_return_script = create_blst_etching()?;
+      ic_cdk::println!("✅ Etching runestone created ({} bytes)", op_return_script.len());
+
+      // Step 2: Fetch pool UTXOs
+      let utxos = fetch_pool_utxos().await?;
+      if utxos.is_empty() {
+          return Err("No UTXOs available in pool - fund pool address first".to_string());
+      }
+
+      // Select first UTXO with sufficient value for fees
+      let selected_utxo = utxos.iter()
+          .find(|u| u.value >= 10_000)  // At least 10k sats for fees + dust
+          .ok_or("No UTXO with sufficient value (need ≥10k sats)")?;
+
+      ic_cdk::println!("✅ Selected UTXO: {}:{} ({} sats)", selected_utxo.txid, selected_utxo.vout, selected_utxo.value);
+
+      // Step 3: Estimate fee rate
+      let fee_rate = estimate_fee_rate().await?;
+      ic_cdk::println!("✅ Fee rate: {} sat/vB", fee_rate);
+
+      // Step 4: Construct PSBT
+      let psbt_hex = construct_etching_psbt(
+          selected_utxo,
+          &pool_config.address,
+          op_return_script,
+          fee_rate,
+      )?;
+      ic_cdk::println!("✅ PSBT constructed");
+
+      // Step 5: Build IntentionSet for REE Orchestrator
+      let nonce = ic_cdk::api::time();
+      let intention = Intention {
+          input_coins: vec![],  // No rune inputs (etching creates new rune)
+          output_coins: vec![], // No rune outputs (etching tx doesn't transfer runes)
+          action: "etch_rune".to_string(),
+          exchange_id: ic_cdk::id().to_string(),
+          pool_utxo_spent: vec![format!("{}:{}", selected_utxo.txid, selected_utxo.vout)],
+          action_params: "BABYLON•LST rune etching".to_string(),
+          nonce,
+          pool_address: pool_config.address.clone(),
+          pool_utxo_received: vec![],  // Will be populated by REE after broadcast
+      };
+
+      let intention_set = IntentionSet {
+          tx_fee_in_sats: fee_rate * 157,  // Estimated vsize
+          initiator_address: pool_config.address.clone(),
+          intentions: vec![intention],
+      };
+
+      let invoke_args = InvokeArgs {
+          psbt_hex: psbt_hex.clone(),
+          intention_set,
+          initiator_utxo_proof: vec![],  // Not required for pool-initiated tx
+          client_info: Some("hodlprotocol BLST etching".to_string()),
+      };
+
+      ic_cdk::println!("✅ InvokeArgs prepared");
+
+      // Step 6: Call REE Orchestrator
+      ic_cdk::println!("📡 Calling REE Orchestrator invoke()...");
+      let result = call_ree_orchestrator_invoke(invoke_args).await?;
+
+      ic_cdk::println!("✅ REE Orchestrator accepted etching transaction");
+      ic_cdk::println!("   Result: {}", result);
+
+      Ok(format!("BLST rune etching submitted to REE Orchestrator.\nTransaction will be signed with ICP Chain Key and broadcast to Bitcoin Signet.\nCheck Bitcoin explorer for confirmation, then update pool config with rune_id.\nREE response: {}", result))
   }
 
   // ============================
@@ -539,6 +956,272 @@ thread_local! {
   }
 
   // ============================
+  // BITCOIN API - UTXO Management & Transaction Construction
+  // ============================
+
+  /// Bitcoin UTXO from mempool.space API
+  #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+  struct BitcoinUtxo {
+      txid: String,
+      vout: u32,
+      value: u64,          // satoshis
+      status: UtxoStatus,
+  }
+
+  #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+  struct UtxoStatus {
+      confirmed: bool,
+      block_height: Option<u64>,
+      block_hash: Option<String>,
+  }
+
+  /// Fetch UTXOs for pool address from mempool.space Signet API
+  async fn fetch_pool_utxos() -> Result<Vec<BitcoinUtxo>, String> {
+      use ic_cdk::api::management_canister::http_request::{
+          http_request, CanisterHttpRequestArgument, HttpHeader, HttpMethod, TransformContext,
+      };
+
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().clone())
+          .ok_or("Pool not initialized")?;
+
+      let url = format!(
+          "https://mempool.space/signet/api/address/{}/utxo",
+          pool_config.address
+      );
+
+      ic_cdk::println!("Fetching UTXOs for pool address: {}", pool_config.address);
+
+      let request = CanisterHttpRequestArgument {
+          url: url.clone(),
+          method: HttpMethod::GET,
+          headers: vec![
+              HttpHeader {
+                  name: "User-Agent".to_string(),
+                  value: "hodlprotocol".to_string(),
+              },
+          ],
+          body: None,
+          max_response_bytes: Some(50_000),
+          transform: Some(TransformContext::from_name("transform_http_response".to_string(), vec![])),
+      };
+
+      match http_request(request, 2_000_000_000).await {
+          Ok((response,)) => {
+              let body = String::from_utf8(response.body)
+                  .map_err(|e| format!("Failed to parse response body: {}", e))?;
+
+              ic_cdk::println!("UTXO response: {}", body);
+
+              let utxos: Vec<BitcoinUtxo> = serde_json::from_str(&body)
+                  .map_err(|e| format!("Failed to parse UTXOs JSON: {}", e))?;
+
+              ic_cdk::println!("Found {} UTXOs for pool address", utxos.len());
+
+              // Filter for confirmed UTXOs only
+              let confirmed_utxos: Vec<BitcoinUtxo> = utxos.into_iter()
+                  .filter(|u| u.status.confirmed)
+                  .collect();
+
+              ic_cdk::println!("Confirmed UTXOs: {}", confirmed_utxos.len());
+
+              Ok(confirmed_utxos)
+          },
+          Err((code, msg)) => {
+              Err(format!("HTTP request failed: {:?} - {}", code, msg))
+          }
+      }
+  }
+
+  /// Estimate fee for transaction (simple: fetch from mempool.space)
+  async fn estimate_fee_rate() -> Result<u64, String> {
+      use ic_cdk::api::management_canister::http_request::{
+          http_request, CanisterHttpRequestArgument, HttpHeader, HttpMethod, TransformContext,
+      };
+
+      let url = "https://mempool.space/signet/api/v1/fees/recommended".to_string();
+
+      let request = CanisterHttpRequestArgument {
+          url: url.clone(),
+          method: HttpMethod::GET,
+          headers: vec![
+              HttpHeader {
+                  name: "User-Agent".to_string(),
+                  value: "hodlprotocol".to_string(),
+              },
+          ],
+          body: None,
+          max_response_bytes: Some(1_000),
+          transform: Some(TransformContext::from_name("transform_http_response".to_string(), vec![])),
+      };
+
+      match http_request(request, 1_000_000_000).await {
+          Ok((response,)) => {
+              let body = String::from_utf8(response.body)
+                  .map_err(|e| format!("Failed to parse response body: {}", e))?;
+
+              let parsed: serde_json::Value = serde_json::from_str(&body)
+                  .map_err(|e| format!("Failed to parse JSON: {}", e))?;
+
+              // Use "halfHourFee" for reasonable confirmation time
+              let fee_rate = parsed.get("halfHourFee")
+                  .and_then(|v| v.as_u64())
+                  .unwrap_or(5); // Fallback to 5 sat/vB
+
+              ic_cdk::println!("Estimated fee rate: {} sat/vB", fee_rate);
+              Ok(fee_rate)
+          },
+          Err((code, msg)) => {
+              ic_cdk::println!("Fee estimation failed, using fallback: {:?} - {}", code, msg);
+              Ok(5) // Fallback fee rate
+          }
+      }
+  }
+
+  /// Query Runes Indexer for pool UTXOs containing BLST
+  async fn query_pool_blst_utxos(min_blst: u64) -> Result<Vec<RuneUtxo>, String> {
+      use candid::Principal;
+
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().clone())
+          .ok_or("Pool not initialized")?;
+
+      let rune_id = pool_config.blst_rune_id
+          .ok_or("BLST rune not yet etched - call update_pool_rune_id() first")?;
+
+      ic_cdk::println!("Querying Runes Indexer for pool UTXOs with BLST...");
+      ic_cdk::println!("  Pool address: {}", pool_config.address);
+      ic_cdk::println!("  Rune ID: {}", rune_id);
+      ic_cdk::println!("  Min BLST required: {}", min_blst);
+
+      // For MVP: Return mock UTXO with real etching transaction
+      // TODO: Implement real Runes Indexer query after testing
+      ic_cdk::println!("⚠️  Using hardcoded pool UTXO from etching (Runes Indexer integration pending)");
+
+      Ok(vec![RuneUtxo {
+          txid: "7fabe686337660691dcfb95a07b9d21cbc40b8e24ce346d7937898dea140cfea".to_string(),
+          vout: 1,  // Premined runes go to output #1 of etching tx
+          value: 10_000,  // 10k sats (from reveal tx output #1)
+          rune_balance: 100_000_000_000,  // All 100B BLST runes (premined at 274299:1)
+      }])
+
+      // TODO: Real implementation after testing:
+      // let indexer_id = Principal::from_text(RUNES_INDEXER_TESTNET)
+      //     .map_err(|e| format!("Invalid indexer principal: {:?}", e))?;
+      //
+      // let (utxos,): (Vec<UtxoWithRunes>,) = ic_cdk::call(
+      //     indexer_id,
+      //     "get_utxos",
+      //     (pool_config.address.clone(),)
+      // ).await
+      //     .map_err(|e| format!("Runes Indexer call failed: {:?}", e))?;
+      //
+      // let blst_utxos: Vec<RuneUtxo> = utxos.into_iter()
+      //     .filter_map(|u| {
+      //         let rune_amt = u.runes.get(&rune_id)?;
+      //         if *rune_amt >= min_blst as u128 {
+      //             Some(RuneUtxo {
+      //                 txid: u.txid,
+      //                 vout: u.vout,
+      //                 value: u.value,
+      //                 rune_balance: *rune_amt as u64,
+      //             })
+      //         } else {
+      //             None
+      //         }
+      //     })
+      //     .collect();
+      //
+      // if blst_utxos.is_empty() {
+      //     return Err("No pool UTXO with sufficient BLST balance found".to_string());
+      // }
+      //
+      // Ok(blst_utxos)
+  }
+
+  // ============================
+  // REE ORCHESTRATOR - Inter-Canister Calls
+  // ============================
+
+  /// Call REE Orchestrator's invoke() method to submit Bitcoin transactions
+  async fn call_ree_orchestrator_invoke(args: InvokeArgs) -> Result<String, String> {
+      use candid::Principal;
+
+      let orchestrator_id = Principal::from_text(REE_ORCHESTRATOR_TESTNET)
+          .map_err(|e| format!("Invalid orchestrator principal: {:?}", e))?;
+
+      ic_cdk::println!("Calling REE Orchestrator invoke()...");
+      ic_cdk::println!("  PSBT size: {} bytes", args.psbt_hex.len() / 2);
+      ic_cdk::println!("  Intentions: {}", args.intention_set.intentions.len());
+
+      // Make inter-canister call to REE Orchestrator
+      let (result,): (Result<String, String>,) = ic_cdk::call(
+          orchestrator_id,
+          "invoke",
+          (args,)
+      ).await
+          .map_err(|e| format!("REE Orchestrator call failed: {:?}", e))?;
+
+      result
+  }
+
+  // ============================
+  // REE ORCHESTRATOR TYPES - Invoke Pattern
+  // ============================
+
+  /// Arguments for REE Orchestrator invoke() call
+  #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+  pub struct InvokeArgs {
+      pub psbt_hex: String,
+      pub intention_set: IntentionSet,
+      pub initiator_utxo_proof: Vec<u8>,
+      pub client_info: Option<String>,
+  }
+
+  #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+  pub struct IntentionSet {
+      pub tx_fee_in_sats: u64,
+      pub initiator_address: String,
+      pub intentions: Vec<Intention>,
+  }
+
+  #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+  pub struct Intention {
+      pub input_coins: Vec<InputCoin>,
+      pub output_coins: Vec<OutputCoin>,
+      pub action: String,
+      pub exchange_id: String,
+      pub pool_utxo_spent: Vec<String>,
+      pub action_params: String,
+      pub nonce: u64,
+      pub pool_address: String,
+      pub pool_utxo_received: Vec<UtxoRef>,
+  }
+
+  #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+  pub struct InputCoin {
+      pub from: String,
+      pub coin: CoinBalance,
+  }
+
+  #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+  pub struct OutputCoin {
+      pub to: String,
+      pub coin: CoinBalance,
+  }
+
+  #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+  pub struct CoinBalance {
+      pub id: String,  // Rune ID (e.g., "840000:1")
+      pub value: u128, // Amount in base units
+  }
+
+  #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+  pub struct UtxoRef {
+      pub txid: String,
+      pub vout: u32,
+      pub value: u64,
+  }
+
+  // ============================
   // REE EXECUTION TYPES - Transaction Callbacks
   // ============================
 
@@ -589,11 +1272,12 @@ thread_local! {
           return Err("Address must be a Taproot address (tb1p... or bc1p...)".to_string());
       }
 
-      // Calculate expected BLST: 100,000 BLST = 1 BTC
-      // So: BLST = sats / 10
-      let expected_blst = amount_sats / 10;
+      // Calculate expected BLST: 100,000 BLST = 1 BTC, divisibility=3
+      // 1 sat = 0.001 BLST (1:1 base unit mapping)
+      let expected_blst = amount_sats;
 
-      ic_cdk::println!("Expected BLST for {} sats: {} BLST", amount_sats, expected_blst);
+      ic_cdk::println!("Expected BLST for {} sats: {} base units (display: {}.{:03} BLST)",
+          amount_sats, expected_blst, expected_blst / 1000, expected_blst % 1000);
 
       // Generate nonce (using timestamp)
       let nonce = ic_cdk::api::time();
@@ -621,12 +1305,29 @@ thread_local! {
           .find(|fp| fp.btc_pk_hex == pool_config.finality_provider)
           .ok_or("Finality provider not found")?;
 
+      // Query pool UTXOs with BLST for atomic swap
+      let pool_utxos = query_pool_blst_utxos(expected_blst).await?;
+      let selected_utxo = pool_utxos.first()
+          .ok_or("Pool has no UTXO with sufficient BLST balance")?;
+
+      ic_cdk::println!("✅ Selected pool UTXO for atomic swap:");
+      ic_cdk::println!("   TXID: {}", selected_utxo.txid);
+      ic_cdk::println!("   VOUT: {}", selected_utxo.vout);
+      ic_cdk::println!("   Value: {} sats", selected_utxo.value);
+      ic_cdk::println!("   BLST balance: {} base units", selected_utxo.rune_balance);
+
       Ok(DepositOffer {
           pool_address: pool_config.address,
           nonce,
           expected_blst,
           protocol_fee: 0,  // No fee for testnet demo
           estimated_apy: selected_fp.estimated_apy,
+
+          // Atomic swap pool UTXO
+          pool_utxo_txid: selected_utxo.txid.clone(),
+          pool_utxo_vout: selected_utxo.vout,
+          pool_utxo_amount_sats: selected_utxo.value,
+          pool_utxo_blst_amount: selected_utxo.rune_balance,
       })
   }
 
@@ -709,11 +1410,12 @@ thread_local! {
           return;
       }
 
-      // Calculate BLST to mint: 100,000 BLST = 1 BTC
-      // So: BLST = sats / 10
-      let blst_amount = execution_result.amount_sats / 10;
+      // Calculate BLST to mint: 100,000 BLST = 1 BTC, divisibility=3
+      // 1 sat = 0.001 BLST (1:1 base unit mapping)
+      let blst_amount = execution_result.amount_sats;
 
-      ic_cdk::println!("Minting {} BLST for {} sats", blst_amount, execution_result.amount_sats);
+      ic_cdk::println!("Minting {} base units ({}.{:03} BLST) for {} sats",
+          blst_amount, blst_amount / 1000, blst_amount % 1000, execution_result.amount_sats);
 
       // Get pool config
       let pool_config = POOL_CONFIG.with(|p| p.borrow().clone());
@@ -781,6 +1483,120 @@ thread_local! {
       ic_cdk::println!("✅ Deposit processed successfully - tx: {}", tx_id);
       ic_cdk::println!("   User: {}", execution_result.from_address);
       ic_cdk::println!("   Amount: {} sats = {} BLST", execution_result.amount_sats, blst_amount);
+  }
+
+  /// Mint BLST rune to user after deposit confirmation
+  /// Called manually after execute_tx() processes the deposit
+  #[update]
+  async fn mint_blst_for_deposit(deposit_tx_hash: String) -> Result<String, String> {
+      ic_cdk::println!("🪙 Minting BLST for deposit tx: {}", deposit_tx_hash);
+
+      // Get pool config
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().clone())
+          .ok_or("Pool not initialized")?;
+
+      // Check if rune has been etched
+      let rune_id = pool_config.blst_rune_id
+          .ok_or("BLST rune not yet etched - call etch_blst_rune() first")?;
+
+      ic_cdk::println!("✅ BLST rune ID: {}", rune_id);
+
+      // Get mint record
+      let mint_record = BLST_MINT_RECORDS.with(|records| {
+          records.borrow().get(&deposit_tx_hash)
+      }).ok_or(format!("No mint record found for tx: {}", deposit_tx_hash))?;
+
+      // Check if already minted
+      if mint_record.mint_tx_hash.is_some() {
+          return Err(format!("BLST already minted for tx: {} (mint tx: {})",
+              deposit_tx_hash,
+              mint_record.mint_tx_hash.unwrap()
+          ));
+      }
+
+      ic_cdk::println!("Minting {} BLST to {}", mint_record.amount_blst, mint_record.user_btc_address);
+
+      // Fetch pool UTXOs
+      let utxos = fetch_pool_utxos().await?;
+      if utxos.is_empty() {
+          return Err("No UTXOs available in pool".to_string());
+      }
+
+      // Select UTXO with sufficient value
+      let selected_utxo = utxos.iter()
+          .find(|u| u.value >= 10_000)  // Need 10k sats minimum
+          .ok_or("No UTXO with sufficient value (need ≥10k sats)")?;
+
+      ic_cdk::println!("✅ Selected UTXO: {}:{} ({} sats)", selected_utxo.txid, selected_utxo.vout, selected_utxo.value);
+
+      // Estimate fee rate
+      let fee_rate = estimate_fee_rate().await?;
+      ic_cdk::println!("✅ Fee rate: {} sat/vB", fee_rate);
+
+      // Construct minting PSBT
+      let psbt_hex = construct_minting_psbt(
+          selected_utxo,
+          &pool_config.address,
+          &mint_record.user_btc_address,
+          &rune_id,
+          mint_record.amount_blst,
+          fee_rate,
+      )?;
+      ic_cdk::println!("✅ Minting PSBT constructed");
+
+      // Build IntentionSet for REE Orchestrator
+      let nonce = ic_cdk::api::time();
+      let intention = Intention {
+          input_coins: vec![],  // No input runes (minting from terms)
+          output_coins: vec![OutputCoin {
+              to: mint_record.user_btc_address.clone(),
+              coin: CoinBalance {
+                  id: rune_id.clone(),
+                  value: mint_record.amount_blst as u128,
+              },
+          }],
+          action: "mint_rune".to_string(),
+          exchange_id: ic_cdk::id().to_string(),
+          pool_utxo_spent: vec![format!("{}:{}", selected_utxo.txid, selected_utxo.vout)],
+          action_params: format!("Mint {} BLST to {}", mint_record.amount_blst, mint_record.user_btc_address),
+          nonce,
+          pool_address: pool_config.address.clone(),
+          pool_utxo_received: vec![],
+      };
+
+      let intention_set = IntentionSet {
+          tx_fee_in_sats: fee_rate * 209,  // Estimated vsize for minting tx
+          initiator_address: pool_config.address.clone(),
+          intentions: vec![intention],
+      };
+
+      let invoke_args = InvokeArgs {
+          psbt_hex: psbt_hex.clone(),
+          intention_set,
+          initiator_utxo_proof: vec![],
+          client_info: Some(format!("hodlprotocol BLST mint for {}", deposit_tx_hash)),
+      };
+
+      ic_cdk::println!("✅ InvokeArgs prepared");
+
+      // Call REE Orchestrator
+      ic_cdk::println!("📡 Calling REE Orchestrator invoke()...");
+      let result = call_ree_orchestrator_invoke(invoke_args).await?;
+
+      ic_cdk::println!("✅ REE Orchestrator accepted minting transaction");
+      ic_cdk::println!("   Result: {}", result);
+
+      // Update mint record with mint tx hash (result should contain tx hash)
+      // Note: REE will call back later with final tx hash, this is just submission confirmation
+      ic_cdk::println!("⚠️  Mint transaction submitted - waiting for REE callback with final tx hash");
+
+      Ok(format!("BLST minting transaction submitted to REE Orchestrator.\nTransaction will be signed with ICP Chain Key and broadcast to Bitcoin Signet.\nUser will receive {} BLST ({}.{:03} display) at address {}.\nREE response: {}",
+          mint_record.amount_blst,
+          mint_record.amount_blst / 1000,
+          mint_record.amount_blst % 1000,
+          mint_record.user_btc_address,
+          result
+      ))
   }
 
   /// Blockchain state management - New block notification

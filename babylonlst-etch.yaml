@@ -1,0 +1,12 @@
+mode: separate-outputs
+
+etching:
+  rune: BABYLONLST
+  divisibility: 3
+  symbol: Ƀ
+  premine: 100000000000
+  supply: 100000000000
+  turbo: true
+
+inscriptions:
+  - file: babylonlst.txt
