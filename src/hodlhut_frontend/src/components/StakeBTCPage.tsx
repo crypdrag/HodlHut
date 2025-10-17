@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Zap, Info, Shield, Wallet, TrendingUp, Lock } from 'lucide-react';
+import { Zap, Info, Shield, Wallet, TrendingUp, Lock, Activity } from 'lucide-react';
 import { bitcoinWalletService, ConnectedWallet, WalletInfo } from '../services/bitcoinWalletService';
 import { depositService } from '../services/depositService';
-import { hodlprotocolCanisterService, PoolStats } from '../services/hodlprotocolCanisterService';
+import { hodlprotocolCanisterService, PoolStats, BabylonStakingStats } from '../services/hodlprotocolCanisterService';
 
 const StakeBTCPage: React.FC = () => {
   // State
@@ -11,6 +11,7 @@ const StakeBTCPage: React.FC = () => {
   const [availableWallets, setAvailableWallets] = useState<WalletInfo[]>([]);
   const [blstBalance, setBlstBalance] = useState<number>(0);
   const [poolStats, setPoolStats] = useState<PoolStats | null>(null);
+  const [babylonStats, setBabylonStats] = useState<BabylonStakingStats | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isDepositing, setIsDepositing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +36,19 @@ const StakeBTCPage: React.FC = () => {
       }
     };
 
+    // Fetch Babylon staking statistics
+    const fetchBabylonStats = async () => {
+      try {
+        const stats = await hodlprotocolCanisterService.getBabylonStakingStats();
+        setBabylonStats(stats);
+      } catch (err: any) {
+        console.error('Failed to fetch Babylon stats:', err);
+        // Non-critical for deposit flow
+      }
+    };
+
     fetchPoolData();
+    fetchBabylonStats();
   }, []);
 
   // Fetch BLST balance when wallet connects
@@ -209,6 +222,42 @@ const StakeBTCPage: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* Babylon Staking Stats Display */}
+            {babylonStats && (
+              <div className="mb-4 bg-gradient-to-r from-purple-600/20 to-blue-600/20 border border-purple-500/30 rounded-xl p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-purple-400" />
+                  <span className="text-sm font-semibold text-text-primary">Babylon Staking Status</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-surface-2/50 rounded-lg p-3">
+                    <div className="text-xs text-text-muted mb-1">Total Staked</div>
+                    <div className="text-lg font-bold text-text-primary">
+                      {(Number(babylonStats.total_staked_to_babylon) / 100000000).toFixed(4)} BTC
+                    </div>
+                  </div>
+                  <div className="bg-surface-2/50 rounded-lg p-3">
+                    <div className="text-xs text-text-muted mb-1">Active Delegations</div>
+                    <div className="text-lg font-bold text-success-400">
+                      {babylonStats.active_delegations}
+                    </div>
+                  </div>
+                  <div className="bg-surface-2/50 rounded-lg p-3">
+                    <div className="text-xs text-text-muted mb-1">BABY Rewards</div>
+                    <div className="text-lg font-bold text-purple-400">
+                      {Number(babylonStats.total_baby_rewards).toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="bg-surface-2/50 rounded-lg p-3">
+                    <div className="text-xs text-text-muted mb-1">Pending Txs</div>
+                    <div className="text-lg font-bold text-text-primary">
+                      {babylonStats.pending_babylon_txs}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="bg-surface-1 border border-white/10 rounded-2xl p-4 md:p-6">
               {/* Amount Input */}

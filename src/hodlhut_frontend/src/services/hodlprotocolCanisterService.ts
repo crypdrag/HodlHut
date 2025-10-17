@@ -67,6 +67,13 @@
     created_at: bigint;
   }
 
+  export interface BabylonStakingStats {
+    total_staked_to_babylon: bigint;
+    active_delegations: number;
+    total_baby_rewards: bigint;
+    pending_babylon_txs: number;
+  }
+
   // Result types
   type ResultOk<T> = { ok: T };
   type ResultErr<E> = { err: E };
@@ -125,6 +132,13 @@
       created_at: IDL.Nat64,
     });
 
+    const BabylonStakingStats = IDL.Record({
+      total_staked_to_babylon: IDL.Nat64,
+      active_delegations: IDL.Nat32,
+      total_baby_rewards: IDL.Nat64,
+      pending_babylon_txs: IDL.Nat32,
+    });
+
     return IDL.Service({
       get_babylon_params: IDL.Func(
         [],
@@ -154,6 +168,16 @@
       pre_deposit: IDL.Func(
         [IDL.Text, IDL.Nat64],
         [IDL.Variant({ ok: DepositOffer, err: IDL.Text })],
+        []
+      ),
+      get_babylon_staking_stats: IDL.Func(
+        [],
+        [BabylonStakingStats],
+        ['query']
+      ),
+      stake_pool_to_babylon: IDL.Func(
+        [],
+        [IDL.Variant({ ok: IDL.Text, err: IDL.Text })],
         []
       ),
     });
@@ -310,6 +334,40 @@
         return balance;
       } catch (error: any) {
         console.error('Error fetching BLST balance:', error);
+        throw new Error(`Canister call failed: ${error.message}`);
+      }
+    }
+
+    /**
+     * Get Babylon staking statistics
+     */
+    async getBabylonStakingStats(): Promise<BabylonStakingStats> {
+      try {
+        const actor = await this.getActor();
+        const stats: BabylonStakingStats = await actor.get_babylon_staking_stats();
+        return stats;
+      } catch (error: any) {
+        console.error('Error fetching Babylon staking stats:', error);
+        throw new Error(`Canister call failed: ${error.message}`);
+      }
+    }
+
+    /**
+     * Stake pool funds to Babylon
+     * Triggers the pool to stake aggregated BTC to Babylon protocol
+     */
+    async stakePoolToBabylon(): Promise<string> {
+      try {
+        const actor = await this.getActor();
+        const result: Result<string, string> = await actor.stake_pool_to_babylon();
+
+        if ('ok' in result) {
+          return result.ok;
+        } else {
+          throw new Error(`Failed to stake to Babylon: ${result.err}`);
+        }
+      } catch (error: any) {
+        console.error('Error staking pool to Babylon:', error);
         throw new Error(`Canister call failed: ${error.message}`);
       }
     }
