@@ -8,7 +8,17 @@ use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     Storable, storable::Bound,
 };
-use ree_types::{bitcoin::Network, schnorr::request_ree_pool_address};
+use ree_types::{
+    bitcoin::Network,
+    bitcoin::psbt::Psbt,
+    schnorr::request_ree_pool_address,
+    exchange_interfaces::*,
+    psbt::ree_pool_sign,
+    Pubkey,
+    Txid,
+    Utxo,
+    CoinBalances,
+};
 
 // Bitcoin Runes support
 use ordinals::{Etching, Rune, Runestone};
@@ -17,16 +27,36 @@ use ordinals::{Etching, Rune, Runestone};
 // TYPE DEFINITIONS - Pool & Deposit Tracking
 // ============================
 
+/// Represents the state of the pool at a specific point in time
+/// Each transaction creates a new state entry in the chain
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub struct PoolState {
+    pub id: Option<Txid>,      // Transaction ID that created this state (None for initial)
+    pub nonce: u64,            // Incremental counter (0, 1, 2, 3...)
+    pub utxo: Option<Utxo>,    // Current UTXO holding pool assets
+}
+
+impl PoolState {
+    /// Get BTC balance from this state's UTXO
+    pub fn btc_supply(&self) -> u64 {
+        self.utxo.as_ref().map(|utxo| utxo.sats).unwrap_or_default()
+    }
+}
+
 /// Configuration for the liquid staking pool
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug, Default)]
 pub struct PoolConfig {
     pub address: String,              // Bitcoin Taproot address (tb1p...)
+    pub pubkey: Option<Pubkey>,       // Untweaked public key (for REE signing)
+    pub tweaked: Option<Pubkey>,      // Tweaked public key (Taproot)
     pub finality_provider: String,    // Top FP pubkey from Babylon
     pub timelock_blocks: u32,          // 12,960 blocks (≈90 days)
     pub blst_rune_id: Option<String>,  // Populated after etching
     pub total_deposited_sats: u64,     // Total BTC deposited
     pub total_blst_minted: u64,        // Total BLST issued (in BLST units)
     pub created_at: u64,               // Timestamp
+    #[serde(default)]
+    pub states: Vec<PoolState>,        // Transaction state chain for REE integration (migrated)
 }
 
 /// User deposit intent (created by pre_deposit, consumed by execute_tx)
@@ -94,6 +124,12 @@ pub struct PoolStats {
     pub finality_provider: String,
     pub timelock_blocks: u32,
     pub estimated_apy: f64,
+}
+
+/// Transaction record for tracking confirmations (REE integration)
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug, Default)]
+pub struct TxRecord {
+    pub pools: Vec<String>,  // Pool addresses affected by this transaction
 }
 
 /// Babylon staking record - tracks pool's staking to Babylon
@@ -226,6 +262,20 @@ impl Storable for BabylonStakingRecord {
     }
 }
 
+impl Storable for TxRecord {
+    const BOUND: Bound = Bound::Unbounded;
+
+    fn to_bytes(&self) -> std::borrow::Cow<'_, [u8]> {
+        let mut bytes = vec![];
+        ciborium::ser::into_writer(self, &mut bytes).expect("Failed to serialize TxRecord");
+        std::borrow::Cow::Owned(bytes)
+    }
+
+    fn from_bytes(bytes: std::borrow::Cow<'_, [u8]>) -> Self {
+        ciborium::de::from_reader(bytes.as_ref()).expect("Failed to deserialize TxRecord")
+    }
+}
+
 // ============================
 // STABLE STORAGE - Memory Management
 // ============================
@@ -270,6 +320,27 @@ thread_local! {
         StableBTreeMap::init(
             MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(3))),
         )
+    );
+
+    // REE transaction tracking: (Txid, is_confirmed) → TxRecord
+    // Used by new_block() and rollback_tx() for confirmation tracking
+    static TX_RECORDS: RefCell<StableBTreeMap<(Txid, bool), TxRecord, Memory>> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(5))),
+        )
+    );
+
+    // REE block tracking: block_height → NewBlockInfo
+    // Used for reorg detection and transaction finalization
+    static BLOCKS: RefCell<StableBTreeMap<u32, NewBlockInfo, Memory>> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(6))),
+        )
+    );
+
+    // Tracks pools currently executing transactions (prevents concurrent execution)
+    static EXECUTING_POOLS: RefCell<std::collections::HashSet<String>> = RefCell::new(
+        std::collections::HashSet::new()
     );
 }
 
@@ -331,6 +402,48 @@ thread_local! {
   const BABYLON_CHAIN_ID: &str = "bbn-test-6";
   const BABYLON_STAKING_CONTRACT: &str = "babylon1...";  // TODO: Get real contract address
 
+// ============================
+// SECURITY GUARDS - REE Integration
+// ============================
+
+/// Guard function to ensure only REE Orchestrator can call sensitive methods
+fn ensure_testnet4_orchestrator() -> Result<(), String> {
+    let caller = ic_cdk::api::caller();
+    const REE_ORCHESTRATOR_TESTNET: &str = "hvyp5-5yaaa-aaaao-qjxha-cai";
+
+    if caller.to_text() != REE_ORCHESTRATOR_TESTNET {
+        return Err(format!(
+            "Unauthorized: Only REE Orchestrator can call this method. Caller: {}",
+            caller
+        ));
+    }
+    Ok(())
+}
+
+/// RAII guard to prevent concurrent execution on the same pool
+#[must_use]
+pub struct ExecuteTxGuard(String);
+
+impl ExecuteTxGuard {
+    pub fn new(pool_address: String) -> Option<Self> {
+        EXECUTING_POOLS.with(|executing_pools| {
+            if executing_pools.borrow().contains(&pool_address) {
+                return None;  // Pool is already executing
+            }
+            executing_pools.borrow_mut().insert(pool_address.clone());
+            Some(ExecuteTxGuard(pool_address))
+        })
+    }
+}
+
+impl Drop for ExecuteTxGuard {
+    fn drop(&mut self) {
+        EXECUTING_POOLS.with_borrow_mut(|executing_pools| {
+            executing_pools.remove(&self.0);
+        });
+    }
+}
+
   // ============================
   // POOL INITIALIZATION - ICP Chain Key
   // ============================
@@ -353,7 +466,7 @@ thread_local! {
 
       // For local testing: Use mock address since dfx_test_key != test_key_1
       // For testnet/mainnet: Use real ICP Chain Key
-      let addr = if cfg!(target_arch = "wasm32") {
+      let (addr, pubkey_opt, tweaked_opt) = if cfg!(target_arch = "wasm32") {
           // Try to detect if we're on local dfx by attempting real key generation
           match request_ree_pool_address(
               SCHNORR_KEY_NAME,
@@ -366,19 +479,19 @@ thread_local! {
                   ic_cdk::println!("Pool address generated: {}", address);
                   ic_cdk::println!("Untweaked pubkey: {:?}", untweaked);
                   ic_cdk::println!("Tweaked pubkey: {:?}", tweaked);
-                  address.to_string()
+                  (address.to_string(), Some(untweaked), Some(tweaked))
               }
               Err(e) => {
                   // If key generation fails, use mock address for local testing
                   ic_cdk::println!("⚠️  Chain Key generation failed (local dfx?): {}", e);
                   ic_cdk::println!("📍 Using mock pool address for local testing");
                   // Mock Bitcoin Signet Taproot address
-                  "tb1pqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqfmkg5p".to_string()
+                  ("tb1pqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqfmkg5p".to_string(), None, None)
               }
           }
       } else {
           // Non-wasm compilation (shouldn't happen, but just in case)
-          "tb1pqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqfmkg5p".to_string()
+          ("tb1pqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqfmkg5p".to_string(), None, None)
       };
 
       ic_cdk::println!("Pool address: {}", addr);
@@ -393,12 +506,15 @@ thread_local! {
       // Create pool config
       let pool_config = PoolConfig {
           address: addr.to_string(),
+          pubkey: pubkey_opt,           // Store untweaked pubkey for REE
+          tweaked: tweaked_opt,         // Store tweaked pubkey for Taproot
           finality_provider: top_fp.btc_pk_hex.clone(),
           timelock_blocks: POOL_TIMELOCK_BLOCKS,
           blst_rune_id: None,  // Will be populated after etching
           total_deposited_sats: 0,
           total_blst_minted: 0,
           created_at: ic_cdk::api::time(),
+          states: vec![],  // Start with empty state chain (nonce will be 0)
       };
 
       // Store pool config in stable storage
@@ -412,6 +528,56 @@ thread_local! {
       ic_cdk::println!("   Timelock: {} blocks (≈90 days)", pool_config.timelock_blocks);
 
       Ok(pool_config.address)
+  }
+
+  /// Regenerate and store pubkeys for an already-deployed pool
+  /// This is needed for pools that were initialized before we added pubkey storage
+  #[update]
+  async fn update_pool_pubkeys() -> Result<String, String> {
+      let caller = ic_cdk::api::caller();
+      if !ic_cdk::api::is_controller(&caller) {
+          return Err("Not authorized - only controller can update pool pubkeys".to_string());
+      }
+
+      // Get existing pool config
+      let mut pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
+      if pool_config.address.is_empty() {
+          return Err("Pool not initialized yet".to_string());
+      }
+
+      ic_cdk::println!("Regenerating pubkeys for pool address: {}", pool_config.address);
+
+      // Regenerate pubkeys using the SAME derivation path as init_pool
+      let (untweaked, tweaked, regenerated_address) = request_ree_pool_address(
+          SCHNORR_KEY_NAME,
+          vec![b"hodlprotocol_blst_pool".to_vec()],
+          Network::Testnet4,
+      )
+      .await?;
+
+      // Verify the regenerated address matches the stored one
+      if regenerated_address.to_string() != pool_config.address {
+          return Err(format!(
+              "Address mismatch! Expected {}, got {}. This means the derivation path is incorrect.",
+              pool_config.address,
+              regenerated_address
+          ));
+      }
+
+      ic_cdk::println!("✅ Address verified: {}", regenerated_address);
+      ic_cdk::println!("   Untweaked pubkey: {:?}", untweaked);
+      ic_cdk::println!("   Tweaked pubkey: {:?}", tweaked);
+
+      // Store the pubkeys
+      pool_config.pubkey = Some(untweaked);
+      pool_config.tweaked = Some(tweaked);
+
+      // Save updated config
+      POOL_CONFIG.with(|p| {
+          p.borrow_mut().set(pool_config.clone()).expect("Failed to update POOL_CONFIG");
+      });
+
+      Ok(format!("Pubkeys successfully regenerated and stored for pool {}", pool_config.address))
   }
 
   /// Query current pool configuration
@@ -1986,168 +2152,309 @@ thread_local! {
       })
   }
 
-  /// Transaction execution callback - Called by REE Orchestrator
-  /// This is triggered when a Bitcoin transaction is confirmed
-  #[update]
-  fn execute_tx(tx_id: String, execution_result: ExecutionResult) {
-      ic_cdk::println!(
-          "execute_tx() called - tx_id: {}, status: {}, action: {:?}",
-          tx_id,
-          execution_result.status,
-          "user_deposit" // Would come from execution_result in real implementation
-      );
+  // ============================
+  // REE INTERFACE METHODS (Required for REE Orchestrator)
+  // ============================
+  // Note: PoolListItem, PoolInfo, GetPoolInfoArgs types come from ree_types::exchange_interfaces::*
 
-      // Only process successful transactions
-      if execution_result.status != "success" {
-          ic_cdk::println!("❌ Transaction failed, skipping: {}", tx_id);
-          return;
+  /// Get list of all pools (REE requirement)
+  /// For MVP, we only have one pool
+  /// Uses official ree_types::exchange_interfaces::GetPoolListResponse
+  #[query]
+  fn get_pool_list() -> GetPoolListResponse {
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
+
+      if pool_config.address.is_empty() {
+          return vec![];
       }
 
-      // Check if this is a Babylon staking transaction by looking for pending_ records
-      let pending_staking_key = BABYLON_STAKING_RECORDS.with(|records| {
-          for (key, _) in records.borrow().iter() {
-              if key.starts_with("pending_") {
-                  return Some(key);
-              }
-          }
-          None
-      });
+      vec![PoolBasic {
+          name: "BABYLON•LST".to_string(),
+          address: pool_config.address,
+      }]
+  }
 
-      if let Some(pending_key) = pending_staking_key {
-          if execution_result.to_address.starts_with("tb1p") ||
-             execution_result.to_address.starts_with("bc1p") {
-              ic_cdk::println!("🔷 Processing Babylon staking TX confirmation: {}", tx_id);
+  /// Get detailed pool information (REE requirement)
+  /// Uses official ree_types::exchange_interfaces::PoolInfo
+  #[query]
+  fn get_pool_info(args: GetPoolInfoArgs) -> GetPoolInfoResponse {
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
 
-              // Update staking record with real tx_hash
-              BABYLON_STAKING_RECORDS.with(|records| {
-                  if let Some(mut record) = records.borrow_mut().remove(&pending_key) {
-                      record.staking_tx_hash = execution_result.tx_hash.clone();
-                      record.confirmed_height = Some(execution_result.confirmations as u64);
-                      records.borrow_mut().insert(execution_result.tx_hash.clone(), record);
-                      ic_cdk::println!("✅ Babylon staking record updated with tx_hash: {}", execution_result.tx_hash);
-                  }
-              });
-
-              // TODO: Trigger Omnity delegation automatically
-              // ic_cdk::spawn(async move {
-              //     let _ = submit_babylon_delegation(execution_result.tx_hash).await;
-              // });
-
-              ic_cdk::println!("✅ Babylon staking TX confirmed: {}", execution_result.tx_hash);
-              ic_cdk::println!("   Amount: {} sats", execution_result.amount_sats);
-              ic_cdk::println!("   Block height: {}", execution_result.confirmations);
-              return;
-          }
+      // Validate pool exists and address matches
+      if pool_config.address.is_empty() || pool_config.address != args.pool_address {
+          return None;
       }
 
-      // Otherwise, process as user deposit
-      ic_cdk::println!(
-          "Processing user deposit: {} sats from {} (nonce: {})",
-          execution_result.amount_sats,
-          execution_result.from_address,
-          execution_result.nonce
-      );
-
-      // Look up deposit intent by nonce
-      let deposit_intent = PENDING_DEPOSITS.with(|deposits| {
-          deposits.borrow().get(&execution_result.nonce)
-      });
-
-      let intent = match deposit_intent {
-          Some(intent) => intent,
+      // CRITICAL: Return the actual pubkey (not a hash string!)
+      let pubkey = match pool_config.pubkey {
+          Some(pk) => pk,
           None => {
-              ic_cdk::println!("⚠️  No matching deposit intent found for nonce: {}", execution_result.nonce);
-              return;
+              ic_cdk::println!("⚠️  Pool pubkey not set! Call update_pool_pubkeys() first");
+              return None; // Can't return pool info without pubkey
           }
       };
 
-      // Verify deposit matches intent
-      if intent.amount_sats != execution_result.amount_sats {
-          ic_cdk::println!(
-              "⚠️  Amount mismatch! Expected: {} sats, Got: {} sats",
-              intent.amount_sats,
-              execution_result.amount_sats
-          );
-          // For testnet demo, we'll accept the actual amount
+      // Build attributes JSON
+      let attributes = serde_json::json!({
+          "pool_type": "babylon_staking",
+          "finality_provider": pool_config.finality_provider,
+          "timelock_blocks": pool_config.timelock_blocks,
+          "blst_rune_id": pool_config.blst_rune_id,
+          "total_deposited_sats": pool_config.total_deposited_sats,
+          "total_blst_minted": pool_config.total_blst_minted,
+          "estimated_apy": 12.0,
+          "created_at": pool_config.created_at,
+      }).to_string();
+
+      Some(PoolInfo {
+          key: pubkey,  // Pubkey auto-serializes to hex text via CandidType
+          name: "BABYLON•LST".to_string(),
+          address: pool_config.address,
+          btc_reserved: pool_config.total_deposited_sats,
+          // CRITICAL FIX: Return the actual derivation path used in init_pool
+          key_derivation_path: vec![b"hodlprotocol_blst_pool".to_vec()],
+          coin_reserved: vec![],  // Empty for BTC-only pool
+          attributes,
+          nonce: pool_config.states.last().map(|s| s.nonce).unwrap_or_default(), // Proper nonce from state chain
+          utxos: vec![],  // Will populate when we track pool UTXOs
+      })
+  }
+
+  // ============================
+  // HELPER FUNCTIONS - REE Integration
+  // ============================
+
+  /// Validate deposit transaction inputs/outputs
+  fn validate_deposit(
+      pool_config: &PoolConfig,
+      pool_utxo_spent: &[String],
+      pool_utxo_received: &[Utxo],
+      input_coins: &[ree_types::InputCoin],
+      output_coins: &[ree_types::OutputCoin],
+  ) -> Result<u64, String> {
+      ic_cdk::println!("   Validating deposit:");
+      ic_cdk::println!("     pool_utxo_spent: {}", pool_utxo_spent.len());
+      ic_cdk::println!("     pool_utxo_received: {}", pool_utxo_received.len());
+      ic_cdk::println!("     input_coins: {}", input_coins.len());
+      ic_cdk::println!("     output_coins: {}", output_coins.len());
+
+      // Validate state consistency
+      let has_existing_utxo = pool_config.states.last()
+          .and_then(|s| s.utxo.as_ref())
+          .is_some();
+
+      if has_existing_utxo && pool_utxo_spent.is_empty() {
+          return Err("Pool has existing UTXO but pool_utxo_spent is empty".to_string());
       }
 
-      if intent.user_btc_address != execution_result.from_address {
-          ic_cdk::println!(
-              "⚠️  Address mismatch! Expected: {}, Got: {}",
-              intent.user_btc_address,
-              execution_result.from_address
-          );
-          return;
+      if !has_existing_utxo && !pool_utxo_spent.is_empty() {
+          return Err("Pool has no UTXO but pool_utxo_spent is not empty".to_string());
       }
 
-      // Calculate BLST to mint: 100,000 BLST = 1 BTC, divisibility=3
-      // 1 sat = 0.001 BLST (1:1 base unit mapping)
-      let blst_amount = execution_result.amount_sats;
+      // Calculate deposit amount from pool_utxo_received
+      let deposit_amount = if !pool_utxo_received.is_empty() {
+          let new_pool_value = pool_utxo_received[0].sats;
+          let old_pool_value = pool_config.states.last()
+              .map(|s| s.btc_supply())
+              .unwrap_or_default();
+          new_pool_value.saturating_sub(old_pool_value)
+      } else {
+          // REE will infer from PSBT outputs - we'll extract later
+          0
+      };
 
-      ic_cdk::println!("Minting {} base units ({}.{:03} BLST) for {} sats",
-          blst_amount, blst_amount / 1000, blst_amount % 1000, execution_result.amount_sats);
+      ic_cdk::println!("   Calculated deposit: {} sats", deposit_amount);
+      Ok(deposit_amount)
+  }
+
+  /// Extract the new pool UTXO from signed PSBT outputs
+  fn extract_pool_utxo_from_psbt(
+      psbt: &Psbt,
+      pool_address: &str,
+  ) -> Result<Utxo, String> {
+      use ree_types::bitcoin::Address;
+      use std::str::FromStr;
+
+      let pool_addr = Address::from_str(pool_address)
+          .map_err(|e| format!("Invalid pool address: {}", e))?
+          .require_network(Network::Signet)
+          .map_err(|e| format!("Address network mismatch: {}", e))?;
+
+      // Find output that pays to pool address
+      for (vout, output) in psbt.unsigned_tx.output.iter().enumerate() {
+          if output.script_pubkey == pool_addr.script_pubkey() {
+              ic_cdk::println!("   Found pool output at vout {}: {} sats", vout, output.value);
+
+              return Ok(Utxo {
+                  txid: psbt.unsigned_tx.compute_txid().into(),
+                  vout: vout as u32,
+                  sats: output.value.to_sat(),
+                  coins: CoinBalances::new(),  // Empty for BTC-only deposits
+              });
+          }
+      }
+
+      Err("Pool output not found in PSBT".to_string())
+  }
+
+  /// Transaction execution callback - Called by REE Orchestrator
+  /// This is the main entry point for executing transactions through REE
+  #[update(guard = "ensure_testnet4_orchestrator")]
+  async fn execute_tx(args: ExecuteTxArgs) -> Result<String, String> {
+      let ExecuteTxArgs {
+          psbt_hex,
+          txid,
+          intention_set,
+          intention_index,
+          zero_confirmed_tx_queue_length: _,
+      } = args;
+
+      ic_cdk::println!("🔧 execute_tx() called by REE Orchestrator");
+      ic_cdk::println!("   txid: {}", txid);
+      ic_cdk::println!("   intention_index: {}", intention_index);
+
+      // Deserialize PSBT
+      let raw = hex::decode(&psbt_hex).map_err(|_| "Invalid PSBT hex".to_string())?;
+      let mut psbt = Psbt::deserialize(raw.as_slice())
+          .map_err(|e| format!("Failed to deserialize PSBT: {}", e))?;
+
+      ic_cdk::println!("✅ PSBT deserialized - {} inputs, {} outputs",
+          psbt.inputs.len(), psbt.unsigned_tx.output.len());
+
+      // Extract intention
+      let intention = intention_set.intentions
+          .get(intention_index as usize)
+          .ok_or("Invalid intention_index")?
+          .clone();
+
+      let ree_types::Intention {
+          exchange_id: _,
+          action,
+          action_params: _,
+          pool_address,
+          nonce,
+          pool_utxo_spent,
+          pool_utxo_received,
+          input_coins,
+          output_coins,
+      } = intention;
+
+      ic_cdk::println!("   action: {}", action);
+      ic_cdk::println!("   pool_address: {}", pool_address);
+      ic_cdk::println!("   nonce: {}", nonce);
+
+      // Acquire execution guard to prevent concurrent execution on same pool
+      let _guard = ExecuteTxGuard::new(pool_address.clone())
+          .ok_or(format!("Pool {} is already executing a transaction", pool_address))?;
 
       // Get pool config
-      let pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
-      if pool_config.address.is_empty() {
-          ic_cdk::println!("❌ Pool not initialized!");
-          return;
+      let mut pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
+
+      // Validate pool exists
+      if pool_config.address.is_empty() || pool_config.address != pool_address {
+          return Err(format!("Pool not found: {}", pool_address));
       }
 
-      // Create BLST mint record
-      let mint_record = BlstMintRecord {
-          user_btc_address: execution_result.from_address.clone(),
-          amount_blst: blst_amount,
-          amount_sats: execution_result.amount_sats,
-          pool_address: pool_config.address.clone(),
-          finality_provider: pool_config.finality_provider.clone(),
-          timelock_blocks: pool_config.timelock_blocks,
-          deposit_tx_hash: execution_result.tx_hash.clone(),
-          mint_tx_hash: None,  // Will be populated when BLST rune is minted on Bitcoin
-          mint_timestamp: ic_cdk::api::time(),
-          babylon_stake_tx: None,  // Will be populated when pool stakes to Babylon
-      };
+      // Get current state (last in chain, or default for first deposit)
+      let current_nonce = pool_config.states.last()
+          .map(|s| s.nonce)
+          .unwrap_or_default();
 
-      // Store mint record
-      BLST_MINT_RECORDS.with(|records| {
-          records.borrow_mut().insert(execution_result.tx_hash.clone(), mint_record);
-      });
-
-      // Update user balance
-      USER_BLST_BALANCES.with(|balances| {
-          let mut balances = balances.borrow_mut();
-          let current_balance = balances.get(&execution_result.from_address).unwrap_or(0);
-          let new_balance = current_balance + blst_amount;
-          balances.insert(execution_result.from_address.clone(), new_balance);
-          ic_cdk::println!("✅ User balance updated: {} BLST (+ {})", new_balance, blst_amount);
-      });
-
-      // Update pool stats
-      let mut config = POOL_CONFIG.with(|p| p.borrow().get().clone());
-      if config.address.is_empty() {
-          ic_cdk::println!("❌ Pool config missing during update!");
-          return;
+      // Validate nonce
+      if current_nonce != nonce {
+          return Err(format!(
+              "Nonce mismatch: expected {}, got {}. Pool may be out of sync.",
+              current_nonce, nonce
+          ));
       }
 
-      config.total_deposited_sats += execution_result.amount_sats;
-      config.total_blst_minted += blst_amount;
+      ic_cdk::println!("✅ Nonce validated: {}", nonce);
 
-      POOL_CONFIG.with(|p| {
-          p.borrow_mut().set(config.clone()).expect("Failed to set POOL_CONFIG");
+      // Process based on action type
+      match action.as_ref() {
+          "deposit" => {
+              ic_cdk::println!("📥 Processing deposit action");
+
+              // Validate deposit transaction
+              let deposit_amount = validate_deposit(
+                  &pool_config,
+                  &pool_utxo_spent,
+                  &pool_utxo_received,
+                  &input_coins[..],
+                  &output_coins[..],
+              )?;
+
+              ic_cdk::println!("✅ Deposit validated: {} sats", deposit_amount);
+
+              // Sign pool UTXOs if pool has existing funds
+              if !pool_utxo_spent.is_empty() {
+                  ic_cdk::println!("🔐 Signing {} pool UTXOs", pool_utxo_spent.len());
+
+                  // Get the UTXO(s) to sign from current state
+                  let current_utxo = pool_config.states.last()
+                      .and_then(|s| s.utxo.as_ref())
+                      .ok_or("Pool UTXO not found in current state")?;
+
+                  // Sign using REE pool signing
+                  ree_pool_sign(
+                      &mut psbt,
+                      vec![current_utxo],
+                      SCHNORR_KEY_NAME,
+                      vec![b"hodlprotocol_blst_pool".to_vec()],
+                  )
+                  .await
+                  .map_err(|e| format!("Failed to sign pool UTXO: {}", e))?;
+
+                  ic_cdk::println!("✅ Pool UTXO signed");
+              } else {
+                  ic_cdk::println!("ℹ️  First deposit - no pool UTXOs to sign");
+              }
+
+              // Create new pool state
+              let new_utxo = extract_pool_utxo_from_psbt(&psbt, &pool_address)?;
+              let new_state = PoolState {
+                  id: Some(txid.clone()),
+                  nonce: current_nonce + 1,
+                  utxo: Some(new_utxo),
+              };
+
+              ic_cdk::println!("✅ New pool state created - nonce: {}", new_state.nonce);
+
+              // Update pool config with new state
+              pool_config.states.push(new_state);
+              pool_config.total_deposited_sats += deposit_amount;
+
+              // Save updated pool config
+              POOL_CONFIG.with(|p| {
+                  p.borrow_mut().set(pool_config.clone())
+                      .expect("Failed to update pool config");
+              });
+
+              ic_cdk::println!("✅ Pool state updated - total deposited: {} sats",
+                  pool_config.total_deposited_sats);
+          }
+
+          _ => {
+              return Err(format!("Unsupported action: {}", action));
+          }
+      }
+
+      // Record transaction as unconfirmed
+      TX_RECORDS.with_borrow_mut(|m| {
+          ic_cdk::println!("📝 Recording unconfirmed txid: {}", txid);
+          let mut record = m.get(&(txid.clone(), false)).unwrap_or_default();
+          if !record.pools.contains(&pool_address) {
+              record.pools.push(pool_address.clone());
+          }
+          m.insert((txid.clone(), false), record);
       });
 
-      ic_cdk::println!("✅ Pool stats updated:");
-      ic_cdk::println!("   Total deposited: {} sats", config.total_deposited_sats);
-      ic_cdk::println!("   Total BLST minted: {}", config.total_blst_minted);
+      // Return signed PSBT
+      let signed_psbt_hex = psbt.serialize_hex();
+      ic_cdk::println!("✅ execute_tx() complete - returning signed PSBT ({} bytes)",
+          signed_psbt_hex.len());
 
-      // Remove from pending deposits
-      PENDING_DEPOSITS.with(|deposits| {
-          deposits.borrow_mut().remove(&execution_result.nonce);
-      });
-
-      ic_cdk::println!("✅ Deposit processed successfully - tx: {}", tx_id);
-      ic_cdk::println!("   User: {}", execution_result.from_address);
-      ic_cdk::println!("   Amount: {} sats = {} BLST", execution_result.amount_sats, blst_amount);
+      Ok(signed_psbt_hex)
   }
 
   /// Mint BLST rune to user after deposit confirmation
@@ -2266,20 +2573,174 @@ thread_local! {
       ))
   }
 
+  /// Finalize pool state for a confirmed transaction
+  fn finalize_pool_state(pool_address: &str, txid: &Txid) {
+      POOL_CONFIG.with(|p| {
+          let mut config = p.borrow().get().clone();
+
+          if config.address != pool_address {
+              return;  // Not our pool
+          }
+
+          // Find the state for this txid
+          let idx = config.states.iter()
+              .position(|state| state.id.as_ref() == Some(txid));
+
+          if let Some(idx) = idx {
+              // Remove all states before this one (they're now finalized)
+              if idx > 0 {
+                  config.states.drain(0..idx);
+                  ic_cdk::println!("       Finalized pool state for {}", txid);
+
+                  p.borrow_mut().set(config).expect("Failed to update pool config");
+              }
+          }
+      });
+  }
+
   /// Blockchain state management - New block notification
-  #[update]
-  fn new_block(block_height: u64, block_hash: String) {
-      ic_cdk::println!(
-          "new_block() called - height: {}, hash: {}",
+  /// Called by REE Orchestrator when a new block is detected
+  #[update(guard = "ensure_testnet4_orchestrator")]
+  fn new_block(args: NewBlockInfo) -> Result<(), String> {
+      ic_cdk::println!("📦 new_block() called by REE Orchestrator");
+      ic_cdk::println!("   height: {}, hash: {}", args.block_height, args.block_hash);
+      ic_cdk::println!("   confirmed {} transactions", args.confirmed_txids.len());
+
+      let NewBlockInfo {
           block_height,
-          block_hash
-      );
+          block_hash: _,
+          block_timestamp: _,
+          confirmed_txids,
+      } = args.clone();
+
+      // Store block info for reorg detection
+      BLOCKS.with_borrow_mut(|m| {
+          m.insert(block_height, args);
+          ic_cdk::println!("   Block {} stored", block_height);
+      });
+
+      // Mark transactions as confirmed
+      for txid in confirmed_txids.iter() {
+          TX_RECORDS.with_borrow_mut(|m| {
+              if let Some(record) = m.get(&(txid.clone(), false)) {
+                  m.insert((txid.clone(), true), record.clone());
+                  m.remove(&(txid.clone(), false));
+                  ic_cdk::println!("   ✅ Confirmed: {} (pools: {:?})", txid, record.pools);
+              }
+          });
+      }
+
+      // Finalize transactions after sufficient confirmations (6 blocks)
+      let finalization_depth = 6u32;
+      let confirmed_height = block_height.saturating_sub(finalization_depth);
+
+      ic_cdk::println!("   Finalizing blocks up to height {}", confirmed_height);
+
+      // Finalize old confirmed transactions
+      BLOCKS.with_borrow(|blocks| {
+          blocks
+              .iter()
+              .take_while(|(height, _)| *height <= confirmed_height)
+              .for_each(|(height, block_info)| {
+                  ic_cdk::println!("   Processing finalized block {}", height);
+
+                  for txid in block_info.confirmed_txids.iter() {
+                      TX_RECORDS.with_borrow_mut(|tx_records| {
+                          if let Some(record) = tx_records.get(&(txid.clone(), true)) {
+                              ic_cdk::println!("     Finalizing tx: {}", txid);
+
+                              // For each affected pool, finalize the state
+                              record.pools.iter().for_each(|pool_address| {
+                                  finalize_pool_state(pool_address, txid);
+                              });
+
+                              // Remove finalized tx record
+                              tx_records.remove(&(txid.clone(), true));
+                          }
+                      });
+                  }
+              });
+      });
+
+      // Clean up old block records
+      BLOCKS.with_borrow_mut(|m| {
+          let heights_to_remove: Vec<u32> = m
+              .iter()
+              .take_while(|(height, _)| *height <= confirmed_height)
+              .map(|(height, _)| height)
+              .collect();
+
+          for height in heights_to_remove {
+              m.remove(&height);
+              ic_cdk::println!("   Cleaned up block {}", height);
+          }
+      });
+
+      ic_cdk::println!("✅ new_block() complete");
+      Ok(())
+  }
+
+  /// Rollback pool state to before the specified transaction
+  fn rollback_pool_state(pool_address: &str, txid: &Txid) {
+      POOL_CONFIG.with(|p| {
+          let mut config = p.borrow().get().clone();
+
+          if config.address != pool_address {
+              return;  // Not our pool
+          }
+
+          // Find the state created by this txid
+          let idx = config.states.iter()
+              .position(|state| state.id.as_ref() == Some(txid));
+
+          if let Some(idx) = idx {
+              // Remove this state and all subsequent states
+              let removed_count = config.states.len() - idx;
+              config.states.truncate(idx);
+
+              ic_cdk::println!("   Rolled back {} states for pool {}", removed_count, pool_address);
+
+              // Recalculate total_deposited_sats from remaining states
+              config.total_deposited_sats = config.states.last()
+                  .map(|s| s.btc_supply())
+                  .unwrap_or_default();
+
+              p.borrow_mut().set(config).expect("Failed to update pool config");
+          }
+      });
   }
 
   /// Blockchain state management - Transaction rollback
-  #[update]
-  fn rollback_tx(tx_id: String) {
-      ic_cdk::println!("rollback_tx() called - tx_id: {}", tx_id);
+  /// Called by REE Orchestrator when a transaction is rejected/replaced
+  #[update(guard = "ensure_testnet4_orchestrator")]
+  fn rollback_tx(args: RollbackTxArgs) -> Result<(), String> {
+      ic_cdk::println!("⏪ rollback_tx() called by REE Orchestrator");
+      ic_cdk::println!("   txid: {}", args.txid);
+
+      TX_RECORDS.with_borrow_mut(|m| {
+          // Find record (could be confirmed or unconfirmed)
+          let record = m.get(&(args.txid.clone(), false))
+              .or_else(|| m.get(&(args.txid.clone(), true)));
+
+          if let Some(record) = record {
+              ic_cdk::println!("   Found tx record - affected pools: {:?}", record.pools);
+
+              // Rollback each affected pool
+              record.pools.iter().for_each(|pool_address| {
+                  rollback_pool_state(pool_address, &args.txid);
+              });
+
+              // Remove tx records
+              m.remove(&(args.txid.clone(), false));
+              m.remove(&(args.txid.clone(), true));
+
+              ic_cdk::println!("✅ Rollback complete for {}", args.txid);
+          } else {
+              ic_cdk::println!("⚠️  No tx record found for {}", args.txid);
+          }
+      });
+
+      Ok(())
   }
 
   // ============================
@@ -2295,6 +2756,29 @@ thread_local! {
   #[post_upgrade]
   fn post_upgrade() {
       ic_cdk::println!("hodlprotocol_exchange canister upgraded");
+
+      // Schema migration: Ensure pool config has 'states' field
+      POOL_CONFIG.with(|p| {
+          let config = p.borrow().get().clone();
+
+          // If pool exists but states is empty, this is an old schema
+          if !config.address.is_empty() && config.states.is_empty() {
+              ic_cdk::println!("🔄 Migrating pool config schema...");
+              ic_cdk::println!("   Pool address: {}", config.address);
+              ic_cdk::println!("   Total deposited: {} sats", config.total_deposited_sats);
+
+              // States field is already initialized as empty vec via #[serde(default)]
+              // Just persist the migrated config back to stable storage
+              p.borrow_mut().set(config.clone())
+                  .expect("Failed to persist migrated pool config");
+
+              ic_cdk::println!("✅ Pool config migrated successfully");
+              ic_cdk::println!("   Initial nonce: 0 (empty state chain)");
+          } else if !config.address.is_empty() {
+              ic_cdk::println!("✅ Pool config schema up-to-date");
+              ic_cdk::println!("   Current nonce: {}", config.states.last().map(|s| s.nonce).unwrap_or(0));
+          }
+      });
   }
 
   // Export Candid interface
