@@ -8,7 +8,7 @@
    =========================== */
 :root {
   /* Custom dapp color palette */
-  --dapp-primary: oklch(0.65 0.25 280);
+  --dapp-primary: #0088DC;              /* Brand blue - replaces purple */
   --dapp-secondary: #141414;
   --dapp-background: oklch(0.08 0.01 270);
   --dapp-surface: #141414;
@@ -18,13 +18,13 @@
   --dapp-accent: #56A35C;
   --dapp-warning: #E7C94E;
   --dapp-accent-alt: #E37648;
-  --dapp-accent-bitcoin: oklch(0.72 0.19 50);
-  --dapp-highlight: oklch(0.90 0.12 95);
+  --dapp-accent-bitcoin: #F7931A;       /* Official Bitcoin orange */
+  --dapp-highlight: #ffde59;            /* BLST brand yellow */
   --dapp-destructive: oklch(0.62 0.24 25);
   --dapp-foreground: #E5E5E5;
   --dapp-muted: #A1A1A1;
   --dapp-border: #141414;
-  --dapp-border-accent: #668BF740;
+  --dapp-border-accent: #0088DC40;      /* Blue with transparency */
 }
 
 /* ----------------------------
@@ -45,17 +45,17 @@
   --color-text-muted: var(--dapp-muted);         /* #A1A1A1 */
   --color-on-surface: var(--color-text-primary);
 
-  /* Primary scale - Based on DApp primary #668BF7 */
-  --color-primary-50:  #f0f4ff;
-  --color-primary-100: #d9e5ff;
-  --color-primary-200: #b8d0ff;
-  --color-primary-300: #8fb5ff;
-  --color-primary-400: var(--dapp-primary); /* #668BF7 */
-  --color-primary-500: var(--dapp-primary); /* #668BF7 */
-  --color-primary-600: #4a6ad1;
-  --color-primary-700: #3b52a6;
-  --color-primary-800: #2d3e7d;
-  --color-primary-900: #1f2a54;
+  /* Primary scale - Based on Brand Blue #0088DC */
+  --color-primary-50:  #e6f5ff;
+  --color-primary-100: #b3e0ff;
+  --color-primary-200: #80ccff;
+  --color-primary-300: #4db8ff;
+  --color-primary-400: #1aa3ff;
+  --color-primary-500: var(--dapp-primary); /* #0088DC */
+  --color-primary-600: #006bb0;
+  --color-primary-700: #005183;
+  --color-primary-800: #003757;
+  --color-primary-900: #001d2a;
 
   /* Success - Based on DApp accent #56A35C */
   --color-success-50:  #f0f9f1;
@@ -127,6 +127,12 @@
   /* Bitcoin/Crypto accent colors */
   --color-accent-bitcoin: var(--dapp-accent-bitcoin); /* oklch(0.72 0.19 50) */
   --color-accent-bitcoin-foreground: oklch(0.15 0.05 50);
+
+  /* Token Brand Colors - Explicit hex values for consistency */
+  --color-blst: #ffde59;           /* BLST token brand yellow */
+  --color-blst-hover: #ffe57a;     /* Lighter for hover states */
+  --color-bitcoin: #F7931A;        /* Official Bitcoin orange RGB(247,147,26) */
+  --color-bitcoin-hover: #ff9f2e;  /* Lighter for hover states */
 
   /* Highlight/Gold accent for premium features, rewards, earnings */
   --color-highlight: var(--dapp-highlight); /* oklch(0.90 0.12 95) */
