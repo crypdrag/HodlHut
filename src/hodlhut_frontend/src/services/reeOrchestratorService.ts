@@ -39,6 +39,8 @@ export interface InvokeResult {
  */
 export interface StakingMetadata {
   action: string;
+  pool_address: string;        // Bitcoin address of the pool
+  user_address: string;        // User's Bitcoin address (for change/refunds)
   finality_provider: string;
   timelock_blocks: number;
   amount_sats: number;
@@ -61,23 +63,31 @@ class ReeOrchestratorService {
     metadata?: StakingMetadata
   ): Promise<InvokeResult> {
     try {
+      // Validate required metadata
+      if (!metadata) {
+        throw new Error('Metadata is required for REE submission');
+      }
+      if (!metadata.pool_address || !metadata.user_address) {
+        throw new Error('pool_address and user_address are required in metadata');
+      }
+
       // Construct InvokeArgs for REE Orchestrator
       const invokeArgs: CanisterInvokeArgs = {
         client_info: [], // No additional client info
         intention_set: {
           tx_fee_in_sats: BigInt(5000), // Estimated fee (TODO: Calculate dynamically)
-          initiator_address: '', // Will be extracted from PSBT by REE
+          initiator_address: metadata.user_address, // CRITICAL: User's Bitcoin address
           intentions: [
             {
-              input_coins: [],
-              output_coins: [],
-              action: metadata?.action || 'stake_babylon',
-              exchange_id: this.hodlprotocolExchangeCanisterId, // CRITICAL: Exchange canister ID
-              pool_utxo_spent: [],
-              action_params: JSON.stringify(metadata || {}),
-              nonce: nonce, // CRITICAL: Use nonce from pre_stake() to match exchange validation
-              pool_address: '', // Empty for Babylon staking (not using pool)
-              pool_utxo_received: [],
+              input_coins: [], // Empty for simple BTC deposit (user spending their own UTXOs, not REE-tracked coins)
+              output_coins: [], // Empty for simple deposit (no explicit change output needed)
+              action: metadata.action || 'deposit', // Use standard REE action name
+              exchange_id: 'HODL_PROTOCOL', // CRITICAL: Custom exchange ID (not canister ID!)
+              pool_utxo_spent: [], // Empty for simple deposit
+              action_params: '', // Empty for standard deposit action
+              nonce: nonce, // CRITICAL: Use nonce from pre_deposit() to match exchange validation
+              pool_address: metadata.pool_address, // CRITICAL: Pool Bitcoin address
+              pool_utxo_received: [], // Empty - REE will infer from PSBT outputs
             },
           ],
         },
@@ -87,13 +97,33 @@ class ReeOrchestratorService {
 
       console.log('Submitting PSBT to REE Orchestrator...');
       console.log('PSBT length:', signedPsbtHex.length, 'chars');
-      console.log('Metadata:', metadata);
+
+      // Log InvokeArgs with BigInt-safe serialization
+      const logPayload = {
+        intention_set: {
+          tx_fee_in_sats: invokeArgs.intention_set.tx_fee_in_sats.toString(),
+          initiator_address: invokeArgs.intention_set.initiator_address,
+          intentions: invokeArgs.intention_set.intentions.map(intent => ({
+            action: intent.action,
+            exchange_id: intent.exchange_id,
+            pool_address: intent.pool_address,
+            nonce: intent.nonce.toString(),
+            input_coins: intent.input_coins,
+            output_coins: intent.output_coins,
+            pool_utxo_spent: intent.pool_utxo_spent,
+            pool_utxo_received: intent.pool_utxo_received,
+          }))
+        },
+        psbt_hex: `${signedPsbtHex.substring(0, 20)}...${signedPsbtHex.substring(signedPsbtHex.length - 20)}`
+      };
+      console.log('InvokeArgs:', JSON.stringify(logPayload, null, 2));
 
       // Call REE Orchestrator canister
       const result = await reeOrchestratorCanisterService.invoke(invokeArgs);
 
       if ('Ok' in result) {
         // Success - result.Ok contains transaction ID
+        console.log('✅ REE Orchestrator accepted transaction:', result.Ok);
         return {
           tx_id: result.Ok,
           status: 'submitted',
