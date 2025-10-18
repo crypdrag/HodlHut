@@ -22,7 +22,11 @@ const MOCK_PORTFOLIO: Portfolio = {
   ckETH: 2.0,
   ckUSDC: 1000,
   ckUSDT: 500,
-  ICP: 100
+  ICP: 100,
+  // Mock L1 wallet balances for testing Bitcoin-only onramp (pre-wallet integration)
+  ETH: 1.5,
+  USDC: 2500,
+  USDT: 1500
 };
 
 const SwapPage: React.FC = () => {
@@ -35,7 +39,7 @@ const SwapPage: React.FC = () => {
 
   // Swap state
   const [fromAsset, setFromAsset] = useState('');
-  const [toAsset, setToAsset] = useState('');
+  const [toAsset, setToAsset] = useState('BTC'); // Bitcoin-only onramp: TO asset always BTC
   const [swapAmount, setSwapAmount] = useState('');
   const [selectedDEX, setSelectedDEX] = useState<string | null>(null);
   const [slippageTolerance, setSlippageTolerance] = useState(5.0);
@@ -206,7 +210,7 @@ const SwapPage: React.FC = () => {
 
   const resetSwapPage = () => {
     setFromAsset('');
-    setToAsset('');
+    setToAsset('BTC'); // Bitcoin-only onramp: TO asset always BTC
     setSwapAmount('');
     setSelectedDEX(null);
     setSwapAnalysis(null);

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, ArrowRight, AlertTriangle, Wallet, ExternalLink, CheckCircle, Copy } from 'lucide-react';
 import { CompleteSwapAnalysis, SmartSolution } from '../../assets/master_swap_logic';
+import UnisatLogo from '../../assets/images/Unisat.svg';
+import XverseLogo from '../../assets/images/Xverse.svg';
 
 interface TransactionPreviewModalProps {
   isOpen: boolean;
@@ -63,9 +65,8 @@ const TransactionPreviewModal: React.FC<TransactionPreviewModalProps> = ({
       return {
         network: 'Bitcoin',
         wallets: [
-          { id: 'unisat', name: 'Unisat', icon: '🟠' },
-          { id: 'xverse', name: 'Xverse', icon: '⚫' },
-          { id: 'okx', name: 'OKX Wallet', icon: '🔵' }
+          { id: 'unisat', name: 'Unisat', logo: UnisatLogo },
+          { id: 'xverse', name: 'Xverse', logo: XverseLogo }
         ],
         addressPlaceholder: 'bc1q... or 1... or 3...'
       };
@@ -166,7 +167,7 @@ const TransactionPreviewModal: React.FC<TransactionPreviewModalProps> = ({
               {/* Wallet Connection Options */}
               {walletConnectionMethod === 'connect' && (
                 <div className="space-y-2 mb-3">
-                  {getDestinationInfo()?.wallets.map((wallet) => (
+                  {getDestinationInfo()?.wallets.map((wallet: any) => (
                     <button
                       key={wallet.id}
                       className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all duration-200 transform ${
@@ -176,7 +177,15 @@ const TransactionPreviewModal: React.FC<TransactionPreviewModalProps> = ({
                       }`}
                       onClick={() => handleWalletConnect(wallet.id)}
                     >
-                      <span className="text-lg transition-transform duration-200 hover:scale-110">{wallet.icon}</span>
+                      {wallet.logo ? (
+                        <img
+                          src={wallet.logo}
+                          alt={wallet.name}
+                          className="w-6 h-6 object-contain transition-transform duration-200 hover:scale-110"
+                        />
+                      ) : (
+                        <span className="text-lg transition-transform duration-200 hover:scale-110">{wallet.icon}</span>
+                      )}
                       <span className="text-sm font-medium text-text-primary">{wallet.name}</span>
                       <div className="ml-auto transition-colors duration-200">
                         {connectedWallet === wallet.id ? (

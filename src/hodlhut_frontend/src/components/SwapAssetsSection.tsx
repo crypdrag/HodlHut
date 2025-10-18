@@ -251,11 +251,11 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
 
   // Helper functions moved from Dashboard
   const getSwapFromAssetOptions = () => {
-    // Only show assets available in the FROM dropdown that have a balance > 0
-    const fromAssets = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'];
-    const assetsWithBalance = fromAssets.filter(asset => portfolio[asset] && portfolio[asset] > 0);
+    // Bitcoin-only onramp: Show ALL assets (no portfolio filter)
+    // Users connect wallet to see their balances
+    const fromAssets = ['ETH', 'USDC', 'USDT', 'ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'];
 
-    return assetsWithBalance.map(asset => ({
+    return fromAssets.map(asset => ({
       value: asset,
       label: asset
     }));
@@ -367,20 +367,11 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
     }
 
     if (hasRecommended) {
-      // Determine network-specific message based on destination
-      let networkMessage = '';
-      if (swapAnalysis && swapAnalysis.destinationChain) {
-        if (swapAnalysis.destinationChain === 'Bitcoin') {
-          networkMessage = 'Crosschaining to the Bitcoin mainnet requires ckBTC for gas.';
-        } else if (swapAnalysis.destinationChain === 'Ethereum') {
-          networkMessage = 'Crosschaining to Ethereum requires ckETH for gas.';
-        }
-      }
-
+      // Bitcoin-only message
       return (
         <div className="mt-4 p-3 bg-primary-600/10 border border-primary-500/20 rounded-lg">
           <div className="text-sm text-primary-400">
-            {networkMessage || 'We found easy solutions for your fee payments. The recommended option is usually the best choice.'}
+            Sending Bitcoin to mainnet requires ckBTC for gas fees. We found easy solutions to help you.
           </div>
         </div>
       );
@@ -474,51 +465,27 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
   };
 
   const renderGasOptimization = () => {
-    // Only show for L1 withdrawals - hide for ICP-only transactions
-    if (!swapAnalysis || !swapAnalysis.isL1Withdrawal || !swapAnalysis.destinationChain) {
+    // Only show for Bitcoin withdrawals
+    if (!swapAnalysis || !swapAnalysis.isL1Withdrawal || swapAnalysis.destinationChain !== 'Bitcoin') {
       return null;
     }
 
-    const destinationChain = swapAnalysis.destinationChain;
+    // Bitcoin fee logic (sats/vB)
+    const btcFeeRate = Math.floor(Math.random() * 20) + 10; // 10-30 sats/vB simulation
+    const currentFeeDisplay = `Current: ${btcFeeRate} sats/vB`;
+
     let recommendation = '';
     let colorClass = '';
-    let currentFeeDisplay = '';
-    let optimizationTitle = '';
 
-    if (destinationChain === 'Bitcoin') {
-      // Bitcoin fee logic (sats/vB or BTC)
-      const btcFeeRate = Math.floor(Math.random() * 20) + 10; // 10-30 sats/vB simulation
-      optimizationTitle = 'Bitcoin Fee Optimization';
-      currentFeeDisplay = `Current: ${btcFeeRate} sats/vB`;
-
-      if (btcFeeRate < 15) {
-        recommendation = 'Bitcoin fees are low. Good time to transact!';
-        colorClass = 'text-success-400';
-      } else if (btcFeeRate < 25) {
-        recommendation = 'Bitcoin fees are average';
-        colorClass = 'text-warning-400';
-      } else {
-        recommendation = 'Bitcoin fees are high';
-        colorClass = 'text-error-400';
-      }
-    } else if (destinationChain === 'Ethereum') {
-      // Ethereum gwei logic (existing logic)
-      optimizationTitle = 'Ethereum Gas Optimization';
-      currentFeeDisplay = `Current: ${currentGasPrice} gwei`;
-
-      if (currentGasPrice < 20) {
-        recommendation = 'Gas is 15% lower than average. Good time to transact!';
-        colorClass = 'text-success-400';
-      } else if (currentGasPrice < 30) {
-        recommendation = 'Gas is average';
-        colorClass = 'text-warning-400';
-      } else {
-        recommendation = 'Gas is high';
-        colorClass = 'text-error-400';
-      }
+    if (btcFeeRate < 15) {
+      recommendation = 'Bitcoin fees are low. Good time to transact!';
+      colorClass = 'text-success-400';
+    } else if (btcFeeRate < 25) {
+      recommendation = 'Bitcoin fees are average';
+      colorClass = 'text-warning-400';
     } else {
-      // Fallback for other chains or hide
-      return null;
+      recommendation = 'Bitcoin fees are high';
+      colorClass = 'text-error-400';
     }
 
     return (
@@ -526,7 +493,7 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
         <div className="flex items-center justify-between mb-2">
           <span className="flex items-center gap-2 font-semibold text-text-primary">
             <Fuel size={16} />
-            {optimizationTitle}
+            Bitcoin Fee Optimization
           </span>
           <span className="text-xs sm:text-sm font-medium text-text-secondary">{currentFeeDisplay}</span>
         </div>
@@ -538,27 +505,27 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
   };
 
   return (
-    <div className="w-full flex flex-col items-center px-4 py-4 sm:py-8">
-      <div className="text-center mb-3 sm:mb-6">
-        <div className="text-xl sm:text-2xl font-bold text-text-primary mb-1 sm:mb-2">Swap Assets Crosschain</div>
-        <p className="text-sm sm:text-base text-text-secondary">Swap assets within ICP or out to Bitcoin and Ethereum.</p>
+    <div className="w-full flex flex-col items-center px-4 py-2 sm:py-4">
+      <div className="text-center mb-2 sm:mb-4">
+        <div className="text-lg sm:text-xl font-bold text-text-primary mb-1">Get Bitcoin for Staking</div>
+        <p className="text-xs sm:text-sm text-text-secondary hidden sm:block">Convert your crypto to Bitcoin and earn Babylon rewards.</p>
       </div>
 
       {/* Main Swap Interface */}
-      <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-surface-1 p-4">
+      <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-surface-1 p-2 sm:p-3 md:p-4">
         {/* From Asset */}
-        <div className="bg-surface-2 border border-white/10 rounded-2xl p-6">
-          <div className="mb-4">
-            <label className="text-sm font-medium text-text-secondary">From</label>
+        <div className="bg-surface-2 border border-white/10 rounded-xl p-3 sm:p-4 md:p-6">
+          <div className="mb-2">
+            <label className="text-xs sm:text-sm font-medium text-text-secondary">From</label>
           </div>
 
-          <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center gap-3 sm:gap-4 mb-2 sm:mb-3">
             <input
               type="number"
               value={swapAmount}
               onChange={(e) => setSwapAmount(e.target.value)}
               placeholder="0.0"
-              className="flex-1 text-lg sm:text-xl md:text-2xl font-semibold text-text-primary bg-transparent border-none outline-none w-0 min-w-0"
+              className="flex-1 text-base sm:text-lg md:text-xl font-semibold text-text-primary bg-transparent border-none outline-none w-0 min-w-0"
               step="any"
               min="0"
             />
@@ -576,14 +543,14 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
           </div>
 
           <div className="text-center">
-            <span className="text-sm text-text-muted">
+            <span className="text-xs sm:text-sm text-text-muted">
               Balance: {fromAsset && portfolio[fromAsset] ? formatAmount(portfolio[fromAsset]) : '--'}
             </span>
           </div>
         </div>
 
         {/* Swap Arrow and MAX Button */}
-        <div className="flex justify-between items-center py-6">
+        <div className="flex justify-between items-center py-3 sm:py-4">
           <div className="flex-1"></div>
           {renderSwapActionButton()}
           <div className="flex-1 flex justify-end">
@@ -602,157 +569,33 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
           </div>
         </div>
 
-        {/* To Asset */}
-        <div className="bg-surface-2 border border-white/10 rounded-2xl p-6">
-          <div className="mb-4">
-            <label className="text-sm font-medium text-text-secondary">To</label>
+        {/* To Asset - Bitcoin Only (BTC Onramp) */}
+        <div className="bg-surface-2 border border-white/10 rounded-xl p-3 sm:p-4 md:p-6">
+          <div className="mb-2">
+            <label className="text-xs sm:text-sm font-medium text-text-secondary">Get Bitcoin</label>
           </div>
 
-          <div className="flex items-center gap-4 mb-4">
-            <div className="flex-1 text-lg sm:text-xl md:text-2xl font-semibold text-text-primary min-w-0">
+          <div className="flex items-center gap-3 sm:gap-4 mb-2 sm:mb-3">
+            <div className="flex-1 text-base sm:text-lg md:text-xl font-semibold text-text-primary min-w-0">
               {swapAnalysis?.outputAmount ? formatAmount(swapAnalysis.outputAmount) : '0.0'}
             </div>
-            <CustomDropdown
-              className="asset-dropdown min-w-[100px] sm:min-w-[120px] md:min-w-[140px]"
-              value={toAsset}
-              onChange={setToAsset}
-              placeholder="Select asset"
-              portfolio={portfolio}
-              options={[
-                { value: 'ckBTC', label: 'ckBTC' },
-                { value: 'ckETH', label: 'ckETH' },
-                { value: 'ckUSDC', label: 'ckUSDC' },
-                { value: 'ckUSDT', label: 'ckUSDT' },
-                { value: 'ICP', label: 'ICP' },
-                { value: 'BTC', label: 'Bitcoin' },
-                { value: 'ETH', label: 'Ethereum' },
-                { value: 'USDC', label: 'USDC' },
-                { value: 'USDT', label: 'USDT' },
-              ].filter(option => option.value !== fromAsset)}
-            />
+            <div className="px-4 py-2 bg-surface-3/50 border border-white/10 rounded-lg min-w-[100px] sm:min-w-[120px] md:min-w-[140px]">
+              <div className="flex items-center gap-2 justify-center">
+                <span className="text-sm font-semibold text-text-primary">Bitcoin</span>
+              </div>
+            </div>
           </div>
 
           <div className="text-center">
-            <span className="text-sm text-text-muted">
-              {getSwapReceiveMessage()}
+            <span className="text-xs sm:text-sm text-text-muted">
+              {swapAnalysis?.outputAmount && swapAmount ?
+                `Rate: 1 ${fromAsset} ≈ ${(swapAnalysis.outputAmount / parseFloat(swapAmount)).toFixed(4)} BTC` :
+                "You'll receive BTC"
+              }
             </span>
           </div>
         </div>
       </div>
-
-      {/* Exchange Rate Display */}
-      <div className="w-full max-w-lg mt-6 text-center py-6 px-8 rounded-xl bg-surface-2">
-        <span className="text-text-secondary text-sm">
-          {swapAnalysis?.outputAmount && swapAmount ?
-            `Rate: 1 ${fromAsset} = ${(swapAnalysis.outputAmount / parseFloat(swapAmount)).toFixed(2)} ${toAsset}` :
-            'Enter amount to see exchange rate'
-          }
-        </span>
-      </div>
-
-      {/* STEP 1: What's Happening (Route Explanation) - ALWAYS SHOWN FIRST */}
-      {showRouteDetails && swapAnalysis && (
-        <div className="whats-happening-container">
-          <div className="whats-happening-header">
-            <h1 className="whats-happening-title">What's Happening?</h1>
-            <p className="whats-happening-subtitle">Your transaction explained</p>
-          </div>
-
-          {fromAsset === toAsset ? (
-            <div className="rounded-xl bg-warning-600/10 border border-warning-500/20 p-4 text-center">
-              <div className="flex items-center justify-center gap-2 mb-2 text-warning-400">
-                <Waves size={20} />
-                <span className="font-semibold">Hold on there surfer!</span>
-              </div>
-              <p className="text-text-secondary">
-                You are trying to swap the same token.<br />
-                Please check your swap and try again.
-              </p>
-            </div>
-          ) : (
-            <>
-              <SimpleRouteDisplay route={swapAnalysis.route} />
-
-              <div className="grid-transaction-details mt-4">
-                <div className="transaction-detail-card">
-                  <div className="transaction-detail-label">Operation</div>
-                  <div className="transaction-detail-value">
-                    {swapAnalysis.route.operationType === 'DEX + Minter' ? 'DEX + Chain Fusion' :
-                     swapAnalysis.route.operationType === 'DEX Swap' ? 'DEX' :
-                     swapAnalysis.route.operationType === 'Minter Operation' ? 'Chain Fusion' :
-                     swapAnalysis.route.operationType}
-                  </div>
-                </div>
-                <div className="transaction-detail-card">
-                  <div className="transaction-detail-label">Networks</div>
-                  <div className="transaction-detail-value">
-                    {swapAnalysis.route.chainsInvolved.map(chain =>
-                      chain === 'Internet Computer' ? 'ICP' : chain
-                    ).join(' → ')}
-                  </div>
-                </div>
-                <div className="transaction-detail-card">
-                  <div className="transaction-detail-label">Est. Time</div>
-                  <div className="transaction-detail-value">{swapAnalysis.route.estimatedTime}</div>
-                </div>
-              </div>
-
-              {/* Gas Fee Row - Full width outside grid */}
-              {(() => {
-                // Only show for L1 withdrawals
-                if (!swapAnalysis.isL1Withdrawal || !swapAnalysis.destinationChain) {
-                  return null;
-                }
-
-                const destinationChain = swapAnalysis.destinationChain;
-                let status = '';
-                let statusColor = '';
-                let currentFee = '';
-
-                if (destinationChain === 'Bitcoin') {
-                  const btcFeeRate = Math.floor(Math.random() * 20) + 10; // 10-30 sats/vB simulation
-                  currentFee = `${btcFeeRate} sats/vB`;
-
-                  if (btcFeeRate < 15) {
-                    status = 'Low';
-                    statusColor = 'text-success-400';
-                  } else if (btcFeeRate < 25) {
-                    status = 'Average';
-                    statusColor = 'text-warning-400';
-                  } else {
-                    status = 'High';
-                    statusColor = 'text-error-400';
-                  }
-                } else if (destinationChain === 'Ethereum') {
-                  currentFee = `${currentGasPrice} gwei`;
-
-                  if (currentGasPrice < 20) {
-                    status = 'Low';
-                    statusColor = 'text-success-400';
-                  } else if (currentGasPrice < 30) {
-                    status = 'Average';
-                    statusColor = 'text-warning-400';
-                  } else {
-                    status = 'High';
-                    statusColor = 'text-error-400';
-                  }
-                } else {
-                  return null;
-                }
-
-                return (
-                  <div className="flex items-center justify-between w-full p-3 bg-surface-2 rounded-lg mt-4">
-                    <span className="text-xs sm:text-sm text-text-secondary">Current: {currentFee}</span>
-                    <span className={`text-xs sm:text-sm ${statusColor}`}>
-                      {destinationChain === 'Bitcoin' ? 'Bitcoin fees are' : 'Gas is'} {status.toLowerCase()}
-                    </span>
-                  </div>
-                );
-              })()}
-            </>
-          )}
-        </div>
-      )}
 
       {/* Check if this is a native withdrawal (ckETH->ETH, ckBTC->BTC) */}
       {(() => {
@@ -991,7 +834,72 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
         </div>
       )}
 
-      {/* Gas information moved to What's Happening component */}
+      {/* What's Happening (Route Explanation) - Informative Details */}
+      {showRouteDetails && swapAnalysis && (
+        <div className="w-full max-w-lg mt-6 rounded-2xl border border-white/10 bg-surface-1 p-4 sm:p-6">
+          <div className="text-center mb-4 sm:mb-6">
+            <h1 className="text-base sm:text-lg font-bold text-text-primary mb-1">What's Happening?</h1>
+            <p className="text-xs sm:text-sm text-text-secondary">Your transaction explained</p>
+          </div>
+
+          {/* Route Visualization */}
+          <div className="mb-4 sm:mb-6">
+            <SimpleRouteDisplay route={swapAnalysis.route} />
+          </div>
+
+          {/* Transaction Details Grid */}
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+            <div className="bg-surface-2 rounded-lg p-3 sm:p-4">
+              <div className="text-xs text-text-secondary mb-1">Operation</div>
+              <div className="text-xs sm:text-sm font-semibold text-text-primary">{swapAnalysis.route.operationType}</div>
+            </div>
+            <div className="bg-surface-2 rounded-lg p-3 sm:p-4">
+              <div className="text-xs text-text-secondary mb-1">Networks</div>
+              <div className="text-xs sm:text-sm font-semibold text-text-primary">
+                {swapAnalysis.route.chainsInvolved.join(' → ')}
+              </div>
+            </div>
+            <div className="bg-surface-2 rounded-lg p-3 sm:p-4">
+              <div className="text-xs text-text-secondary mb-1">Est. Time</div>
+              <div className="text-xs sm:text-sm font-semibold text-text-primary">{swapAnalysis.route.estimatedTime}</div>
+            </div>
+            <div className="bg-surface-2 rounded-lg p-3 sm:p-4">
+              <div className="text-xs text-text-secondary mb-1">Security</div>
+              <div className="text-xs sm:text-sm font-semibold text-text-primary">Chain Key</div>
+            </div>
+          </div>
+
+          {/* Bitcoin Gas Fee Display */}
+          {(() => {
+            // Find Bitcoin gas fee in feeRequirements
+            const bitcoinGasFee = swapAnalysis.isL1Withdrawal && swapAnalysis.destinationChain === 'Bitcoin'
+              ? swapAnalysis.feeRequirements.find(fee => fee.purpose === 'gas' || fee.purpose === 'network')
+              : null;
+
+            if (bitcoinGasFee) {
+              return (
+                <div className="bg-primary-600/10 border border-primary-500/20 rounded-lg p-3 sm:p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-primary-300">
+                      <Fuel size={14} className="sm:w-4 sm:h-4" />
+                      Bitcoin Network Fee
+                    </span>
+                    <span className="text-xs sm:text-sm font-bold text-primary-400">
+                      {formatNumber(bitcoinGasFee.amount)} {bitcoinGasFee.token}
+                    </span>
+                  </div>
+                  <div className="text-xs text-text-secondary">
+                    {bitcoinGasFee.deductFromFinal
+                      ? 'Deducted from final amount - no separate payment needed'
+                      : bitcoinGasFee.description}
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
+        </div>
+      )}
 
       {/* OLD Smart Solutions - Keep as backup for now */}
       {false /* DISABLED - Old Complex Smart Solutions UI */ && showSmartSolutions && smartSolutions.length > 0 && (
