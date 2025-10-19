@@ -6,7 +6,6 @@ import { simpleEthereumWallet } from '../services/simpleEthereumWallet';
 import { simplePlugWallet } from '../services/simplePlugWallet';
 import DepositModal from './DepositModal';
 import SmartSolutionModal from './SmartSolutionModal';
-import TransactionPreviewModal from './TransactionPreviewModal';
 import ExecutionProgressModal from './ExecutionProgressModal';
 import AuthenticationModal, { AuthStep, TransactionStep } from './AuthenticationModal';
 import StakingModal from './StakingModal';
@@ -289,8 +288,7 @@ const Dashboard: React.FC = () => {
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [pendingApproval, setPendingApproval] = useState<EnhancedSmartSolution | null>(null);
 
-  // Transaction Preview Modal State
-  const [showTransactionPreviewModal, setShowTransactionPreviewModal] = useState(false);
+  // Transaction Preview Modal State (DEPRECATED - using inline execution now)
   const [approvedSmartSolution, setApprovedSmartSolution] = useState<EnhancedSmartSolution | null>(null);
 
   // Smart Solutions deposit state
@@ -822,7 +820,10 @@ const Dashboard: React.FC = () => {
                                 (fromAsset === 'ckUSDC' && toAsset === 'USDC') ||
                                 (fromAsset === 'ckUSDT' && toAsset === 'USDT');
     const isWalletConnected = isWalletConnectedForAsset(fromAsset);
-    if (needsDEXSelection(fromAsset, toAsset) && !isDirectChainFusion && isWalletConnected) {
+
+    // Set showDEXSelection to true so compact mode knows DEX is needed
+    // Compact mode will only trigger when BOTH wallets are connected (handled in SwapAssetsSection)
+    if (needsDEXSelection(fromAsset, toAsset) && !isDirectChainFusion) {
       setShowDEXSelection(true);
     } else {
       setSelectedDEX(null);
@@ -978,7 +979,8 @@ const Dashboard: React.FC = () => {
       // Direct transition to Transaction Preview modal
       setTransactionData(swapAnalysis);
       setApprovedSmartSolution(pendingApproval); // Pass the approved Smart Solution
-      setShowTransactionPreviewModal(true);
+      // Skip Transaction Preview modal - go straight to execution
+      setShowExecutionProgressModal(true);
     }
 
     setShowApprovalModal(false);
@@ -1037,9 +1039,9 @@ const Dashboard: React.FC = () => {
           return; // Show Smart Solutions instead of going directly to Transaction Preview
         }
 
-        // For non-Smart Solutions flows: Immediately open Transaction Preview modal
+        // For non-Smart Solutions flows: Skip Transaction Preview, go to execution
         setTimeout(() => {
-          setShowTransactionPreviewModal(true);
+          setShowExecutionProgressModal(true);
         }, 100); // Small delay to ensure state is set
       } else {
         console.error('Failed to generate swap analysis for DEX selection');
@@ -1415,7 +1417,8 @@ const Dashboard: React.FC = () => {
       setTimeout(() => {
         setIsSmartSolutionDeposit(false);
         setTransactionData(swapAnalysis);
-        setShowTransactionPreviewModal(true);
+        // Skip Transaction Preview modal - go straight to execution
+        setShowExecutionProgressModal(true);
       }, 500); // Small delay for better UX
     }
   };
@@ -1725,7 +1728,7 @@ const Dashboard: React.FC = () => {
             handleRejectSolution={handleRejectSolution}
             resetSolutionsView={resetSolutionsView}
             formatNumber={formatNumber}
-            onShowTransactionPreview={() => setShowTransactionPreviewModal(true)}
+            onShowTransactionPreview={() => setShowExecutionProgressModal(true)}
             onDEXSelectedForICPSwap={handleDEXSelectedForICPSwap}
             executeSwap={null}
             updatePortfolioAfterSwap={updatePortfolioAfterSwap}
@@ -1823,95 +1826,7 @@ const Dashboard: React.FC = () => {
         onOpenDeposit={handleSmartSolutionDeposit}
       />
 
-      {/* Transaction Preview Modal */}
-      <TransactionPreviewModal
-        isOpen={showTransactionPreviewModal}
-        transactionData={transactionData}
-        approvedSmartSolution={approvedSmartSolution}
-        onClose={() => {
-          setShowTransactionPreviewModal(false);
-          setApprovedSmartSolution(null); // Clear approved Smart Solution
-          // Reset entire swap page when transaction is cancelled
-          resetSwapAssetsPage();
-        }}
-        onExecute={() => {
-          console.log('🚀 TransactionPreviewModal onExecute called!');
-
-          // Execute the swap and update portfolio in demo mode
-          if (transactionData) {
-            const isDemoMode = !(window as any).ic || process.env.NODE_ENV === 'development';
-
-            if (isDemoMode) {
-              console.log('🎮 Demo mode: Executing swap from TransactionPreviewModal');
-
-              // Update portfolio balances after successful demo swap
-              if (fromAsset && toAsset && swapAmount && transactionData) {
-                const fromAmount = parseFloat(swapAmount);
-
-                console.log('📊 Demo portfolio update from TransactionPreviewModal:', {
-                  fromAsset,
-                  toAsset,
-                  fromAmount,
-                  isL1Withdrawal: transactionData.isL1Withdrawal,
-                  feeRequirements: transactionData.feeRequirements
-                });
-
-                // Use the comprehensive fee breakdown from Transaction Preview
-                setPortfolio(prev => {
-                  const updated = { ...prev };
-
-                  // Calculate total deduction for source asset (sent amount + fees in same asset)
-                  let totalSourceAssetDeduction = fromAmount;
-
-                  // Add any fees that are paid in the same asset as the source
-                  if (transactionData.feeRequirements) {
-                    transactionData.feeRequirements.forEach(fee => {
-                      if (fee.token === fromAsset && fee.amount) {
-                        totalSourceAssetDeduction += fee.amount;
-                        console.log(`💸 Adding ${fee.amount} ${fee.token} fee to source asset deduction (${fee.description})`);
-                      }
-                    });
-                  }
-
-                  // Deduct total from source asset
-                  updated[fromAsset] = Math.max(0, (prev[fromAsset] || 0) - totalSourceAssetDeduction);
-                  console.log(`💸 Total deducted from ${fromAsset}: ${totalSourceAssetDeduction} (${fromAmount} sent + ${totalSourceAssetDeduction - fromAmount} fees)`);
-
-                  // Deduct fees that are paid in different assets
-                  if (transactionData.feeRequirements) {
-                    transactionData.feeRequirements.forEach(fee => {
-                      if (fee.token !== fromAsset && fee.token && fee.amount) {
-                        const feeAmount = fee.amount;
-                        updated[fee.token] = Math.max(0, (prev[fee.token] || 0) - feeAmount);
-                        console.log(`💸 Deducted ${feeAmount} ${fee.token} for ${fee.description}`);
-                      }
-                    });
-                  }
-
-                  // For L1 withdrawals, do NOT add destination asset (goes to external wallet)
-                  // For ICP ecosystem swaps, add destination asset
-                  if (!transactionData.isL1Withdrawal && swapAnalysis?.outputAmount) {
-                    const toAmount = swapAnalysis.outputAmount;
-                    updated[toAsset] = (prev[toAsset] || 0) + toAmount;
-                    console.log(`💰 Added ${toAmount} ${toAsset} (destination asset)`);
-                  } else if (transactionData.isL1Withdrawal) {
-                    console.log('🌉 L1 withdrawal: Destination asset sent to external wallet, not added to portfolio');
-                  }
-
-                  console.log('✅ Portfolio updated with all fees deducted:', updated);
-                  return updated;
-                });
-
-                console.log('✅ Demo portfolio updated successfully from TransactionPreviewModal');
-              }
-            }
-          }
-
-          setShowTransactionPreviewModal(false);
-          // Open ExecutionProgressModal to show transaction progress
-          setShowExecutionProgressModal(true);
-        }}
-      />
+      {/* Transaction Preview Modal REMOVED - inline execution now */}
 
       {/* Internet Identity Authentication Modal */}
       <AuthenticationModal

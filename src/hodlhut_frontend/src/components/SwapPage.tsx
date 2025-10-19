@@ -7,7 +7,6 @@ import { simpleEthereumWallet } from '../services/simpleEthereumWallet';
 import { simplePlugWallet } from '../services/simplePlugWallet';
 import SwapAssetsSection from './SwapAssetsSection';
 import SmartSolutionModal from './SmartSolutionModal';
-import TransactionPreviewModal from './TransactionPreviewModal';
 import ExecutionProgressModal from './ExecutionProgressModal';
 import { Portfolio, MASTER_ASSETS, ASSET_PRICES } from '../../assets/master_asset_data';
 import {
@@ -77,7 +76,6 @@ const SwapPage: React.FC = () => {
 
   // Modal state
   const [showApprovalModal, setShowApprovalModal] = useState(false);
-  const [showTransactionPreviewModal, setShowTransactionPreviewModal] = useState(false);
   const [showExecutionProgressModal, setShowExecutionProgressModal] = useState(false);
   const [transactionData, setTransactionData] = useState<CompleteSwapAnalysis | null>(null);
 
@@ -244,7 +242,10 @@ const SwapPage: React.FC = () => {
                                 (fromAsset === 'ckUSDC' && toAsset === 'USDC') ||
                                 (fromAsset === 'ckUSDT' && toAsset === 'USDT');
     const isWalletConnected = isWalletConnectedForAsset(fromAsset);
-    if (needsDEXSelection(fromAsset, toAsset) && !isDirectChainFusion && isWalletConnected) {
+
+    // Set showDEXSelection to true so compact mode knows DEX is needed
+    // Compact mode will only trigger when BOTH wallets are connected (handled in SwapAssetsSection)
+    if (needsDEXSelection(fromAsset, toAsset) && !isDirectChainFusion) {
       setShowDEXSelection(true);
     } else {
       setSelectedDEX(null);
@@ -303,7 +304,8 @@ const SwapPage: React.FC = () => {
       setShowAllSolutions(false);
       setTransactionData(swapAnalysis);
       setApprovedSmartSolution(pendingApproval);
-      setShowTransactionPreviewModal(true);
+      // Skip Transaction Preview modal - go straight to execution
+      setShowExecutionProgressModal(true);
     }
     setShowApprovalModal(false);
     setPendingApproval(null);
@@ -315,7 +317,7 @@ const SwapPage: React.FC = () => {
   };
 
   const resetSwapPage = () => {
-    setFromAsset('');
+    setFromAsset('ETH'); // Default to first asset in list
     setToAsset('BTC'); // Bitcoin-only onramp: TO asset always BTC
     setSwapAmount('');
     setSelectedDEX(null);
@@ -351,8 +353,9 @@ const SwapPage: React.FC = () => {
           return;
         }
 
+        // Skip Transaction Preview modal - go straight to execution
         setTimeout(() => {
-          setShowTransactionPreviewModal(true);
+          setShowExecutionProgressModal(true);
         }, 100);
       }
     }
@@ -415,7 +418,7 @@ const SwapPage: React.FC = () => {
             handleRejectSolution={handleRejectSolution}
             resetSolutionsView={resetSolutionsView}
             formatNumber={formatNumber}
-            onShowTransactionPreview={() => setShowTransactionPreviewModal(true)}
+            onShowTransactionPreview={() => setShowExecutionProgressModal(true)}
             onDEXSelectedForICPSwap={handleDEXSelectedForICPSwap}
             executeSwap={null}
             updatePortfolioAfterSwap={updatePortfolioAfterSwap}
@@ -445,57 +448,7 @@ const SwapPage: React.FC = () => {
         onOpenDeposit={() => {}} // Not used in standalone page
       />
 
-      {/* Transaction Preview Modal */}
-      <TransactionPreviewModal
-        isOpen={showTransactionPreviewModal}
-        transactionData={transactionData}
-        approvedSmartSolution={approvedSmartSolution}
-        onClose={() => {
-          setShowTransactionPreviewModal(false);
-          setApprovedSmartSolution(null);
-          resetSwapPage();
-        }}
-        onExecute={() => {
-          if (transactionData) {
-            const isDemoMode = !(window as any).ic || process.env.NODE_ENV === 'development';
-
-            if (isDemoMode && fromAsset && toAsset && swapAmount) {
-              const fromAmount = parseFloat(swapAmount);
-              let totalSourceAssetDeduction = fromAmount;
-
-              if (transactionData.feeRequirements) {
-                transactionData.feeRequirements.forEach(fee => {
-                  if (fee.token === fromAsset && fee.amount) {
-                    totalSourceAssetDeduction += fee.amount;
-                  }
-                });
-              }
-
-              setPortfolio(prev => {
-                const updated = { ...prev };
-                updated[fromAsset] = Math.max(0, (prev[fromAsset] || 0) - totalSourceAssetDeduction);
-
-                if (transactionData.feeRequirements) {
-                  transactionData.feeRequirements.forEach(fee => {
-                    if (fee.token !== fromAsset && fee.token && fee.amount) {
-                      updated[fee.token] = Math.max(0, (prev[fee.token] || 0) - fee.amount);
-                    }
-                  });
-                }
-
-                if (!transactionData.isL1Withdrawal && swapAnalysis?.outputAmount) {
-                  updated[toAsset] = (prev[toAsset] || 0) + swapAnalysis.outputAmount;
-                }
-
-                return updated;
-              });
-            }
-          }
-
-          setShowTransactionPreviewModal(false);
-          setShowExecutionProgressModal(true);
-        }}
-      />
+      {/* Transaction Preview Modal REMOVED - inline execution now */}
 
       {/* Execution Progress Modal */}
       <ExecutionProgressModal

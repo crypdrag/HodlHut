@@ -9,11 +9,11 @@ import {
   Scale,
   Waves,
   PartyPopper,
-  ArrowLeftRight,
   ArrowRight,
   Star,
   Plus,
-  Rocket
+  Rocket,
+  Wallet
 } from 'lucide-react';
 import AssetIcon from './AssetIcon';
 import CustomDropdown from './CustomDropdown';
@@ -21,7 +21,7 @@ import CompactDEXSelector from './CompactDEXSelector';
 import WalletSelectionModal from './WalletSelectionModal';
 import { AuthStep } from './AuthenticationModal';
 import { Portfolio, MASTER_ASSETS, ASSET_PRICES } from '../../assets/master_asset_data';
-import { CompleteSwapAnalysis, SmartSolution, DEX_OPTIONS } from '../../assets/master_swap_logic';
+import { CompleteSwapAnalysis, SmartSolution, DEX_OPTIONS, autoSelectOptimalDEX } from '../../assets/master_swap_logic';
 import { type SwapRoute } from '../../assets/visual_brackets';
 import { SwapRequest, SwapResponse } from '../types/myhut';
 
@@ -161,19 +161,37 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
   const [rejectedOptions, setRejectedOptions] = useState<Set<string>>(new Set());
   const [showSolutionsLayer, setShowSolutionsLayer] = useState<'primary' | 'alternatives'>('primary');
 
-  // Wallet selection modal state
+  // Wallet selection modal state (deprecated - using inline expansion now)
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [walletModalType, setWalletModalType] = useState<'ethereum' | 'icp' | 'bitcoin'>('ethereum');
 
-  // Auto-enable compact mode when wallet is connected and DEX selection is ready
+  // Inline wallet expansion state
+  const [showWalletOptions, setShowWalletOptions] = useState(false);
+
+  // Bitcoin wallet state (destination address)
+  const [showBTCWalletOptions, setShowBTCWalletOptions] = useState(false);
+  const [connectedBTCWallet, setConnectedBTCWallet] = useState<string | null>(null);
+  const [btcAddress, setBtcAddress] = useState<string>('');
+
+  // DEX cycling ref - will be set by CompactDEXSelector
+  const dexCycleRef = React.useRef<(() => void) | null>(null);
+  const handleCycleDEX = () => {
+    if (dexCycleRef.current) {
+      dexCycleRef.current();
+    }
+  };
+
+  // Auto-enable compact mode when BTC wallet is connected and DEX selection is ready
   useEffect(() => {
-    const isWalletConnected = isWalletConnectedForAsset(fromAsset);
+    const isFromWalletConnected = isWalletConnectedForAsset(fromAsset);
+    const isBTCWalletConnected = !!connectedBTCWallet;
     const isReadyForDEX = showDEXSelection && fromAsset && toAsset && swapAmount && parseFloat(swapAmount) > 0;
 
-    if (isWalletConnected && isReadyForDEX) {
+    // Only trigger compact mode when BOTH wallets are connected
+    if (isFromWalletConnected && isBTCWalletConnected && isReadyForDEX) {
       setShowCompactMode(true);
     }
-  }, [showDEXSelection, fromAsset, toAsset, swapAmount, isWalletConnectedForAsset, setShowCompactMode]);
+  }, [showDEXSelection, fromAsset, toAsset, swapAmount, connectedBTCWallet, isWalletConnectedForAsset, setShowCompactMode]);
 
   // Execute the actual swap using backend MyHut canister
   const handleExecuteSwap = async () => {
@@ -298,71 +316,6 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
     }));
   };
 
-  // Render swap action button based on asset types and user portfolio
-  const renderSwapActionButton = () => {
-    // Asset categorization logic
-    const ckAssetsAndICP = ['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'];
-    const isFromCkAsset = ckAssetsAndICP.includes(fromAsset);
-    const isToCkAsset = ckAssetsAndICP.includes(toAsset);
-    const userOwnsToAsset = portfolio[toAsset] && portfolio[toAsset] > 0;
-
-    // Case 1: Both are ckAssets/ICP AND user owns both - Show active reverse button
-    if (fromAsset && toAsset && isFromCkAsset && isToCkAsset && userOwnsToAsset) {
-      return (
-        <button
-          className="text-xs px-2 py-1 rounded-lg bg-primary-600 hover:bg-primary-500 text-on-primary transition-colors"
-          onClick={() => {
-            const temp = fromAsset;
-            setFromAsset(toAsset);
-            setToAsset(temp);
-            // Don't clear swapAmount to keep What's Happening visible
-          }}
-          title="Reverse swap direction"
-        >
-          <ArrowLeftRight size={14} className="rotate-90" />
-        </button>
-      );
-    }
-
-    // Case 2: Both are ckAssets/ICP BUT user doesn't own TO asset - Show "Add Assets" button
-    if (fromAsset && toAsset && isFromCkAsset && isToCkAsset && !userOwnsToAsset) {
-      return (
-        <button
-          className="text-xs px-2 py-1 rounded-lg bg-primary-600 hover:bg-primary-500 text-on-primary transition-colors flex items-center gap-1"
-          onClick={() => setActiveSection('addAssets')}
-          title={`Add ${toAsset} to enable reverse swap`}
-        >
-          <Plus size={12} />
-          Add Assets
-        </button>
-      );
-    }
-
-    // Case 3: TO asset is L1/cross-chain - Show disabled reverse button
-    if (fromAsset && toAsset && !isToCkAsset) {
-      return (
-        <button
-          className="p-2 rounded-full bg-surface-3/50 border border-white/5 transition-all duration-200 opacity-50 cursor-default"
-          disabled
-          title="Cannot reverse to cross-chain assets"
-        >
-          <ArrowLeftRight size={12} className="text-text-muted rotate-90" />
-        </button>
-      );
-    }
-
-    // Default: Show disabled reverse button when no assets selected
-    return (
-      <button
-        className="p-2 rounded-full bg-surface-3/50 border border-white/5 transition-all duration-200 opacity-50 cursor-default"
-        disabled
-        title="Select assets to enable reverse swap"
-      >
-        <ArrowLeftRight size={12} className="text-text-muted rotate-90" />
-      </button>
-    );
-  };
-
   // Generate "You'll receive" message for swap interface
   const getSwapReceiveMessage = () => {
     // Show dynamic "You'll receive" message based on swap analysis
@@ -446,7 +399,7 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
     }
   };
 
-  // Render wallet connection UI for FROM asset card
+  // Render INLINE wallet connection UI with expansion
   const renderWalletConnectionUI = () => {
     if (!fromAsset) {
       return null;
@@ -466,47 +419,128 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
       );
     }
 
-    // Wallet not connected - show connect button that opens modal
-    if (!isConnected) {
+    // Wallet connected - show balance and disconnect option
+    if (isConnected) {
+      const balance = portfolio[fromAsset] || 0;
+      const walletAddress = requiredWallet === 'metamask' ? connectedMetaMask : null;
+      const disconnectHandler = requiredWallet === 'metamask' ? onDisconnectMetaMask : onDisconnectPlug;
+
       return (
-        <button
-          onClick={() => {
-            // Set modal type based on asset
-            const modalType = requiredWallet === 'metamask' ? 'ethereum' : 'icp';
-            setWalletModalType(modalType);
-            setShowWalletModal(true);
-          }}
-          disabled={isConnectingWallet}
-          className="w-full min-h-[44px] py-2 px-4 bg-primary-600 hover:bg-primary-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isConnectingWallet ? 'Connecting...' : 'Connect Wallet'}
-        </button>
+        <div className="success-state-mobile">
+          <div className="flex-1 text-left">
+            <div className="body-sm font-semibold text-success-400 flex items-center gap-2">
+              <CheckCircle size={16} />
+              Wallet Connected
+            </div>
+            <div className="caption text-text-muted mt-1">
+              Balance: {formatAmount(balance)} {fromAsset}
+            </div>
+            {walletAddress && (
+              <div className="caption text-text-secondary code">
+                {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+              </div>
+            )}
+          </div>
+          <button
+            onClick={disconnectHandler}
+            className="btn-secondary btn-sm"
+          >
+            Disconnect
+          </button>
+        </div>
       );
     }
 
-    // Wallet connected - show balance and disconnect option
-    const balance = portfolio[fromAsset] || 0;
-    const walletAddress = requiredWallet === 'metamask' ? connectedMetaMask : null;
-    const disconnectHandler = requiredWallet === 'metamask' ? onDisconnectMetaMask : onDisconnectPlug;
+    // Wallet not connected - show connect button with inline expansion
+    // Determine button text and styling based on asset type
+    const getWalletButtonConfig = () => {
+      // ICP assets (ICP, ckETH, ckUSDC, ckUSDT, ckBTC, etc.)
+      if (requiredWallet === 'plug') {
+        return {
+          text: 'Connect ICP Wallet',
+          icon: null, // No icon for ICP
+          buttonClass: 'w-full btn-primary btn-text'
+        };
+      }
+      // Ethereum assets (ETH, USDC, USDT)
+      else if (requiredWallet === 'metamask') {
+        return {
+          text: 'Connect ETH Wallet',
+          icon: null, // No icon for ETH
+          buttonClass: 'w-full btn-primary btn-text'
+        };
+      }
+      // Bitcoin (for future BTC direct deposits)
+      else if (requiredWallet === 'unisat' || requiredWallet === 'xverse') {
+        return {
+          text: 'Connect BTC Wallet',
+          icon: <AssetIcon asset="BTC" size={16} />,
+          buttonClass: 'w-full btn-bitcoin btn-text'
+        };
+      }
+      // Fallback
+      return {
+        text: 'Connect Wallet',
+        icon: <Wallet size={16} />,
+        buttonClass: 'w-full btn-primary btn-text'
+      };
+    };
+
+    const walletConfig = getWalletButtonConfig();
 
     return (
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex-1 text-left">
-          <div className="text-xs sm:text-sm text-text-muted">
-            Balance: {formatAmount(balance)} {fromAsset}
-          </div>
-          {walletAddress && (
-            <div className="text-xs text-text-secondary">
-              {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+      <div>
+        {!showWalletOptions ? (
+          <button
+            onClick={() => setShowWalletOptions(true)}
+            disabled={isConnectingWallet}
+            className={walletConfig.buttonClass}
+          >
+            {walletConfig.icon}
+            {isConnectingWallet ? 'Connecting...' : walletConfig.text}
+          </button>
+        ) : (
+          <div className="modal-section">
+            <div className="caption text-text-secondary mb-3 flex items-center justify-between">
+              <span>Select Wallet</span>
+              <button
+                onClick={() => setShowWalletOptions(false)}
+                className="caption text-text-muted hover:text-text-primary transition-colors"
+              >
+                Cancel
+              </button>
             </div>
-          )}
-        </div>
-        <button
-          onClick={disconnectHandler}
-          className="text-xs px-2 py-1 min-h-[44px] rounded bg-surface-3 hover:bg-surface-2 text-text-secondary transition-colors"
-        >
-          Disconnect
-        </button>
+
+            {/* Wallet options based on asset */}
+            <div className="space-y-2">
+              {requiredWallet === 'metamask' && (
+                <button
+                  onClick={async () => {
+                    await onConnectMetaMask();
+                    setShowWalletOptions(false);
+                  }}
+                  className="wallet-option"
+                >
+                  <span className="text-lg">🦊</span>
+                  <span className="body-sm font-semibold text-text-primary">MetaMask</span>
+                </button>
+              )}
+
+              {requiredWallet === 'plug' && (
+                <button
+                  onClick={async () => {
+                    await onConnectPlug();
+                    setShowWalletOptions(false);
+                  }}
+                  className="wallet-option"
+                >
+                  <span className="text-lg">🔌</span>
+                  <span className="body-sm font-semibold text-text-primary">Plug Wallet</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -629,7 +663,7 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
 
       {/* Main Swap Interface - Only show when not in compact mode */}
       {!showCompactMode && (
-      <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-surface-1 p-2 sm:p-3 md:p-4">
+      <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-surface-1 p-2 sm:p-3 md:p-4 space-y-3">
         {/* From Asset */}
         <div className="bg-surface-2 border border-white/10 rounded-xl p-3 sm:p-4 md:p-6">
           <div className="mb-2">
@@ -653,33 +687,13 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
                 setFromAsset(value);
                 setSwapAmount('');
               }}
-              placeholder="Select asset"
+              placeholder=""
               portfolio={portfolio}
               options={getSwapFromAssetOptions()}
             />
           </div>
 
           {renderWalletConnectionUI()}
-        </div>
-
-        {/* Swap Arrow and MAX Button */}
-        <div className="flex justify-between items-center py-3 sm:py-4">
-          <div className="flex-1"></div>
-          {renderSwapActionButton()}
-          <div className="flex-1 flex justify-end">
-            <button
-              className={`text-xs px-2 py-1 rounded-lg bg-primary-600 hover:bg-primary-500 text-on-primary transition-colors ${(!fromAsset || !portfolio[fromAsset]) ? 'opacity-50 cursor-not-allowed' : ''}`}
-              onClick={() => {
-                if (fromAsset && portfolio[fromAsset]) {
-                  setSwapAmount(portfolio[fromAsset].toString());
-                }
-              }}
-              disabled={!fromAsset || !portfolio[fromAsset]}
-              title="Set maximum amount"
-            >
-              MAX
-            </button>
-          </div>
         </div>
 
         {/* To Asset - Bitcoin Only (BTC Onramp) */}
@@ -700,32 +714,193 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
           </div>
 
           {swapAnalysis?.outputAmount && swapAmount && (
-            <div className="text-center">
+            <div className="text-center mb-2 sm:mb-3">
               <span className="text-xs sm:text-sm text-text-muted">
                 Rate: 1 {fromAsset} ≈ {(swapAnalysis.outputAmount / parseFloat(swapAmount)).toFixed(4)} BTC
               </span>
             </div>
           )}
+
+          {/* BTC Wallet Connection - Only show when FROM wallet is connected AND amount is entered */}
+          {swapAnalysis && parseFloat(swapAmount || '0') > 0 && isWalletConnectedForAsset(fromAsset) && (
+            <>
+              {!connectedBTCWallet ? (
+                // BTC Wallet Connection UI
+                <>
+                  {!showBTCWalletOptions ? (
+                    <button
+                      onClick={() => setShowBTCWalletOptions(true)}
+                      className="w-full btn-bitcoin btn-text"
+                    >
+                      <AssetIcon asset="BTC" size={16} />
+                      Connect BTC Wallet
+                    </button>
+                  ) : (
+                    <div className="modal-section">
+                      <div className="caption text-text-secondary mb-3 flex items-center justify-between">
+                        <span>Select Bitcoin Wallet</span>
+                        <button
+                          onClick={() => setShowBTCWalletOptions(false)}
+                          className="caption text-text-muted hover:text-text-primary transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+
+                      <div className="space-y-2">
+                        {/* Unisat Wallet */}
+                        <button
+                          onClick={async () => {
+                            try {
+                              // TODO: Implement actual Unisat wallet connection
+                              console.log('Connecting to Unisat wallet...');
+                              // Placeholder: simulate connection
+                              const mockAddress = 'tb1q...demo...unisat';
+                              setConnectedBTCWallet('unisat');
+                              setBtcAddress(mockAddress);
+                              setShowBTCWalletOptions(false);
+                            } catch (error) {
+                              console.error('Failed to connect Unisat:', error);
+                            }
+                          }}
+                          className="wallet-option"
+                        >
+                          <span className="text-lg">🔶</span>
+                          <span className="body-sm font-semibold text-text-primary">Unisat Wallet</span>
+                        </button>
+
+                        {/* Xverse Wallet */}
+                        <button
+                          onClick={async () => {
+                            try {
+                              // TODO: Implement actual Xverse wallet connection
+                              console.log('Connecting to Xverse wallet...');
+                              // Placeholder: simulate connection
+                              const mockAddress = 'tb1q...demo...xverse';
+                              setConnectedBTCWallet('xverse');
+                              setBtcAddress(mockAddress);
+                              setShowBTCWalletOptions(false);
+                            } catch (error) {
+                              console.error('Failed to connect Xverse:', error);
+                            }
+                          }}
+                          className="wallet-option"
+                        >
+                          <span className="text-lg">⚡</span>
+                          <span className="body-sm font-semibold text-text-primary">Xverse Wallet</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                // BTC Wallet Connected State
+                <div className="success-state-mobile">
+                  <div className="flex-1 text-left">
+                    <div className="body-sm font-semibold text-success-400 flex items-center gap-2">
+                      <CheckCircle size={16} />
+                      {connectedBTCWallet === 'unisat' ? 'Unisat' : 'Xverse'} Connected
+                    </div>
+                    <div className="caption text-text-secondary code mt-1 truncate">
+                      {btcAddress}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setConnectedBTCWallet(null);
+                      setBtcAddress('');
+                    }}
+                    className="btn-secondary btn-sm"
+                  >
+                    Disconnect
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
+
+        {/* INLINE FEE PREVIEW - Shows upfront (before wallet connection) */}
+        {swapAnalysis && parseFloat(swapAmount || '0') > 0 && (
+          <div className="info-important">
+            <div className="space-y-2">
+              {/* Bitcoin Gas Fee */}
+              {(() => {
+                const bitcoinGasFee = swapAnalysis.feeRequirements.find(
+                  fee => fee.purpose === 'gas' || fee.purpose === 'network'
+                );
+                if (bitcoinGasFee) {
+                  return (
+                    <div className="fee-item-mobile">
+                      <span className="text-text-secondary flex items-center gap-1.5">
+                        <Fuel size={14} />
+                        BTC Gas Fee
+                      </span>
+                      <span className="font-semibold text-text-primary">
+                        {formatNumber(bitcoinGasFee.amount)} {bitcoinGasFee.token}
+                        <span className="text-text-muted text-xs ml-1">(${bitcoinGasFee.usdValue.toFixed(2)})</span>
+                      </span>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
+              {/* HODL Protocol Fee */}
+              <div className="fee-item-mobile">
+                <span className="text-text-secondary">HODL Fee (0.1%)</span>
+                <span className="font-semibold text-text-primary">
+                  {formatNumber(parseFloat(swapAmount) * 0.001)} {fromAsset}
+                </span>
+              </div>
+
+              {/* Auto-selected DEX (if route requires DEX) */}
+              {swapAnalysis.route.operationType !== 'Minter Operation' && (
+                <div className="fee-item-mobile">
+                  <span className="text-text-secondary">DEX</span>
+                  <span className="chip-info text-xs">
+                    {selectedDEX || 'KongSwap'}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* EXECUTE SWAP BUTTON - Only show if both wallets are connected */}
+        {swapAnalysis && parseFloat(swapAmount || '0') > 0 && connectedBTCWallet && isWalletConnectedForAsset(fromAsset) && (
+          <button
+            className="w-full btn-bitcoin btn-text"
+            onClick={() => {
+              // Auto-select DEX if not already selected
+              if (!selectedDEX && swapAnalysis.route.operationType !== 'Minter Operation') {
+                const autoDEX = autoSelectOptimalDEX(fromAsset, toAsset, parseFloat(swapAmount));
+                setSelectedDEX(autoDEX);
+              }
+
+              // Skip Transaction Preview modal - go straight to execution
+              setTransactionData(swapAnalysis);
+              onShowTransactionPreview();
+            }}
+          >
+            <Rocket size={16} />
+            Execute Swap to BTC
+          </button>
+        )}
       </div>
       )}
 
       {/* Compact Mode: DEX Selector replaces swap interface after wallet connection */}
       {showCompactMode && showDEXSelection && swapAnalysis && (
         <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-surface-1 p-4 sm:p-6">
-          {/* Header with Edit button */}
+          {/* Header with DEX Options button */}
           <div className="flex items-center justify-between mb-4 sm:mb-6">
-            <div>
-              <h2 className="text-base sm:text-lg font-bold text-text-primary">Choose your DEX</h2>
-              <p className="text-xs sm:text-sm text-text-secondary mt-1">
-                {fromAsset} → BTC: {swapAmount} {fromAsset}
-              </p>
-            </div>
+            <h2 className="text-base sm:text-lg font-bold text-text-primary">Recommended DEX</h2>
             <button
-              onClick={() => setShowCompactMode(false)}
+              onClick={handleCycleDEX}
               className="px-3 py-1.5 text-xs sm:text-sm bg-surface-3 hover:bg-surface-2 text-text-secondary rounded-lg transition-colors"
             >
-              Edit
+              DEX Options
             </button>
           </div>
 
@@ -746,88 +921,18 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
             onShowTransactionPreview={onShowTransactionPreview}
             swapAnalysis={swapAnalysis}
             onDEXSelectedForICPSwap={onDEXSelectedForICPSwap}
+            onCycleDEX={(cycleFunc) => {
+              dexCycleRef.current = cycleFunc;
+            }}
           />
         </div>
       )}
 
-      {/* Check if this is a native withdrawal (ckETH->ETH, ckBTC->BTC) */}
-      {!showCompactMode && (() => {
-        const isNativeWithdrawal = (fromAsset === 'ckETH' && toAsset === 'ETH') ||
-                                  (fromAsset === 'ckBTC' && toAsset === 'BTC');
-
-        if (isNativeWithdrawal) {
-          // For native withdrawals: show Execute button (gas info moved to What's Happening)
-          return (
-            <>
-              {/* Direct Execute Button for Native Withdrawals */}
-              {swapAnalysis && parseFloat(swapAmount || '0') > 0 && (
-                <div className="w-full max-w-lg mt-6">
-                  {/* Balance Preview */}
-                  <div className="bg-surface-2 rounded-xl p-4 mb-4">
-                    <div className="text-xs sm:text-sm font-semibold text-text-primary mb-2 sm:mb-3 flex items-center gap-2">
-                      <Scale size={14} className="sm:w-4 sm:h-4" />
-                      Balance Preview
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs sm:text-sm text-text-secondary">Current {fromAsset}:</span>
-                        <span className="text-xs sm:text-sm font-medium text-text-primary">{formatAmount(portfolio[fromAsset] || 0)}</span>
-                      </div>
-                      <div className="flex justify-between items-center text-error-400">
-                        <span className="text-xs sm:text-sm">
-                          {(fromAsset === 'ckBTC' && toAsset === 'BTC') ? 'ckBTC Gas Fees:' :
-                           (fromAsset === 'ckETH' && toAsset === 'ETH') ? 'ckETH Gas Fees:' :
-                           `After withdrawal ${fromAsset}:`}
-                        </span>
-                        <span className="text-xs sm:text-sm font-medium">
-                          {formatAmount(Math.max(0, (portfolio[fromAsset] || 0) - parseFloat(swapAmount || '0')))}
-                          <span className="text-xs ml-1">(-{formatAmount(parseFloat(swapAmount || '0'))})</span>
-                        </span>
-                      </div>
-                      <div className="border-t border-white/10 pt-2">
-                        <div className="flex justify-between items-center text-success-400">
-                          <span className="text-xs sm:text-sm">You'll receive {toAsset}:</span>
-                          <span className="text-xs sm:text-sm font-medium">
-                            {swapAnalysis?.outputAmount
-                              ? formatAmount(swapAnalysis.outputAmount)
-                              : formatAmount(parseFloat(swapAmount || '0') * 0.95)
-                            }
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Execute Button */}
-                  <button
-                    className="w-full btn-success btn-text"
-                    onClick={() => {
-                      if (swapAnalysis) {
-                        setTransactionData(swapAnalysis);
-                      }
-                      onShowTransactionPreview();
-                    }}
-                  >
-                    <Rocket className="inline w-4 h-4 mr-1" />
-                    Execute {toAsset} Withdrawal
-                  </button>
-                </div>
-              )}
-            </>
-          );
-        } else {
-          // For other swaps: show DEX selection (slippage settings moved to CompactDEX)
-          return (
-            <>
-              {/* DEX selection will include slippage tolerance */}
-            </>
-          );
-        }
-      })()}
+      {/* OLD Balance Preview and Execute Button REMOVED - replaced with inline fee preview below */}
 
       {/* STEP 2/3: DEX Selection OR Smart Solutions (Mobile-First Single Container) */}
-      {/* Only show this when NOT in compact mode (old vertical stacking) */}
-      {!showCompactMode && (showDEXSelection || showSmartSolutions) && swapAnalysis && fromAsset !== toAsset && (
+      {/* DISABLED - This old vertical DEX selector is replaced by compact mode triggered after BTC wallet connection */}
+      {false && !showCompactMode && (showDEXSelection || showSmartSolutions) && swapAnalysis && fromAsset !== toAsset && (
         <div className="w-full max-w-lg mt-6 rounded-2xl border border-white/10 bg-surface-1 p-6">
           {/* DEX Selection Content - Only show if Smart Solutions are NOT showing */}
           {showDEXSelection && !showSmartSolutions && (
@@ -988,72 +1093,7 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
         </div>
       )}
 
-      {/* What's Happening (Route Explanation) - Informative Details */}
-      {showRouteDetails && swapAnalysis && (
-        <div className="w-full max-w-lg mt-6 rounded-2xl border border-white/10 bg-surface-1 p-4 sm:p-6">
-          <div className="text-center mb-4 sm:mb-6">
-            <h1 className="text-base sm:text-lg font-bold text-text-primary mb-1">What's Happening?</h1>
-            <p className="text-xs sm:text-sm text-text-secondary">Your transaction explained</p>
-          </div>
-
-          {/* Route Visualization */}
-          <div className="mb-4 sm:mb-6">
-            <SimpleRouteDisplay route={swapAnalysis.route} />
-          </div>
-
-          {/* Transaction Details Grid */}
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
-            <div className="bg-surface-2 rounded-lg p-3 sm:p-4">
-              <div className="text-xs text-text-secondary mb-1">Operation</div>
-              <div className="text-xs sm:text-sm font-semibold text-text-primary">{swapAnalysis.route.operationType}</div>
-            </div>
-            <div className="bg-surface-2 rounded-lg p-3 sm:p-4">
-              <div className="text-xs text-text-secondary mb-1">Networks</div>
-              <div className="text-xs sm:text-sm font-semibold text-text-primary">
-                {swapAnalysis.route.chainsInvolved.join(' → ')}
-              </div>
-            </div>
-            <div className="bg-surface-2 rounded-lg p-3 sm:p-4">
-              <div className="text-xs text-text-secondary mb-1">Est. Time</div>
-              <div className="text-xs sm:text-sm font-semibold text-text-primary">{swapAnalysis.route.estimatedTime}</div>
-            </div>
-            <div className="bg-surface-2 rounded-lg p-3 sm:p-4">
-              <div className="text-xs text-text-secondary mb-1">Security</div>
-              <div className="text-xs sm:text-sm font-semibold text-text-primary">Chain Key</div>
-            </div>
-          </div>
-
-          {/* Bitcoin Gas Fee Display */}
-          {(() => {
-            // Find Bitcoin gas fee in feeRequirements
-            const bitcoinGasFee = swapAnalysis.isL1Withdrawal && swapAnalysis.destinationChain === 'Bitcoin'
-              ? swapAnalysis.feeRequirements.find(fee => fee.purpose === 'gas' || fee.purpose === 'network')
-              : null;
-
-            if (bitcoinGasFee) {
-              return (
-                <div className="bg-primary-600/10 border border-primary-500/20 rounded-lg p-3 sm:p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-primary-300">
-                      <Fuel size={14} className="sm:w-4 sm:h-4" />
-                      Bitcoin Network Fee
-                    </span>
-                    <span className="text-xs sm:text-sm font-bold text-primary-400">
-                      {formatNumber(bitcoinGasFee.amount)} {bitcoinGasFee.token}
-                    </span>
-                  </div>
-                  <div className="text-xs text-text-secondary">
-                    {bitcoinGasFee.deductFromFinal
-                      ? 'Deducted from final amount - no separate payment needed'
-                      : bitcoinGasFee.description}
-                  </div>
-                </div>
-              );
-            }
-            return null;
-          })()}
-        </div>
-      )}
+      {/* What's Happening modal REMOVED - ExecutionProgressModal shows route in real-time */}
 
       {/* OLD Smart Solutions - Keep as backup for now */}
       {false /* DISABLED - Old Complex Smart Solutions UI */ && showSmartSolutions && smartSolutions.length > 0 && (
