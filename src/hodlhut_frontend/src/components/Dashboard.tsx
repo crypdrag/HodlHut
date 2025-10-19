@@ -251,7 +251,7 @@ const Dashboard: React.FC = () => {
   const [portfolio, setPortfolio] = useState<Portfolio>(PORTFOLIO_SCENARIOS[initialScenario]);
 
   // Advanced Swap State - Bitcoin-only onramp (TO asset locked to BTC)
-  const [fromAsset, setFromAsset] = useState('');
+  const [fromAsset, setFromAsset] = useState('ETH'); // Default to first asset in list
   const [toAsset, setToAsset] = useState('BTC'); // Bitcoin-only onramp: TO asset always BTC
   const [swapAmount, setSwapAmount] = useState('');
   const [selectedDEX, setSelectedDEX] = useState<string | null>(null);
@@ -992,7 +992,7 @@ const Dashboard: React.FC = () => {
 
   // Reset swap assets page to fresh state
   const resetSwapAssetsPage = () => {
-    setFromAsset('');
+    setFromAsset('ETH'); // Default to first asset in list
     setToAsset('BTC'); // Bitcoin-only onramp: TO asset always BTC
     setSwapAmount('');
     setSelectedDEX(null); // Reset DEX selection to show "Select" instead of "Selected"

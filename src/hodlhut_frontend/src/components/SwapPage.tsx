@@ -51,7 +51,7 @@ const SwapPage: React.FC = () => {
   const [isConnectingWallet, setIsConnectingWallet] = useState(false);
 
   // Swap state
-  const [fromAsset, setFromAsset] = useState('');
+  const [fromAsset, setFromAsset] = useState('ETH'); // Default to first asset in list
   const [toAsset, setToAsset] = useState('BTC'); // Bitcoin-only onramp: TO asset always BTC
   const [swapAmount, setSwapAmount] = useState('');
   const [selectedDEX, setSelectedDEX] = useState<string | null>(null);

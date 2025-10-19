@@ -449,11 +449,7 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
   // Render wallet connection UI for FROM asset card
   const renderWalletConnectionUI = () => {
     if (!fromAsset) {
-      return (
-        <div className="text-center">
-          <span className="text-xs sm:text-sm text-text-muted">Select asset to see balance</span>
-        </div>
-      );
+      return null;
     }
 
     const requiredWallet = getRequiredWallet(fromAsset);
@@ -703,14 +699,13 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
             </div>
           </div>
 
-          <div className="text-center">
-            <span className="text-xs sm:text-sm text-text-muted">
-              {swapAnalysis?.outputAmount && swapAmount ?
-                `Rate: 1 ${fromAsset} ≈ ${(swapAnalysis.outputAmount / parseFloat(swapAmount)).toFixed(4)} BTC` :
-                "You'll receive BTC"
-              }
-            </span>
-          </div>
+          {swapAnalysis?.outputAmount && swapAmount && (
+            <div className="text-center">
+              <span className="text-xs sm:text-sm text-text-muted">
+                Rate: 1 {fromAsset} ≈ {(swapAnalysis.outputAmount / parseFloat(swapAmount)).toFixed(4)} BTC
+              </span>
+            </div>
+          )}
         </div>
       </div>
       )}
