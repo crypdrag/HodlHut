@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Settings,
   Fuel,
@@ -18,6 +18,7 @@ import {
 import AssetIcon from './AssetIcon';
 import CustomDropdown from './CustomDropdown';
 import CompactDEXSelector from './CompactDEXSelector';
+import WalletSelectionModal from './WalletSelectionModal';
 import { AuthStep } from './AuthenticationModal';
 import { Portfolio, MASTER_ASSETS, ASSET_PRICES } from '../../assets/master_asset_data';
 import { CompleteSwapAnalysis, SmartSolution, DEX_OPTIONS } from '../../assets/master_swap_logic';
@@ -71,6 +72,8 @@ interface SwapAssetsSectionProps {
   showRouteDetails: boolean;
   showSmartSolutions: boolean;
   showDEXSelection: boolean;
+  showCompactMode: boolean;
+  setShowCompactMode: (show: boolean) => void;
   slippageTolerance: number;
   currentGasPrice: number;
   smartSolutions: EnhancedSmartSolution[];
@@ -95,6 +98,15 @@ interface SwapAssetsSectionProps {
   onDEXSelectedForICPSwap?: (dexId: string) => void;
   executeSwap?: (request: SwapRequest) => Promise<SwapResponse | null>;
   updatePortfolioAfterSwap?: (fromAsset: string, toAsset: string, fromAmount: number, toAmount: number) => void;
+  connectedMetaMask: string | null;
+  isPlugConnected: boolean;
+  isConnectingWallet: boolean;
+  onConnectMetaMask: () => void;
+  onDisconnectMetaMask: () => void;
+  onConnectPlug: () => void;
+  onDisconnectPlug: () => void;
+  getRequiredWallet: (asset: string) => 'metamask' | 'plug' | null;
+  isWalletConnectedForAsset: (asset: string) => boolean;
 }
 
 const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
@@ -107,6 +119,8 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
   showRouteDetails,
   showSmartSolutions,
   showDEXSelection,
+  showCompactMode,
+  setShowCompactMode,
   slippageTolerance,
   currentGasPrice,
   smartSolutions,
@@ -130,13 +144,36 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
   onShowTransactionPreview,
   onDEXSelectedForICPSwap,
   executeSwap,
-  updatePortfolioAfterSwap
+  updatePortfolioAfterSwap,
+  connectedMetaMask,
+  isPlugConnected,
+  isConnectingWallet,
+  onConnectMetaMask,
+  onDisconnectMetaMask,
+  onConnectPlug,
+  onDisconnectPlug,
+  getRequiredWallet,
+  isWalletConnectedForAsset
 }) => {
   // State for execution confirmation and progressive Smart Solutions
   const [showExecutionConfirm, setShowExecutionConfirm] = useState<number | null>(null);
   const [smartSolutionsStep, setSmartSolutionsStep] = useState<number>(1);
   const [rejectedOptions, setRejectedOptions] = useState<Set<string>>(new Set());
   const [showSolutionsLayer, setShowSolutionsLayer] = useState<'primary' | 'alternatives'>('primary');
+
+  // Wallet selection modal state
+  const [showWalletModal, setShowWalletModal] = useState(false);
+  const [walletModalType, setWalletModalType] = useState<'ethereum' | 'icp' | 'bitcoin'>('ethereum');
+
+  // Auto-enable compact mode when wallet is connected and DEX selection is ready
+  useEffect(() => {
+    const isWalletConnected = isWalletConnectedForAsset(fromAsset);
+    const isReadyForDEX = showDEXSelection && fromAsset && toAsset && swapAmount && parseFloat(swapAmount) > 0;
+
+    if (isWalletConnected && isReadyForDEX) {
+      setShowCompactMode(true);
+    }
+  }, [showDEXSelection, fromAsset, toAsset, swapAmount, isWalletConnectedForAsset, setShowCompactMode]);
 
   // Execute the actual swap using backend MyHut canister
   const handleExecuteSwap = async () => {
@@ -397,6 +434,87 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
     return null;
   };
 
+  // Handle wallet selection from modal
+  const handleWalletSelection = async (walletId: string) => {
+    if (walletId === 'metamask') {
+      await onConnectMetaMask();
+    } else if (walletId === 'plug') {
+      await onConnectPlug();
+    } else if (walletId === 'uniswap' || walletId === 'trust') {
+      // TODO: Implement Uniswap Wallet and Trust Wallet connections
+      console.log(`${walletId} connection not yet implemented`);
+    }
+  };
+
+  // Render wallet connection UI for FROM asset card
+  const renderWalletConnectionUI = () => {
+    if (!fromAsset) {
+      return (
+        <div className="text-center">
+          <span className="text-xs sm:text-sm text-text-muted">Select asset to see balance</span>
+        </div>
+      );
+    }
+
+    const requiredWallet = getRequiredWallet(fromAsset);
+    const isConnected = isWalletConnectedForAsset(fromAsset);
+
+    // No wallet required (shouldn't happen in Bitcoin-only onramp)
+    if (!requiredWallet) {
+      return (
+        <div className="text-center">
+          <span className="text-xs sm:text-sm text-text-muted">
+            Balance: {fromAsset && portfolio[fromAsset] ? formatAmount(portfolio[fromAsset]) : '--'}
+          </span>
+        </div>
+      );
+    }
+
+    // Wallet not connected - show connect button that opens modal
+    if (!isConnected) {
+      return (
+        <button
+          onClick={() => {
+            // Set modal type based on asset
+            const modalType = requiredWallet === 'metamask' ? 'ethereum' : 'icp';
+            setWalletModalType(modalType);
+            setShowWalletModal(true);
+          }}
+          disabled={isConnectingWallet}
+          className="w-full min-h-[44px] py-2 px-4 bg-primary-600 hover:bg-primary-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isConnectingWallet ? 'Connecting...' : 'Connect Wallet'}
+        </button>
+      );
+    }
+
+    // Wallet connected - show balance and disconnect option
+    const balance = portfolio[fromAsset] || 0;
+    const walletAddress = requiredWallet === 'metamask' ? connectedMetaMask : null;
+    const disconnectHandler = requiredWallet === 'metamask' ? onDisconnectMetaMask : onDisconnectPlug;
+
+    return (
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex-1 text-left">
+          <div className="text-xs sm:text-sm text-text-muted">
+            Balance: {formatAmount(balance)} {fromAsset}
+          </div>
+          {walletAddress && (
+            <div className="text-xs text-text-secondary">
+              {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+            </div>
+          )}
+        </div>
+        <button
+          onClick={disconnectHandler}
+          className="text-xs px-2 py-1 min-h-[44px] rounded bg-surface-3 hover:bg-surface-2 text-text-secondary transition-colors"
+        >
+          Disconnect
+        </button>
+      </div>
+    );
+  };
+
   // Simple Route Visualization - Mobile-First Responsive
   const SimpleRouteDisplay: React.FC<{ route: SwapRoute }> = ({ route }) => {
     return (
@@ -506,12 +624,15 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
 
   return (
     <div className="w-full flex flex-col items-center px-4 py-2 sm:py-4">
-      <div className="text-center mb-2 sm:mb-4">
-        <div className="text-lg sm:text-xl font-bold text-text-primary mb-1">Get Bitcoin for Staking</div>
-        <p className="text-xs sm:text-sm text-text-secondary hidden sm:block">Convert your crypto to Bitcoin and earn Babylon rewards.</p>
-      </div>
+      {!showCompactMode && (
+        <div className="text-center mb-2 sm:mb-4">
+          <div className="text-lg sm:text-xl font-bold text-text-primary mb-1">Get Bitcoin for Staking</div>
+          <p className="text-xs sm:text-sm text-text-secondary hidden sm:block">Convert your crypto to Bitcoin and earn Babylon rewards.</p>
+        </div>
+      )}
 
-      {/* Main Swap Interface */}
+      {/* Main Swap Interface - Only show when not in compact mode */}
+      {!showCompactMode && (
       <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-surface-1 p-2 sm:p-3 md:p-4">
         {/* From Asset */}
         <div className="bg-surface-2 border border-white/10 rounded-xl p-3 sm:p-4 md:p-6">
@@ -542,11 +663,7 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
             />
           </div>
 
-          <div className="text-center">
-            <span className="text-xs sm:text-sm text-text-muted">
-              Balance: {fromAsset && portfolio[fromAsset] ? formatAmount(portfolio[fromAsset]) : '--'}
-            </span>
-          </div>
+          {renderWalletConnectionUI()}
         </div>
 
         {/* Swap Arrow and MAX Button */}
@@ -596,9 +713,50 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
           </div>
         </div>
       </div>
+      )}
+
+      {/* Compact Mode: DEX Selector replaces swap interface after wallet connection */}
+      {showCompactMode && showDEXSelection && swapAnalysis && (
+        <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-surface-1 p-4 sm:p-6">
+          {/* Header with Edit button */}
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <div>
+              <h2 className="text-base sm:text-lg font-bold text-text-primary">Choose your DEX</h2>
+              <p className="text-xs sm:text-sm text-text-secondary mt-1">
+                {fromAsset} → BTC: {swapAmount} {fromAsset}
+              </p>
+            </div>
+            <button
+              onClick={() => setShowCompactMode(false)}
+              className="px-3 py-1.5 text-xs sm:text-sm bg-surface-3 hover:bg-surface-2 text-text-secondary rounded-lg transition-colors"
+            >
+              Edit
+            </button>
+          </div>
+
+          <CompactDEXSelector
+            selectedDEX={selectedDEX}
+            setSelectedDEX={(dexId: string | null) => {
+              setSelectedDEX(dexId);
+              if (dexId && swapAnalysis && parseFloat(swapAmount || '0') > 0) {
+                onDEXSelectedForICPSwap?.(dexId);
+              }
+            }}
+            dexData={DEX_OPTIONS_ENHANCED}
+            fromAsset={fromAsset}
+            toAsset={toAsset}
+            swapAmount={swapAmount}
+            swapValueUSD={parseFloat(swapAmount || '0') * (ASSET_PRICES[fromAsset] || 0)}
+            slippageTolerance={slippageTolerance}
+            onShowTransactionPreview={onShowTransactionPreview}
+            swapAnalysis={swapAnalysis}
+            onDEXSelectedForICPSwap={onDEXSelectedForICPSwap}
+          />
+        </div>
+      )}
 
       {/* Check if this is a native withdrawal (ckETH->ETH, ckBTC->BTC) */}
-      {(() => {
+      {!showCompactMode && (() => {
         const isNativeWithdrawal = (fromAsset === 'ckETH' && toAsset === 'ETH') ||
                                   (fromAsset === 'ckBTC' && toAsset === 'BTC');
 
@@ -673,7 +831,8 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
       })()}
 
       {/* STEP 2/3: DEX Selection OR Smart Solutions (Mobile-First Single Container) */}
-      {(showDEXSelection || showSmartSolutions) && swapAnalysis && fromAsset !== toAsset && (
+      {/* Only show this when NOT in compact mode (old vertical stacking) */}
+      {!showCompactMode && (showDEXSelection || showSmartSolutions) && swapAnalysis && fromAsset !== toAsset && (
         <div className="w-full max-w-lg mt-6 rounded-2xl border border-white/10 bg-surface-1 p-6">
           {/* DEX Selection Content - Only show if Smart Solutions are NOT showing */}
           {showDEXSelection && !showSmartSolutions && (
@@ -1272,6 +1431,19 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
         </div>
       )}
 
+      {/* Wallet Selection Modal */}
+      <WalletSelectionModal
+        isOpen={showWalletModal}
+        onClose={() => setShowWalletModal(false)}
+        onSelectWallet={handleWalletSelection}
+        walletType={walletModalType}
+        onEthereumConnected={(address) => {
+          // Handle successful Ethereum wallet connection
+          console.log('Ethereum wallet connected:', address);
+          // Trigger the connection handler to update Dashboard state
+          onConnectMetaMask();
+        }}
+      />
     </div>
   );
 };

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { usePlugWallet } from '../hooks/usePlugWallet';
+import { simpleEthereumWallet } from '../services/simpleEthereumWallet';
+import { simplePlugWallet } from '../services/simplePlugWallet';
 import DepositModal from './DepositModal';
 import SmartSolutionModal from './SmartSolutionModal';
 import TransactionPreviewModal from './TransactionPreviewModal';
@@ -135,45 +136,216 @@ const PORTFOLIO_SCENARIOS = {
     ckETH: 0,
     ckUSDC: 0,
     ckUSDT: 0,
-    ICP: 0
+    ICP: 0,
+    // Mock L1 wallet balances for testing Bitcoin-only onramp (pre-wallet integration)
+    ETH: 1.5,
+    USDC: 2500,
+    USDT: 1500
   },
   'bitcoin-hodler': {
     ckBTC: 1.5,
     ckUSDC: 500,
     ckETH: 0,
     ckUSDT: 0,
-    ICP: 1000
+    ICP: 1000,
+    // Mock L1 wallet balances
+    ETH: 1.5,
+    USDC: 2500,
+    USDT: 1500
   },
   'new-user': {
     ICP: 25,
     ckBTC: 0.1,
     ckETH: 0,
     ckUSDC: 0,
-    ckUSDT: 0
+    ckUSDT: 0,
+    // Mock L1 wallet balances
+    ETH: 1.5,
+    USDC: 2500,
+    USDT: 1500
   },
   'defi-user': {
     ckETH: 1.2,
     ckUSDC: 1000,
     ckBTC: 0.05,
     ckUSDT: 0,
-    ICP: 1000
+    ICP: 1000,
+    // Mock L1 wallet balances
+    ETH: 1.5,
+    USDC: 2500,
+    USDT: 1500
   },
   'gas-poor': {
     ckUSDC: 2000,
     ckUSDT: 500,
     ckBTC: 0,
     ckETH: 0,
-    ICP: 1000
+    ICP: 1000,
+    // Mock L1 wallet balances
+    ETH: 1.5,
+    USDC: 2500,
+    USDT: 1500
   }
 };
 
+
+// Declare MetaMask types
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
   const { showSuccess, showError, showMyHutFallback } = useToast();
-  const { executeSwap } = usePlugWallet();
+
+  // Simple Ethereum wallet state (MetaMask, Trust, Uniswap, etc.)
+  const [connectedEthereumAddress, setConnectedEthereumAddress] = useState<string | null>(null);
+  const [isEthereumConnected, setIsEthereumConnected] = useState(false);
+
+  // Simple Plug wallet state
+  const [connectedPlug, setConnectedPlug] = useState<string | null>(null);
+
+  // Legacy wallet connection state (for loading indicators)
+  const [isConnectingWallet, setIsConnectingWallet] = useState(false);
+
+  // Subscribe to wallet state changes
+  useEffect(() => {
+    // Subscribe to Ethereum wallet
+    const unsubscribeEth = simpleEthereumWallet.subscribe((state) => {
+      setConnectedEthereumAddress(state.address);
+      setIsEthereumConnected(state.isConnected);
+    });
+
+    // Subscribe to Plug wallet
+    const unsubscribePlug = simplePlugWallet.subscribe((state) => {
+      setConnectedPlug(state.isConnected ? state.principal : null);
+    });
+
+    // Check initial connection states
+    const initialEthState = simpleEthereumWallet.getState();
+    setConnectedEthereumAddress(initialEthState.address);
+    setIsEthereumConnected(initialEthState.isConnected);
+
+    const initialPlugState = simplePlugWallet.getState();
+    if (initialPlugState.isConnected && initialPlugState.principal) {
+      setConnectedPlug(initialPlugState.principal);
+    }
+
+    return () => {
+      unsubscribeEth();
+      unsubscribePlug();
+    };
+  }, []);
+
+  // Check if navigation state specifies an active section and user flow
+  const initialSection = (location.state as any)?.activeSection || 'addAssets';
+  const userFlow = (location.state as any)?.userFlow || 'newUser';
+  const [activeSection, setActiveSection] = useState(initialSection);
+  // Initialize scenario based on user flow
+  const initialScenario = userFlow === 'returningUser' ? 'defi-user' : 'empty-hut';
+  const [currentScenario, setCurrentScenario] = useState<keyof typeof PORTFOLIO_SCENARIOS>(initialScenario);
+  const [portfolio, setPortfolio] = useState<Portfolio>(PORTFOLIO_SCENARIOS[initialScenario]);
+
+  // Advanced Swap State - Bitcoin-only onramp (TO asset locked to BTC)
+  const [fromAsset, setFromAsset] = useState('');
+  const [toAsset, setToAsset] = useState('BTC'); // Bitcoin-only onramp: TO asset always BTC
+  const [swapAmount, setSwapAmount] = useState('');
+  const [selectedDEX, setSelectedDEX] = useState<string | null>(null);
+
+  // Portfolio collapse state - always default to closed on page load
+  const [portfolioExpanded, setPortfolioExpanded] = useState(false);
+  const [swapAnalysis, setSwapAnalysis] = useState<CompleteSwapAnalysis | null>(null);
+  const [showRouteDetails, setShowRouteDetails] = useState(false);
+  const [showSmartSolutions, setShowSmartSolutions] = useState(false);
+  const [showDEXSelection, setShowDEXSelection] = useState(false);
+
+  // UI state - Compact mode (DEX selector replaces swap interface)
+  const [showCompactMode, setShowCompactMode] = useState(false);
+
+  const [slippageTolerance, setSlippageTolerance] = useState(5.0);
+  const [currentGasPrice, setCurrentGasPrice] = useState(25);
+  const [timeRemaining, setTimeRemaining] = useState(1800); // 30 minutes for Hut activation
+  const [hasEverHadAssets, setHasEverHadAssets] = useState(userFlow === 'returningUser'); // Track if user ever had assets
+
+  // Enhanced Smart Solutions State
+  const [smartSolutions, setSmartSolutions] = useState<EnhancedSmartSolution[]>([]);
+  const [selectedSolution, setSelectedSolution] = useState<number | null>(null);
+  const [showAllSolutions, setShowAllSolutions] = useState(false); // Mobile-first: show one at a time
+  const [currentSolutionIndex, setCurrentSolutionIndex] = useState(0); // Track which solution to show
+  const [isShowingFinalDepositOption, setIsShowingFinalDepositOption] = useState(false); // Track if we're showing the final deposit alternative
+
+  // Mobile Navigation State
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Unified Deposit Interface State
+  const [selectedDepositAssetUnified, setSelectedDepositAssetUnified] = useState('');
+
+
+  // Smart Solutions Approval Modal State
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [pendingApproval, setPendingApproval] = useState<EnhancedSmartSolution | null>(null);
+
+  // Transaction Preview Modal State
+  const [showTransactionPreviewModal, setShowTransactionPreviewModal] = useState(false);
+  const [approvedSmartSolution, setApprovedSmartSolution] = useState<EnhancedSmartSolution | null>(null);
+
+  // Smart Solutions deposit state
+  const [isSmartSolutionDeposit, setIsSmartSolutionDeposit] = useState(false);
+
+  // Execution Progress Modal State
+  const [showExecutionProgressModal, setShowExecutionProgressModal] = useState(false);
+
+  // Deposit Modal State
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState<boolean>(false);
+  const [selectedDepositAsset, setSelectedDepositAsset] = useState<string>('');
+
+  // Internet Identity Authentication Modal State
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authStep, setAuthStep] = useState<AuthStep>('authenticate');
+  const [transactionData, setTransactionData] = useState<CompleteSwapAnalysis | null>(null);
+  const [selectedWallet, setSelectedWallet] = useState<string>('');
+  const [transactionSteps, setTransactionSteps] = useState<TransactionStep[]>([]);
+
+  // My Garden Claim Yield State
+  const [claimedAssets, setClaimedAssets] = useState<Set<string>>(new Set());
+  const [sparklingAssets, setSparklingAssets] = useState<Set<string>>(new Set());
+
+  // Asset Detail Expansion State
+  const [expandedAssets, setExpandedAssets] = useState<Set<string>>(new Set());
+
+  // Phase 2: Real Staking State Management
+  const [stakedAmounts, setStakedAmounts] = useState<Record<string, number>>({});
+  const [stakingHistory, setStakingHistory] = useState<Record<string, Array<{
+    amount: number;
+    timestamp: number;
+    type: 'stake' | 'unstake' | 'claim';
+    txHash?: string;
+  }>>>({});
+  const [pendingStaking, setPendingStaking] = useState<Set<string>>(new Set());
+  const [selectedStakingAsset, setSelectedStakingAsset] = useState<string | null>(null);
+  const [stakingModalOpen, setStakingModalOpen] = useState(false);
+
+  // Phase 3: Staking Confirmation Flow
+  const [stakingConfirmationOpen, setStakingConfirmationOpen] = useState(false);
+  const [pendingStakingAmount, setPendingStakingAmount] = useState<number>(0);
+  const [stakingTransactionState, setStakingTransactionState] = useState<'confirming' | 'processing' | 'success'>('confirming');
+
+  // Phase 3: Unstaking Flow
+  const [unstakingModalOpen, setUnstakingModalOpen] = useState(false);
+  const [selectedUnstakingAsset, setSelectedUnstakingAsset] = useState<string | null>(null);
+  const [unstakingConfirmationOpen, setUnstakingConfirmationOpen] = useState(false);
+  const [pendingUnstakingAmount, setPendingUnstakingAmount] = useState<number>(0);
+  const [unstakingTransactionState, setUnstakingTransactionState] = useState<'confirming' | 'processing' | 'success'>('confirming');
+
+  // Consolidated Staking Modal
+  const [consolidatedStakingModalOpen, setConsolidatedStakingModalOpen] = useState(false);
+
+  // Derive MetaMask address (backward compatibility)
+  const connectedMetaMask = connectedEthereumAddress || null;
 
   // Portfolio balance update function after successful swaps
   const updatePortfolioAfterSwap = (fromAsset: string, toAsset: string, fromAmount: number, toAmount: number) => {
@@ -190,121 +362,138 @@ const Dashboard: React.FC = () => {
       return updated;
     });
   };
-  
-  // Check if navigation state specifies an active section and user flow
-  const initialSection = (location.state as any)?.activeSection || 'addAssets';
-  const userFlow = (location.state as any)?.userFlow || 'newUser';
-  const [activeSection, setActiveSection] = useState(initialSection);
-  // Initialize scenario based on user flow
-  const initialScenario = userFlow === 'returningUser' ? 'defi-user' : 'empty-hut';
-  const [currentScenario, setCurrentScenario] = useState<keyof typeof PORTFOLIO_SCENARIOS>(initialScenario);
-  const [portfolio, setPortfolio] = useState<Portfolio>(PORTFOLIO_SCENARIOS[initialScenario]);
-  
-  // Advanced Swap State
-  const [fromAsset, setFromAsset] = useState('');
-  const [toAsset, setToAsset] = useState('');
-  const [swapAmount, setSwapAmount] = useState('');
-  const [selectedDEX, setSelectedDEX] = useState<string | null>(null);
-  
-  // Portfolio collapse state - always default to closed on page load
-  const [portfolioExpanded, setPortfolioExpanded] = useState(false);
-  const [swapAnalysis, setSwapAnalysis] = useState<CompleteSwapAnalysis | null>(null);
-  const [showRouteDetails, setShowRouteDetails] = useState(false);
-  const [showSmartSolutions, setShowSmartSolutions] = useState(false);
-  const [showDEXSelection, setShowDEXSelection] = useState(false);
-  const [slippageTolerance, setSlippageTolerance] = useState(5.0);
-  const [currentGasPrice, setCurrentGasPrice] = useState(25);
-  const [timeRemaining, setTimeRemaining] = useState(1800); // 30 minutes for Hut activation
-  const [hasEverHadAssets, setHasEverHadAssets] = useState(userFlow === 'returningUser'); // Track if user ever had assets
 
-  // Enhanced Smart Solutions State
-  const [smartSolutions, setSmartSolutions] = useState<EnhancedSmartSolution[]>([]);
-  const [selectedSolution, setSelectedSolution] = useState<number | null>(null);
-  const [showAllSolutions, setShowAllSolutions] = useState(false); // Mobile-first: show one at a time
-  const [currentSolutionIndex, setCurrentSolutionIndex] = useState(0); // Track which solution to show
-  const [isShowingFinalDepositOption, setIsShowingFinalDepositOption] = useState(false); // Track if we're showing the final deposit alternative
-  
-  // Mobile Navigation State
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
-  // Unified Deposit Interface State
-  const [selectedDepositAssetUnified, setSelectedDepositAssetUnified] = useState('');
+  // Wallet connection handlers (now using simpleEthereumWallet)
+  const handleConnectMetaMask = async () => {
+    try {
+      await simpleEthereumWallet.connect();
+      // State update handled by subscription (line 214-226)
+    } catch (error: any) {
+      console.error('Wallet connection error:', error);
+      showError?.(error.message || 'Failed to connect wallet');
+    }
+  };
 
-  
-  // Smart Solutions Approval Modal State
-  const [showApprovalModal, setShowApprovalModal] = useState(false);
-  const [pendingApproval, setPendingApproval] = useState<EnhancedSmartSolution | null>(null);
+  const handleDisconnectMetaMask = () => {
+    simpleEthereumWallet.disconnect();
+    showSuccess('Ethereum wallet disconnected');
+  };
 
-  // Transaction Preview Modal State
-  const [showTransactionPreviewModal, setShowTransactionPreviewModal] = useState(false);
-  const [approvedSmartSolution, setApprovedSmartSolution] = useState<EnhancedSmartSolution | null>(null);
+  // Show success toast when Ethereum wallet connects
+  useEffect(() => {
+    if (isEthereumConnected && connectedEthereumAddress) {
+      showSuccess(`Wallet connected: ${connectedEthereumAddress.slice(0, 6)}...${connectedEthereumAddress.slice(-4)}`);
+    }
+  }, [isEthereumConnected, connectedEthereumAddress]);
 
-  // Smart Solutions deposit state
-  const [isSmartSolutionDeposit, setIsSmartSolutionDeposit] = useState(false);
+  // Fetch real Ethereum wallet balances using simpleEthereumWallet
+  useEffect(() => {
+    const fetchBalances = async () => {
+      if (isEthereumConnected && connectedEthereumAddress) {
+        try {
+          // Fetch ETH balance
+          const ethBal = await simpleEthereumWallet.getETHBalance();
 
-  // Execution Progress Modal State
-  const [showExecutionProgressModal, setShowExecutionProgressModal] = useState(false);
+          // Fetch USDC balance (6 decimals)
+          const usdcBal = await simpleEthereumWallet.getTokenBalance(
+            '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+            6
+          );
 
+          // Fetch USDT balance (6 decimals)
+          const usdtBal = await simpleEthereumWallet.getTokenBalance(
+            '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+            6
+          );
+
+          console.log('📊 Fetched real wallet balances:', {
+            ETH: ethBal,
+            USDC: usdcBal,
+            USDT: usdtBal
+          });
+
+          setPortfolio(prev => ({
+            ...prev,
+            ETH: parseFloat(ethBal),
+            USDC: parseFloat(usdcBal),
+            USDT: parseFloat(usdtBal),
+          }));
+        } catch (error) {
+          console.error('Error fetching wallet balances:', error);
+        }
+      } else if (!isEthereumConnected) {
+        // Reset to mock balances when wallet disconnects
+        console.log('📊 Wallet disconnected - resetting to mock balances');
+        setPortfolio(prev => ({
+          ...prev,
+          ETH: PORTFOLIO_SCENARIOS[currentScenario].ETH || 0,
+          USDC: PORTFOLIO_SCENARIOS[currentScenario].USDC || 0,
+          USDT: PORTFOLIO_SCENARIOS[currentScenario].USDT || 0,
+        }));
+      }
+    };
+
+    fetchBalances();
+  }, [isEthereumConnected, connectedEthereumAddress, currentScenario]);
+
+  const handleConnectPlug = async () => {
+    setIsConnectingWallet(true);
+    try {
+      const principal = await simplePlugWallet.connect();
+      setConnectedPlug(principal);
+      showSuccess(`Plug Wallet connected: ${principal.slice(0, 8)}...`);
+    } catch (error: any) {
+      console.error('Plug connection error:', error);
+      showError(error.message || 'Failed to connect Plug Wallet');
+    } finally {
+      setIsConnectingWallet(false);
+    }
+  };
+
+  const handleDisconnectPlug = async () => {
+    try {
+      await simplePlugWallet.disconnect();
+      setConnectedPlug(null);
+      showSuccess('Plug Wallet disconnected');
+    } catch (error: any) {
+      console.error('Plug disconnection error:', error);
+    }
+  };
+
+  // Determine which wallet is needed based on FROM asset
+  const getRequiredWallet = (asset: string): 'metamask' | 'plug' | null => {
+    if (['ETH', 'USDC', 'USDT'].includes(asset)) {
+      return 'metamask';
+    } else if (['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'].includes(asset)) {
+      return 'plug';
+    }
+    return null;
+  };
+
+  // Check if wallet is connected for selected asset
+  const isWalletConnectedForAsset = (asset: string): boolean => {
+    const requiredWallet = getRequiredWallet(asset);
+    if (requiredWallet === 'metamask') {
+      return !!connectedMetaMask;
+    } else if (requiredWallet === 'plug') {
+      return !!connectedPlug;
+    }
+    return false;
+  };
 
   // Update portfolio when scenario changes
   const switchScenario = (scenario: keyof typeof PORTFOLIO_SCENARIOS) => {
     setCurrentScenario(scenario);
     setPortfolio(PORTFOLIO_SCENARIOS[scenario]);
-    // Reset swap state when switching scenarios
+    // Reset swap state when switching scenarios - Bitcoin-only onramp: TO asset always BTC
     setFromAsset('');
-    setToAsset('');
+    setToAsset('BTC'); // Bitcoin-only onramp
     setSwapAmount('');
     setSelectedSolution(null);
     setShowAllSolutions(false); // Mobile-first: always show single solution
     setCurrentSolutionIndex(0); // Reset to first solution
   };
 
-  
-  // Deposit Modal State
-  const [isDepositModalOpen, setIsDepositModalOpen] = useState<boolean>(false);
-  const [selectedDepositAsset, setSelectedDepositAsset] = useState<string>('');
-  
-  // Internet Identity Authentication Modal State
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authStep, setAuthStep] = useState<AuthStep>('authenticate');
-  const [transactionData, setTransactionData] = useState<CompleteSwapAnalysis | null>(null);
-  const [selectedWallet, setSelectedWallet] = useState<string>('');
-  const [transactionSteps, setTransactionSteps] = useState<TransactionStep[]>([]);
-  
-  // My Garden Claim Yield State
-  const [claimedAssets, setClaimedAssets] = useState<Set<string>>(new Set());
-  const [sparklingAssets, setSparklingAssets] = useState<Set<string>>(new Set());
-  
-  // Asset Detail Expansion State
-  const [expandedAssets, setExpandedAssets] = useState<Set<string>>(new Set());
-
-  // Phase 2: Real Staking State Management
-  const [stakedAmounts, setStakedAmounts] = useState<Record<string, number>>({});
-  const [stakingHistory, setStakingHistory] = useState<Record<string, Array<{
-    amount: number;
-    timestamp: number;
-    type: 'stake' | 'unstake' | 'claim';
-    txHash?: string;
-  }>>>({});
-  const [pendingStaking, setPendingStaking] = useState<Set<string>>(new Set());
-  const [selectedStakingAsset, setSelectedStakingAsset] = useState<string | null>(null);
-  const [stakingModalOpen, setStakingModalOpen] = useState(false);
-  
-  // Phase 3: Staking Confirmation Flow
-  const [stakingConfirmationOpen, setStakingConfirmationOpen] = useState(false);
-  const [pendingStakingAmount, setPendingStakingAmount] = useState<number>(0);
-  const [stakingTransactionState, setStakingTransactionState] = useState<'confirming' | 'processing' | 'success'>('confirming');
-  
-  // Phase 3: Unstaking Flow
-  const [unstakingModalOpen, setUnstakingModalOpen] = useState(false);
-  const [selectedUnstakingAsset, setSelectedUnstakingAsset] = useState<string | null>(null);
-  const [unstakingConfirmationOpen, setUnstakingConfirmationOpen] = useState(false);
-  const [pendingUnstakingAmount, setPendingUnstakingAmount] = useState<number>(0);
-  const [unstakingTransactionState, setUnstakingTransactionState] = useState<'confirming' | 'processing' | 'success'>('confirming');
-
-  // Consolidated Staking Modal
-  const [consolidatedStakingModalOpen, setConsolidatedStakingModalOpen] = useState(false);
-  
   // Ethereum Wallet Options for Transaction
   const ETH_WALLET_OPTIONS = [
     { id: 'metamask', name: 'MetaMask', icon: <Wallet className="w-4 h-4 text-warning-400" /> },
@@ -585,7 +774,7 @@ const Dashboard: React.FC = () => {
       setShowAllSolutions(false); // Mobile-first: always show single solution
     setCurrentSolutionIndex(0); // Reset to first solution
     }
-  }, [fromAsset, toAsset, swapAmount, selectedDEX, portfolio]);
+  }, [fromAsset, toAsset, swapAmount, selectedDEX, portfolio, connectedMetaMask, connectedPlug]);
 
   // Gas price monitoring
   useEffect(() => {
@@ -626,8 +815,14 @@ const Dashboard: React.FC = () => {
     setShowRouteDetails(true);
 
     // STEP 3: Show DEX selection ONLY if needed (exclude direct Chain Fusion)
-    const isDirectChainFusion = analysis.route.operationType === 'Minter Operation' && analysis.isL1Withdrawal;
-    if (needsDEXSelection(fromAsset, toAsset) && !isDirectChainFusion) {
+    // Bitcoin-only onramp: Only ckBTC → BTC is direct Chain Fusion (no DEX needed)
+    // All other assets need DEX routing (e.g., ckETH → ckBTC → BTC requires DEX for ckETH → ckBTC)
+    const isDirectChainFusion = (fromAsset === 'ckBTC' && toAsset === 'BTC') ||
+                                (fromAsset === 'ckETH' && toAsset === 'ETH') ||
+                                (fromAsset === 'ckUSDC' && toAsset === 'USDC') ||
+                                (fromAsset === 'ckUSDT' && toAsset === 'USDT');
+    const isWalletConnected = isWalletConnectedForAsset(fromAsset);
+    if (needsDEXSelection(fromAsset, toAsset) && !isDirectChainFusion && isWalletConnected) {
       setShowDEXSelection(true);
     } else {
       setSelectedDEX(null);
@@ -798,13 +993,14 @@ const Dashboard: React.FC = () => {
   // Reset swap assets page to fresh state
   const resetSwapAssetsPage = () => {
     setFromAsset('');
-    setToAsset('');
+    setToAsset('BTC'); // Bitcoin-only onramp: TO asset always BTC
     setSwapAmount('');
     setSelectedDEX(null); // Reset DEX selection to show "Select" instead of "Selected"
     setSwapAnalysis(null);
     setShowRouteDetails(false);
     setShowSmartSolutions(false);
     setShowDEXSelection(false);
+    setShowCompactMode(false); // Reset compact mode to show swap interface again
     setSmartSolutions([]);
     setSelectedSolution(null);
     setShowAllSolutions(false);
@@ -1507,6 +1703,8 @@ const Dashboard: React.FC = () => {
             showRouteDetails={showRouteDetails}
             showSmartSolutions={showSmartSolutions}
             showDEXSelection={showDEXSelection}
+            showCompactMode={showCompactMode}
+            setShowCompactMode={setShowCompactMode}
             slippageTolerance={slippageTolerance}
             currentGasPrice={currentGasPrice}
             smartSolutions={smartSolutions}
@@ -1529,8 +1727,17 @@ const Dashboard: React.FC = () => {
             formatNumber={formatNumber}
             onShowTransactionPreview={() => setShowTransactionPreviewModal(true)}
             onDEXSelectedForICPSwap={handleDEXSelectedForICPSwap}
-            executeSwap={executeSwap}
+            executeSwap={null}
             updatePortfolioAfterSwap={updatePortfolioAfterSwap}
+            connectedMetaMask={connectedMetaMask}
+            isPlugConnected={!!connectedPlug}
+            isConnectingWallet={isConnectingWallet}
+            onConnectMetaMask={handleConnectMetaMask}
+            onDisconnectMetaMask={handleDisconnectMetaMask}
+            onConnectPlug={handleConnectPlug}
+            onDisconnectPlug={handleDisconnectPlug}
+            getRequiredWallet={getRequiredWallet}
+            isWalletConnectedForAsset={isWalletConnectedForAsset}
           />
         );
       case 'myGarden':

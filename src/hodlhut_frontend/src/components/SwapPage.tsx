@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { usePlugWallet } from '../hooks/usePlugWallet';
+import { bitcoinWalletService, ConnectedWallet } from '../services/bitcoinWalletService';
+import { simpleEthereumWallet } from '../services/simpleEthereumWallet';
+import { simplePlugWallet } from '../services/simplePlugWallet';
 import SwapAssetsSection from './SwapAssetsSection';
 import SmartSolutionModal from './SmartSolutionModal';
 import TransactionPreviewModal from './TransactionPreviewModal';
@@ -15,6 +17,13 @@ import {
   SmartSolution
 } from '../../assets/master_swap_logic';
 import { AuthStep } from './AuthenticationModal';
+
+// Declare MetaMask types
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
 
 // Mock portfolio for demo (will be replaced with real state management)
 const MOCK_PORTFOLIO: Portfolio = {
@@ -32,10 +41,14 @@ const MOCK_PORTFOLIO: Portfolio = {
 const SwapPage: React.FC = () => {
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
-  const { executeSwap } = usePlugWallet();
 
   // Portfolio state (will be integrated with global state later)
   const [portfolio, setPortfolio] = useState<Portfolio>(MOCK_PORTFOLIO);
+
+  // Wallet connection state
+  const [connectedMetaMask, setConnectedMetaMask] = useState<string | null>(null);
+  const [connectedPlug, setConnectedPlug] = useState<string | null>(null);
+  const [isConnectingWallet, setIsConnectingWallet] = useState(false);
 
   // Swap state
   const [fromAsset, setFromAsset] = useState('');
@@ -50,6 +63,9 @@ const SwapPage: React.FC = () => {
   const [showRouteDetails, setShowRouteDetails] = useState(false);
   const [showDEXSelection, setShowDEXSelection] = useState(false);
   const [showSmartSolutions, setShowSmartSolutions] = useState(false);
+
+  // UI state - Compact mode (DEX selector replaces swap interface)
+  const [showCompactMode, setShowCompactMode] = useState(false);
 
   // Smart Solutions state
   const [smartSolutions, setSmartSolutions] = useState<SmartSolution[]>([]);
@@ -78,6 +94,90 @@ const SwapPage: React.FC = () => {
     }));
   };
 
+  // Wallet connection handlers
+  const handleConnectMetaMask = async () => {
+    setIsConnectingWallet(true);
+    try {
+      const address = await simpleEthereumWallet.connect();
+      setConnectedMetaMask(address);
+      showSuccess(`Wallet connected: ${address.slice(0, 6)}...${address.slice(-4)}`);
+    } catch (error: any) {
+      console.error('Wallet connection error:', error);
+      showError(error.message || 'Failed to connect wallet');
+    } finally {
+      setIsConnectingWallet(false);
+    }
+  };
+
+  const handleDisconnectMetaMask = () => {
+    simpleEthereumWallet.disconnect();
+    setConnectedMetaMask(null);
+    showSuccess('Ethereum wallet disconnected');
+  };
+
+  const handleConnectPlug = async () => {
+    setIsConnectingWallet(true);
+    try {
+      const principal = await simplePlugWallet.connect();
+      setConnectedPlug(principal);
+      showSuccess(`Plug Wallet connected: ${principal.slice(0, 8)}...`);
+    } catch (error: any) {
+      console.error('Plug connection error:', error);
+      showError(error.message || 'Failed to connect Plug Wallet');
+    } finally {
+      setIsConnectingWallet(false);
+    }
+  };
+
+  const handleDisconnectPlug = async () => {
+    try {
+      await simplePlugWallet.disconnect();
+      setConnectedPlug(null);
+      showSuccess('Plug Wallet disconnected');
+    } catch (error: any) {
+      console.error('Plug disconnection error:', error);
+    }
+  };
+
+  // Determine which wallet is needed based on FROM asset
+  const getRequiredWallet = (asset: string): 'metamask' | 'plug' | null => {
+    if (['ETH', 'USDC', 'USDT'].includes(asset)) {
+      return 'metamask';
+    } else if (['ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT', 'ICP'].includes(asset)) {
+      return 'plug';
+    }
+    return null;
+  };
+
+  // Subscribe to wallet state changes
+  useEffect(() => {
+    // Subscribe to Plug wallet state
+    const unsubscribePlug = simplePlugWallet.subscribe((state) => {
+      setConnectedPlug(state.isConnected ? state.principal : null);
+    });
+
+    // Initialize with current state
+    const plugState = simplePlugWallet.getState();
+    if (plugState.isConnected && plugState.principal) {
+      setConnectedPlug(plugState.principal);
+    }
+
+    return () => {
+      unsubscribePlug();
+    };
+  }, []);
+
+  // Check if wallet is connected for selected asset
+  const isWalletConnectedForAsset = (asset: string): boolean => {
+    const requiredWallet = getRequiredWallet(asset);
+    if (requiredWallet === 'metamask') {
+      return !!connectedMetaMask;
+    } else if (requiredWallet === 'plug') {
+      return !!connectedPlug;
+    }
+    return false;
+  };
+
   // Auto-analyze swap when parameters change
   useEffect(() => {
     if (fromAsset && toAsset && swapAmount && parseFloat(swapAmount) > 0) {
@@ -103,7 +203,7 @@ const SwapPage: React.FC = () => {
       setShowAllSolutions(false);
       setCurrentSolutionIndex(0);
     }
-  }, [fromAsset, toAsset, swapAmount, selectedDEX, portfolio]);
+  }, [fromAsset, toAsset, swapAmount, selectedDEX, portfolio, connectedMetaMask, connectedPlug]);
 
   // Gas price monitoring
   useEffect(() => {
@@ -137,8 +237,14 @@ const SwapPage: React.FC = () => {
     setSwapAnalysis(analysis);
     setShowRouteDetails(true);
 
-    const isDirectChainFusion = analysis.route.operationType === 'Minter Operation' && analysis.isL1Withdrawal;
-    if (needsDEXSelection(fromAsset, toAsset) && !isDirectChainFusion) {
+    // Bitcoin-only onramp: Only ckBTC → BTC is direct Chain Fusion (no DEX needed)
+    // All other assets need DEX routing (e.g., ckETH → ckBTC → BTC requires DEX for ckETH → ckBTC)
+    const isDirectChainFusion = (fromAsset === 'ckBTC' && toAsset === 'BTC') ||
+                                (fromAsset === 'ckETH' && toAsset === 'ETH') ||
+                                (fromAsset === 'ckUSDC' && toAsset === 'USDC') ||
+                                (fromAsset === 'ckUSDT' && toAsset === 'USDT');
+    const isWalletConnected = isWalletConnectedForAsset(fromAsset);
+    if (needsDEXSelection(fromAsset, toAsset) && !isDirectChainFusion && isWalletConnected) {
       setShowDEXSelection(true);
     } else {
       setSelectedDEX(null);
@@ -217,6 +323,7 @@ const SwapPage: React.FC = () => {
     setShowRouteDetails(false);
     setShowSmartSolutions(false);
     setShowDEXSelection(false);
+    setShowCompactMode(false); // Reset compact mode to show swap interface again
     setSmartSolutions([]);
     setSelectedSolution(null);
     setShowAllSolutions(false);
@@ -286,6 +393,8 @@ const SwapPage: React.FC = () => {
             showRouteDetails={showRouteDetails}
             showSmartSolutions={showSmartSolutions}
             showDEXSelection={showDEXSelection}
+            showCompactMode={showCompactMode}
+            setShowCompactMode={setShowCompactMode}
             slippageTolerance={slippageTolerance}
             currentGasPrice={currentGasPrice}
             smartSolutions={smartSolutions}
@@ -308,8 +417,17 @@ const SwapPage: React.FC = () => {
             formatNumber={formatNumber}
             onShowTransactionPreview={() => setShowTransactionPreviewModal(true)}
             onDEXSelectedForICPSwap={handleDEXSelectedForICPSwap}
-            executeSwap={executeSwap}
+            executeSwap={null}
             updatePortfolioAfterSwap={updatePortfolioAfterSwap}
+            connectedMetaMask={connectedMetaMask}
+            isPlugConnected={!!connectedPlug}
+            isConnectingWallet={isConnectingWallet}
+            onConnectMetaMask={handleConnectMetaMask}
+            onDisconnectMetaMask={handleDisconnectMetaMask}
+            onConnectPlug={handleConnectPlug}
+            onDisconnectPlug={handleDisconnectPlug}
+            getRequiredWallet={getRequiredWallet}
+            isWalletConnectedForAsset={isWalletConnectedForAsset}
           />
         </div>
       </div>
