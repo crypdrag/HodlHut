@@ -47,7 +47,7 @@ export interface StakingMetadata {
 }
 
 class ReeOrchestratorService {
-  private hodlprotocolExchangeCanisterId = 'plkfy-gyaaa-aaaad-achpq-cai';
+  private hodlprotocolExchangeCanisterId = 'hz536-gyaaa-aaaao-qkufa-cai';
 
   /**
    * Submit signed PSBT to REE Orchestrator for broadcasting
