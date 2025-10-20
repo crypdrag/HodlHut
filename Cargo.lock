@@ -526,6 +526,7 @@ dependencies = [
  "ordinals",
  "ree-types",
  "serde",
+ "serde_bytes",
  "serde_json",
  "thiserror",
 ]

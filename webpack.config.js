@@ -20,6 +20,9 @@ module.exports = {
   optimization: {
     minimize: !isDevelopment,
   },
+  experiments: {
+    asyncWebAssembly: true, // Enable WebAssembly support for tiny-secp256k1
+  },
   resolve: {
     extensions: [".js", ".ts", ".jsx", ".tsx"],
     fallback: {
@@ -30,6 +33,9 @@ module.exports = {
       stream: require.resolve("stream-browserify/"),
       util: require.resolve("util/"),
       vm: false, // Not needed in browser
+      // Ignore React Native dependencies (not needed for web)
+      "@react-native-async-storage/async-storage": false,
+      "react-native": false,
     },
   },
   output: {

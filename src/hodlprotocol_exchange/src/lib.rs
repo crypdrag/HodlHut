@@ -1,4 +1,4 @@
-use candid::{CandidType, Deserialize};
+use candid::{CandidType, Deserialize, Principal};
 use ic_cdk_macros::*;
 use serde::Serialize;
 use std::cell::RefCell;
@@ -1288,6 +1288,57 @@ impl Drop for ExecuteTxGuard {
       Ok(script.to_bytes())
   }
 
+  // ========================================
+  // BLST V2 - Etch with Mint Terms
+  // ========================================
+
+  /// Create BABYLON•LST V2 rune etching WITH mint terms (no premine)
+  /// This allows us to mint tokens in a separate transaction with explicit pointer
+  fn create_blst_v2_etching_with_mint_terms() -> Result<Vec<u8>, String> {
+      ic_cdk::println!("Creating BABYLON•LST•TWO rune etching WITH MINT TERMS...");
+
+      // Parse "BABYLONLSTTWO" as rune name (rune names can only contain A-Z, no numbers)
+      let rune_name = Rune::from_str("BABYLONLSTTWO")
+          .map_err(|e| format!("Invalid rune name: {:?}", e))?;
+
+      // Create mint terms: 100B tokens, cap of 1 mint
+      let terms = Some(ordinals::Terms {
+          amount: Some(100_000_000_000),  // 100B base units per mint
+          cap: Some(1),                    // Only 1 mint allowed total
+          height: (None, None),            // No height restrictions
+          offset: (None, None),            // No offset restrictions
+      });
+
+      // Create etching configuration - NO PREMINE
+      let etching = Etching {
+          divisibility: Some(3),           // 0.001 precision
+          premine: None,                   // NO PREMINE - we'll mint instead
+          rune: Some(rune_name),
+          spacers: Some(128),              // Binary: 10000000 = spacer after 7th char (BABYLON•LST V2)
+          symbol: Some('Ƀ'),
+          terms,                           // Mint terms defined above
+          turbo: true,
+      };
+
+      // Create runestone with etching
+      let runestone = Runestone {
+          edicts: vec![],
+          etching: Some(etching),
+          mint: None,                      // No mint in etching tx
+          pointer: None,
+      };
+
+      let script = runestone.encipher();
+
+      ic_cdk::println!("✅ BLST V2 runestone created:");
+      ic_cdk::println!("   Name: BABYLON•LST•TWO");
+      ic_cdk::println!("   Mint terms: 100B per mint, cap 1");
+      ic_cdk::println!("   NO PREMINE - will mint separately");
+      ic_cdk::println!("   OP_RETURN script size: {} bytes", script.len());
+
+      Ok(script.to_bytes())
+  }
+
   /// Construct PSBT for rune etching transaction (funding→pool→change flow)
   /// Input: Funding address UTXO (for fees)
   /// Output 0: OP_RETURN with etching runestone
@@ -1673,6 +1724,636 @@ impl Drop for ExecuteTxGuard {
           \n\
           Monitor: https://mempool.space/testnet4/tx/{}",
           txid, pool_config.address, funding_address, txid
+      ))
+  }
+
+  /// Etch BLST V2 rune WITH MINT TERMS (pool→pool change flow)
+  /// Uses pool's consolidated UTXO, sends change back to pool
+  #[ic_cdk::update]
+  async fn etch_blst_v2() -> Result<String, String> {
+      let caller = ic_cdk::api::caller();
+      if !ic_cdk::api::is_controller(&caller) {
+          return Err("Not authorized - only controller can etch rune".to_string());
+      }
+
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
+      if pool_config.address.is_empty() {
+          return Err("Pool not initialized - call init_pool first".to_string());
+      }
+
+      ic_cdk::println!("🔨 Etching BLST V2 rune (WITH MINT TERMS) using pool UTXOs...");
+      ic_cdk::println!("   Pool address: {}", pool_config.address);
+
+      // Step 1: Create V2 etching runestone (with mint terms, no premine)
+      let op_return_script = create_blst_v2_etching_with_mint_terms()?;
+      ic_cdk::println!("✅ V2 etching runestone created ({} bytes)", op_return_script.len());
+
+      // Step 2: Fetch pool UTXOs
+      let utxos = fetch_pool_utxos().await?;
+      if utxos.is_empty() {
+          return Err(format!("No confirmed UTXOs at pool address {} - need sats for etch tx", pool_config.address));
+      }
+
+      // Select UTXO with sufficient value
+      let selected_utxo = utxos.iter()
+          .find(|u| u.value >= 10_000)
+          .ok_or("No UTXO with sufficient value (need ≥10k sats)")?;
+
+      ic_cdk::println!("✅ Selected pool UTXO: {}:{} ({} sats)", selected_utxo.txid, selected_utxo.vout, selected_utxo.value);
+
+      // Step 3: Estimate fee rate
+      let fee_rate = estimate_fee_rate().await?;
+      ic_cdk::println!("✅ Fee rate: {} sat/vB", fee_rate);
+
+      // Step 4: Construct PSBT (pool→pool change)
+      let psbt_hex = construct_etching_psbt(
+          selected_utxo,
+          &pool_config.address,     // Pool receives dust output (NOT the runes yet - just placeholder)
+          &pool_config.address,     // Change back to pool
+          op_return_script,
+          fee_rate,
+      )?;
+      ic_cdk::println!("✅ PSBT constructed (unsigned, pool→pool change)");
+
+      // Step 5: Sign PSBT with Chain Key
+      ic_cdk::println!("🔐 Signing PSBT with ICP Chain Key (pool derivation)...");
+
+      use ree_types::bitcoin::psbt::Psbt;
+      use std::str::FromStr;
+
+      let mut psbt = Psbt::deserialize(&hex::decode(&psbt_hex)
+          .map_err(|e| format!("Failed to decode PSBT hex: {:?}", e))?)
+          .map_err(|e| format!("Failed to deserialize PSBT: {:?}", e))?;
+
+      // Create Utxo struct for signing using Utxo::try_from
+      let outpoint_str = format!("{}:{}", selected_utxo.txid, selected_utxo.vout);
+      let utxo_for_signing = ree_types::Utxo::try_from(
+          outpoint_str,
+          ree_types::CoinBalances::new(),
+          selected_utxo.value,
+      ).map_err(|e| format!("Failed to create Utxo: {}", e))?;
+
+      // Sign using pool derivation path with ree_pool_sign
+      ree_pool_sign(
+          &mut psbt,
+          vec![&utxo_for_signing],
+          SCHNORR_KEY_NAME,
+          vec![b"hodlprotocol_blst_pool".to_vec()],
+      ).await.map_err(|e| format!("Failed to sign PSBT: {:?}", e))?;
+
+      ic_cdk::println!("✅ PSBT signed, extracting finalized transaction...");
+
+      // Step 6: Extract finalized transaction and return hex for manual broadcast
+      let finalized_tx = psbt.extract_tx()
+          .map_err(|e| format!("Failed to extract transaction from PSBT: {:?}", e))?;
+
+      let tx_bytes = bitcoin_serialize(&finalized_tx);
+      let tx_hex = hex::encode(&tx_bytes);
+      let txid = finalized_tx.compute_txid();
+
+      ic_cdk::println!("✅ BLST V2 etching transaction signed!");
+      ic_cdk::println!("   TXID: {}", txid);
+      ic_cdk::println!("   Size: {} bytes", tx_bytes.len());
+      ic_cdk::println!("   Hex length: {} chars", tx_hex.len());
+
+      Ok(format!(
+          "✅ BLST V2 rune (BABYLON•LST•TWO) etching transaction SIGNED!\n\
+          \n\
+          Transaction ID: {}\n\
+          Size: {} bytes\n\
+          \n\
+          ⚠️ BROADCAST THIS HEX TO TESTNET4:\n\
+          {}\n\
+          \n\
+          📡 MANUAL BROADCAST OPTIONS:\n\
+          1. Use bitcoin-cli: bitcoin-cli -testnet4 sendrawtransaction <hex>\n\
+          2. Use web broadcast: https://mempool.space/testnet4/tx/push\n\
+          \n\
+          After broadcast:\n\
+          1. Monitor: https://mempool.space/testnet4/tx/{}\n\
+          2. Wait for 1+ confirmations (~10 mins)\n\
+          3. Extract rune ID from transaction (format: BLOCK:TX)\n\
+          4. Call mint_blst_v2(\"BLOCK:TX\") to mint 100B tokens to pool",
+          txid, tx_bytes.len(), tx_hex, txid
+      ))
+  }
+
+  /// Etch BLST V2 rune WITH MANUAL UTXO (bypasses Testnet3/Testnet4 issue)
+  /// Use this when fetch_pool_utxos() returns wrong network data
+  #[ic_cdk::update]
+  async fn etch_blst_v2_manual(utxo_txid: String, utxo_vout: u32, utxo_amount: u64) -> Result<String, String> {
+      let caller = ic_cdk::api::caller();
+      if !ic_cdk::api::is_controller(&caller) {
+          return Err("Not authorized - only controller can etch rune".to_string());
+      }
+
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
+      if pool_config.address.is_empty() {
+          return Err("Pool not initialized - call init_pool first".to_string());
+      }
+
+      ic_cdk::println!("🔨 Etching BLST V2 rune (MANUAL UTXO MODE)...");
+      ic_cdk::println!("   Pool address: {}", pool_config.address);
+      ic_cdk::println!("   Using UTXO: {}:{} ({} sats)", utxo_txid, utxo_vout, utxo_amount);
+
+      // Step 1: Create V2 etching runestone
+      let op_return_script = create_blst_v2_etching_with_mint_terms()?;
+      ic_cdk::println!("✅ V2 etching runestone created ({} bytes)", op_return_script.len());
+
+      // Step 2: Create manual UTXO (skip network query)
+      let selected_utxo = BitcoinUtxo {
+          txid: utxo_txid.clone(),
+          vout: utxo_vout,
+          value: utxo_amount,
+          status: UtxoStatus {
+              confirmed: true,
+              block_height: Some(0),  // Not used for signing
+              block_hash: None,
+          },
+      };
+
+      ic_cdk::println!("✅ Using manual UTXO: {}:{} ({} sats)", selected_utxo.txid, selected_utxo.vout, selected_utxo.value);
+
+      // Step 3: Estimate fee rate
+      let fee_rate = estimate_fee_rate().await?;
+      ic_cdk::println!("✅ Fee rate: {} sat/vB", fee_rate);
+
+      // Step 4: Construct PSBT (pool→pool change)
+      let psbt_hex = construct_etching_psbt(
+          &selected_utxo,
+          &pool_config.address,     // Pool receives dust
+          &pool_config.address,     // Change back to pool
+          op_return_script,
+          fee_rate,
+      )?;
+      ic_cdk::println!("✅ PSBT constructed (unsigned, pool→pool change)");
+
+      // Step 5: Sign PSBT with Chain Key
+      ic_cdk::println!("🔐 Signing PSBT with ICP Chain Key (pool derivation)...");
+
+      use ree_types::bitcoin::psbt::Psbt;
+
+      let mut psbt = Psbt::deserialize(&hex::decode(&psbt_hex)
+          .map_err(|e| format!("Failed to decode PSBT hex: {:?}", e))?)
+          .map_err(|e| format!("Failed to deserialize PSBT: {:?}", e))?;
+
+      // Create Utxo struct for signing
+      let outpoint_str = format!("{}:{}", selected_utxo.txid, selected_utxo.vout);
+      let utxo_for_signing = ree_types::Utxo::try_from(
+          outpoint_str,
+          ree_types::CoinBalances::new(),
+          selected_utxo.value,
+      ).map_err(|e| format!("Failed to create Utxo: {}", e))?;
+
+      // Sign using pool derivation path
+      ree_pool_sign(
+          &mut psbt,
+          vec![&utxo_for_signing],
+          SCHNORR_KEY_NAME,
+          vec![b"hodlprotocol_blst_pool".to_vec()],
+      ).await.map_err(|e| format!("Failed to sign PSBT: {:?}", e))?;
+
+      ic_cdk::println!("✅ PSBT signed, extracting finalized transaction...");
+
+      // Step 6: Extract finalized transaction and return hex
+      let finalized_tx = psbt.extract_tx()
+          .map_err(|e| format!("Failed to extract transaction from PSBT: {:?}", e))?;
+
+      let tx_bytes = bitcoin_serialize(&finalized_tx);
+      let tx_hex = hex::encode(&tx_bytes);
+      let txid = finalized_tx.compute_txid();
+
+      ic_cdk::println!("✅ BLST V2 etching transaction signed!");
+      ic_cdk::println!("   TXID: {}", txid);
+      ic_cdk::println!("   Size: {} bytes", tx_bytes.len());
+
+      Ok(format!(
+          "✅ BLST V2 rune (BABYLON•LST•TWO) etching transaction SIGNED!\n\
+          \n\
+          Transaction ID: {}\n\
+          Size: {} bytes\n\
+          \n\
+          ⚠️ BROADCAST THIS HEX TO TESTNET4:\n\
+          {}\n\
+          \n\
+          📡 MANUAL BROADCAST OPTIONS:\n\
+          1. Use bitcoin-cli: bitcoin-cli -testnet4 sendrawtransaction <hex>\n\
+          2. Use web broadcast: https://mempool.space/testnet4/tx/push\n\
+          \n\
+          After broadcast:\n\
+          1. Monitor: https://mempool.space/testnet4/tx/{}\n\
+          2. Wait for 1+ confirmations (~10 mins)\n\
+          3. Extract rune ID from transaction (format: BLOCK:TX)\n\
+          4. Call mint_blst_v2_manual with correct Testnet4 UTXO",
+          txid, tx_bytes.len(), tx_hex, txid
+      ))
+  }
+
+  /// Mint BLST V2 runes to pool with EXPLICIT pointer
+  /// Call this AFTER etch_blst_v2() confirms (need rune_id from etch tx)
+  #[ic_cdk::update]
+  async fn mint_blst_v2(rune_id: String) -> Result<String, String> {
+      let caller = ic_cdk::api::caller();
+      if !ic_cdk::api::is_controller(&caller) {
+          return Err("Not authorized - only controller can mint runes".to_string());
+      }
+
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
+      if pool_config.address.is_empty() {
+          return Err("Pool not initialized".to_string());
+      }
+
+      ic_cdk::println!("🪙 Minting BLST V2 runes to pool with EXPLICIT pointer...");
+      ic_cdk::println!("   Rune ID: {}", rune_id);
+      ic_cdk::println!("   Pool address: {}", pool_config.address);
+
+      // Step 1: Parse rune ID (format: "BLOCK:TX")
+      let parts: Vec<&str> = rune_id.split(':').collect();
+      if parts.len() != 2 {
+          return Err(format!("Invalid rune_id format. Expected 'BLOCK:TX', got: {}", rune_id));
+      }
+
+      let block = parts[0].parse::<u64>()
+          .map_err(|e| format!("Invalid block number: {:?}", e))?;
+      let tx_index = parts[1].parse::<u32>()
+          .map_err(|e| format!("Invalid tx index: {:?}", e))?;
+
+      ic_cdk::println!("✅ Parsed rune ID: block={}, tx={}", block, tx_index);
+
+      // Step 2: Create mint runestone with EXPLICIT pointer to pool
+      use ordinals::{Runestone, RuneId};
+
+      let rune_id_obj = RuneId { block, tx: tx_index };
+
+      // Create runestone with mint + pointer
+      // Pointer = 1 means "send minted runes to output 1"
+      // Output 0 = OP_RETURN, Output 1 = Pool address
+      let runestone = Runestone {
+          edicts: vec![],
+          etching: None,
+          mint: Some(rune_id_obj),         // Mint from this rune
+          pointer: Some(1),                // EXPLICIT: Send to output 1 (pool)
+      };
+
+      let op_return_script = runestone.encipher();
+      ic_cdk::println!("✅ Mint runestone created with pointer=1 (pool receives runes)");
+      ic_cdk::println!("   OP_RETURN size: {} bytes", op_return_script.len());
+
+      // Step 3: Fetch pool UTXOs (should have change from etch tx)
+      let utxos = fetch_pool_utxos().await?;
+      if utxos.is_empty() {
+          return Err("No UTXOs at pool address - etch tx may not be confirmed yet".to_string());
+      }
+
+      // Select UTXO with sufficient value
+      let selected_utxo = utxos.iter()
+          .find(|u| u.value >= 5_000)
+          .ok_or("No UTXO with sufficient value (need ≥5k sats for mint)")?;
+
+      ic_cdk::println!("✅ Selected pool UTXO: {}:{} ({} sats)", selected_utxo.txid, selected_utxo.vout, selected_utxo.value);
+
+      // Step 4: Estimate fee rate
+      let fee_rate = estimate_fee_rate().await?;
+      ic_cdk::println!("✅ Fee rate: {} sat/vB", fee_rate);
+
+      // Step 5: Construct PSBT for mint transaction
+      use bitcoin::{Transaction, TxIn, TxOut, OutPoint, ScriptBuf, Sequence};
+      use bitcoin::psbt::Psbt;
+      use bitcoin::Txid;
+      use std::str::FromStr;
+
+      let txid = Txid::from_str(&selected_utxo.txid)
+          .map_err(|e| format!("Invalid txid: {:?}", e))?;
+
+      // Estimate transaction size: 1 input + 2 outputs (OP_RETURN + pool)
+      let estimated_vsize = 150;
+      let fee_sats = estimated_vsize * fee_rate;
+
+      // Pool output gets dust (runes will be attached via pointer)
+      let pool_output_sats = 1000;
+
+      // Calculate change
+      let change_sats = selected_utxo.value.saturating_sub(pool_output_sats + fee_sats);
+      if change_sats < 0 {
+          return Err(format!("Insufficient funds. Need {} sats, have {} sats",
+              pool_output_sats + fee_sats, selected_utxo.value));
+      }
+
+      ic_cdk::println!("💰 Transaction breakdown:");
+      ic_cdk::println!("   Input: {} sats", selected_utxo.value);
+      ic_cdk::println!("   Pool output: {} sats (+ 100B BLST via pointer)", pool_output_sats);
+      ic_cdk::println!("   Change: {} sats", change_sats);
+      ic_cdk::println!("   Fee: {} sats", fee_sats);
+
+      // Parse pool address once
+      let pool_addr = bitcoin::Address::from_str(&pool_config.address)
+          .map_err(|e| format!("Invalid pool address: {:?}", e))?
+          .require_network(bitcoin::Network::Testnet)
+          .map_err(|e| format!("Address network mismatch: {:?}", e))?;
+
+      // Create transaction
+      let mut tx = Transaction {
+          version: 2,
+          lock_time: bitcoin::absolute::LockTime::ZERO,
+          input: vec![
+              TxIn {
+                  previous_output: OutPoint { txid, vout: selected_utxo.vout },
+                  script_sig: ScriptBuf::new(),
+                  sequence: Sequence::ENABLE_RBF_NO_LOCKTIME,
+                  witness: bitcoin::Witness::new(),
+              }
+          ],
+          output: vec![
+              // Output 0: OP_RETURN (mint runestone)
+              TxOut {
+                  value: 0,
+                  script_pubkey: ScriptBuf::from_bytes(op_return_script.to_bytes()),
+              },
+              // Output 1: Pool receives minted runes (pointer=1)
+              TxOut {
+                  value: pool_output_sats,
+                  script_pubkey: pool_addr.script_pubkey(),
+              },
+          ],
+      };
+
+      // Add change output if significant
+      if change_sats >= 1000 {
+          tx.output.push(TxOut {
+              value: change_sats,
+              script_pubkey: pool_addr.script_pubkey(),
+          });
+          ic_cdk::println!("✅ Added change output: {} sats", change_sats);
+      }
+
+      // Create PSBT
+      let mut psbt = Psbt::from_unsigned_tx(tx)
+          .map_err(|e| format!("Failed to create PSBT: {:?}", e))?;
+
+      // Add witness_utxo for Taproot input (required for signing)
+      psbt.inputs[0].witness_utxo = Some(TxOut {
+          value: selected_utxo.value,
+          script_pubkey: pool_addr.script_pubkey(),
+      });
+
+      ic_cdk::println!("✅ PSBT constructed for mint transaction");
+
+      // Step 6: Sign PSBT with Chain Key
+      ic_cdk::println!("🔐 Signing mint PSBT with ICP Chain Key...");
+
+      use ree_types::bitcoin::psbt::Psbt as ReePsbt;
+
+      let psbt_hex = hex::encode(psbt.serialize());
+      let mut ree_psbt = ReePsbt::deserialize(&hex::decode(&psbt_hex)
+          .map_err(|e| format!("Failed to decode PSBT: {:?}", e))?)
+          .map_err(|e| format!("Failed to deserialize PSBT: {:?}", e))?;
+
+      // Create Utxo struct for signing using Utxo::try_from
+      let outpoint_str = format!("{}:{}", selected_utxo.txid, selected_utxo.vout);
+      let utxo_for_signing = ree_types::Utxo::try_from(
+          outpoint_str,
+          ree_types::CoinBalances::new(),
+          selected_utxo.value,
+      ).map_err(|e| format!("Failed to create Utxo: {}", e))?;
+
+      // Sign using pool derivation path with ree_pool_sign
+      ree_pool_sign(
+          &mut ree_psbt,
+          vec![&utxo_for_signing],
+          SCHNORR_KEY_NAME,
+          vec![b"hodlprotocol_blst_pool".to_vec()],
+      ).await.map_err(|e| format!("Failed to sign PSBT: {:?}", e))?;
+
+      ic_cdk::println!("✅ Mint PSBT signed, extracting finalized transaction...");
+
+      // Step 7: Extract finalized transaction and return hex for manual broadcast
+      let finalized_tx = ree_psbt.extract_tx()
+          .map_err(|e| format!("Failed to extract transaction from PSBT: {:?}", e))?;
+
+      let tx_bytes = bitcoin_serialize(&finalized_tx);
+      let tx_hex = hex::encode(&tx_bytes);
+      let txid = finalized_tx.compute_txid();
+
+      ic_cdk::println!("✅ BLST V2 mint transaction signed!");
+      ic_cdk::println!("   TXID: {}", txid);
+      ic_cdk::println!("   Size: {} bytes", tx_bytes.len());
+      ic_cdk::println!("   Hex length: {} chars", tx_hex.len());
+
+      Ok(format!(
+          "✅ BLST V2 minting transaction SIGNED!\n\
+          \n\
+          Transaction ID: {}\n\
+          Rune ID: {}\n\
+          Size: {} bytes\n\
+          \n\
+          ⚠️ BROADCAST THIS HEX TO TESTNET4:\n\
+          {}\n\
+          \n\
+          📡 MANUAL BROADCAST OPTIONS:\n\
+          1. Use bitcoin-cli: bitcoin-cli -testnet4 sendrawtransaction <hex>\n\
+          2. Use web broadcast: https://mempool.space/testnet4/tx/push\n\
+          \n\
+          After broadcast:\n\
+          1. Monitor: https://mempool.space/testnet4/tx/{}\n\
+          2. Wait for 1+ confirmations (~10 mins)\n\
+          3. Verify balance: dfx canister call ... get_blst_balance '(\"{}\")' --network ic\n\
+          4. Expected balance: 100,000,000,000 (100B base units)\n\
+          5. Update pool rune_id: dfx canister call ... update_pool_rune_id '(\"{}\")' --network ic\n\
+          6. Test deposit flow!",
+          txid, rune_id, tx_bytes.len(), tx_hex, txid, pool_config.address, rune_id
+      ))
+  }
+
+  /// Mint BLST V2 runes WITH MANUAL UTXO (bypasses Testnet3/Testnet4 issue)
+  /// Use this after etch confirms - provide the change UTXO from etch transaction
+  #[ic_cdk::update]
+  async fn mint_blst_v2_manual(rune_id: String, utxo_txid: String, utxo_vout: u32, utxo_amount: u64) -> Result<String, String> {
+      let caller = ic_cdk::api::caller();
+      if !ic_cdk::api::is_controller(&caller) {
+          return Err("Not authorized - only controller can mint runes".to_string());
+      }
+
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
+      if pool_config.address.is_empty() {
+          return Err("Pool not initialized".to_string());
+      }
+
+      ic_cdk::println!("🪙 Minting BLST V2 runes (MANUAL UTXO MODE)...");
+      ic_cdk::println!("   Rune ID: {}", rune_id);
+      ic_cdk::println!("   Pool address: {}", pool_config.address);
+      ic_cdk::println!("   Using UTXO: {}:{} ({} sats)", utxo_txid, utxo_vout, utxo_amount);
+
+      // Step 1: Parse rune ID
+      let parts: Vec<&str> = rune_id.split(':').collect();
+      if parts.len() != 2 {
+          return Err(format!("Invalid rune_id format. Expected 'BLOCK:TX', got: {}", rune_id));
+      }
+
+      let block = parts[0].parse::<u64>()
+          .map_err(|e| format!("Invalid block number: {:?}", e))?;
+      let tx_index = parts[1].parse::<u32>()
+          .map_err(|e| format!("Invalid tx index: {:?}", e))?;
+
+      ic_cdk::println!("✅ Parsed rune ID: block={}, tx={}", block, tx_index);
+
+      // Step 2: Create mint runestone with EXPLICIT pointer
+      use ordinals::{Runestone, RuneId};
+
+      let rune_id_obj = RuneId { block, tx: tx_index };
+
+      let runestone = Runestone {
+          edicts: vec![],
+          etching: None,
+          mint: Some(rune_id_obj),
+          pointer: Some(1),  // EXPLICIT: Send to output 1 (pool)
+      };
+
+      let op_return_script = runestone.encipher();
+      ic_cdk::println!("✅ Mint runestone created with pointer=1");
+
+      // Step 3: Create manual UTXO
+      let selected_utxo = BitcoinUtxo {
+          txid: utxo_txid.clone(),
+          vout: utxo_vout,
+          value: utxo_amount,
+          status: UtxoStatus {
+              confirmed: true,
+              block_height: Some(0),
+              block_hash: None,
+          },
+      };
+
+      ic_cdk::println!("✅ Using manual UTXO: {}:{} ({} sats)", selected_utxo.txid, selected_utxo.vout, selected_utxo.value);
+
+      // Step 4: Estimate fee rate
+      let fee_rate = estimate_fee_rate().await?;
+      ic_cdk::println!("✅ Fee rate: {} sat/vB", fee_rate);
+
+      // Step 5: Construct PSBT for mint transaction
+      use bitcoin::{Transaction, TxIn, TxOut, OutPoint, ScriptBuf, Sequence};
+      use bitcoin::psbt::Psbt;
+      use bitcoin::Txid;
+      use std::str::FromStr;
+
+      let txid = Txid::from_str(&selected_utxo.txid)
+          .map_err(|e| format!("Invalid txid: {:?}", e))?;
+
+      let estimated_vsize = 150;
+      let fee_sats = estimated_vsize * fee_rate;
+      // Ensure minimum fee of 200 sats for relay
+      let fee_sats = fee_sats.max(200);
+      let pool_output_sats = 1000;
+      let change_sats = selected_utxo.value.saturating_sub(pool_output_sats + fee_sats);
+
+      ic_cdk::println!("💰 Transaction breakdown:");
+      ic_cdk::println!("   Input: {} sats", selected_utxo.value);
+      ic_cdk::println!("   Pool output: {} sats (+ 100B BLST via pointer)", pool_output_sats);
+      ic_cdk::println!("   Change: {} sats", change_sats);
+      ic_cdk::println!("   Fee: {} sats", fee_sats);
+
+      let pool_addr = bitcoin::Address::from_str(&pool_config.address)
+          .map_err(|e| format!("Invalid pool address: {:?}", e))?
+          .require_network(bitcoin::Network::Testnet)
+          .map_err(|e| format!("Address network mismatch: {:?}", e))?;
+
+      let mut tx = Transaction {
+          version: 2,
+          lock_time: bitcoin::absolute::LockTime::ZERO,
+          input: vec![
+              TxIn {
+                  previous_output: OutPoint { txid, vout: selected_utxo.vout },
+                  script_sig: ScriptBuf::new(),
+                  sequence: Sequence::ENABLE_RBF_NO_LOCKTIME,
+                  witness: bitcoin::Witness::new(),
+              }
+          ],
+          output: vec![
+              TxOut {
+                  value: 0,
+                  script_pubkey: ScriptBuf::from_bytes(op_return_script.to_bytes()),
+              },
+              TxOut {
+                  value: pool_output_sats,
+                  script_pubkey: pool_addr.script_pubkey(),
+              },
+          ],
+      };
+
+      if change_sats >= 1000 {
+          tx.output.push(TxOut {
+              value: change_sats,
+              script_pubkey: pool_addr.script_pubkey(),
+          });
+          ic_cdk::println!("✅ Added change output: {} sats", change_sats);
+      }
+
+      let mut psbt = Psbt::from_unsigned_tx(tx)
+          .map_err(|e| format!("Failed to create PSBT: {:?}", e))?;
+
+      psbt.inputs[0].witness_utxo = Some(TxOut {
+          value: selected_utxo.value,
+          script_pubkey: pool_addr.script_pubkey(),
+      });
+
+      ic_cdk::println!("✅ PSBT constructed for mint transaction");
+
+      // Step 6: Sign PSBT
+      ic_cdk::println!("🔐 Signing mint PSBT with ICP Chain Key...");
+
+      use ree_types::bitcoin::psbt::Psbt as ReePsbt;
+
+      let psbt_hex = hex::encode(psbt.serialize());
+      let mut ree_psbt = ReePsbt::deserialize(&hex::decode(&psbt_hex)
+          .map_err(|e| format!("Failed to decode PSBT: {:?}", e))?)
+          .map_err(|e| format!("Failed to deserialize PSBT: {:?}", e))?;
+
+      let outpoint_str = format!("{}:{}", selected_utxo.txid, selected_utxo.vout);
+      let utxo_for_signing = ree_types::Utxo::try_from(
+          outpoint_str,
+          ree_types::CoinBalances::new(),
+          selected_utxo.value,
+      ).map_err(|e| format!("Failed to create Utxo: {}", e))?;
+
+      ree_pool_sign(
+          &mut ree_psbt,
+          vec![&utxo_for_signing],
+          SCHNORR_KEY_NAME,
+          vec![b"hodlprotocol_blst_pool".to_vec()],
+      ).await.map_err(|e| format!("Failed to sign PSBT: {:?}", e))?;
+
+      ic_cdk::println!("✅ Mint PSBT signed, extracting finalized transaction...");
+
+      let finalized_tx = ree_psbt.extract_tx()
+          .map_err(|e| format!("Failed to extract transaction from PSBT: {:?}", e))?;
+
+      let tx_bytes = bitcoin_serialize(&finalized_tx);
+      let tx_hex = hex::encode(&tx_bytes);
+      let txid = finalized_tx.compute_txid();
+
+      ic_cdk::println!("✅ BLST V2 mint transaction signed!");
+      ic_cdk::println!("   TXID: {}", txid);
+      ic_cdk::println!("   Size: {} bytes", tx_bytes.len());
+
+      Ok(format!(
+          "✅ BLST V2 minting transaction SIGNED!\n\
+          \n\
+          Transaction ID: {}\n\
+          Rune ID: {}\n\
+          Size: {} bytes\n\
+          \n\
+          ⚠️ BROADCAST THIS HEX TO TESTNET4:\n\
+          {}\n\
+          \n\
+          📡 MANUAL BROADCAST OPTIONS:\n\
+          1. Use bitcoin-cli: bitcoin-cli -testnet4 sendrawtransaction <hex>\n\
+          2. Use web broadcast: https://mempool.space/testnet4/tx/push\n\
+          \n\
+          After broadcast:\n\
+          1. Monitor: https://mempool.space/testnet4/tx/{}\n\
+          2. Wait for 1+ confirmations (~10 mins)\n\
+          3. Verify balance: dfx canister call hz536-gyaaa-aaaao-qkufa-cai get_blst_balance '(\"{}\")' --network ic\n\
+          4. Expected balance: 100,000,000,000 (100B base units)",
+          txid, rune_id, tx_bytes.len(), tx_hex, txid, pool_config.address
       ))
   }
 
@@ -2336,10 +3017,10 @@ impl Drop for ExecuteTxGuard {
       ic_cdk::println!("⚠️  Using hardcoded pool UTXO from etching (Runes Indexer integration pending)");
 
       Ok(vec![RuneUtxo {
-          txid: "b7652fe24527e6dfa6470252bddc0149b21c4bf877265810a644e76563e441c6".to_string(),
-          vout: 1,  // Premined runes go to output #1 of etching tx
-          value: 1_000,  // 1k sats (from etching tx output #1 on Testnet4)
-          rune_balance: 100_000_000_000,  // All 100B BLST runes (premined at 107266:20)
+          txid: "62254e5bb64dc83d7d03b4f1f13e4105e41b91951bbb5d715b4a4089b52d8d4e".to_string(),
+          vout: 1,  // Consolidated pool UTXO (all BLST runes + sats)
+          value: 250_080,  // 250,080 sats (consolidated from multiple UTXOs)
+          rune_balance: 100_000_000_000,  // All 100B BLST runes (consolidated)
       }])
 
       // TODO: Real implementation after testing:
@@ -3082,6 +3763,144 @@ impl Drop for ExecuteTxGuard {
       })
   }
 
+  /// Detect deposit confirmation and create mint record
+  ///
+  /// TODO (PRODUCTION): Replace manual detection with automated monitoring:
+  /// - Implement timer-based polling (ic_cdk::api::set_timer_interval)
+  /// - Monitor PENDING_DEPOSITS and auto-detect confirmations
+  /// - Call mint_blst_for_deposit() automatically after 6 confirmations
+  /// - Add webhook/callback mechanism from Bitcoin indexer
+  /// - Consider using ICP Bitcoin canister's block subscription API
+  ///
+  /// MVP Implementation: Manual trigger after user broadcasts deposit
+  #[update]
+  async fn detect_and_process_deposit(
+      deposit_tx_hash: String,
+      expected_amount_sats: u64,
+      user_btc_address: String,
+  ) -> Result<String, String> {
+      ic_cdk::println!("🔍 Detecting deposit: {}", deposit_tx_hash);
+      ic_cdk::println!("   Expected: {} sats to {}", expected_amount_sats, user_btc_address);
+
+      // Get pool config
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
+      if pool_config.address.is_empty() {
+          return Err("Pool not initialized".to_string());
+      }
+
+      // Check if already processed
+      let already_exists = BLST_MINT_RECORDS.with(|records| {
+          records.borrow().contains_key(&deposit_tx_hash)
+      });
+
+      if already_exists {
+          return Err(format!("Deposit already processed: {}", deposit_tx_hash));
+      }
+
+      // Query Bitcoin canister for UTXOs with ≥6 confirmations
+      let btc_canister_principal = Principal::from_text("ghsi2-tqaaa-aaaan-aaaca-cai")
+          .map_err(|e| format!("Invalid Bitcoin canister principal: {:?}", e))?;
+
+      let btc_canister = bitcoin_canister::Service(btc_canister_principal);
+
+      ic_cdk::println!("📡 Querying Bitcoin canister for confirmed UTXOs...");
+      let (response,) = btc_canister.bitcoin_get_utxos(bitcoin_canister::GetUtxosRequest {
+          network: bitcoin_canister::Network::Testnet,
+          filter: Some(bitcoin_canister::GetUtxosRequestFilterInner::MinConfirmations(6)),
+          address: pool_config.address.clone(),
+      })
+      .await
+      .map_err(|e| format!("Bitcoin canister query failed: {:?}", e))?;
+
+      ic_cdk::println!("✅ Bitcoin canister response:");
+      ic_cdk::println!("   Tip height: {}", response.tip_height);
+      ic_cdk::println!("   UTXOs with ≥6 confirmations: {}", response.utxos.len());
+
+      // Convert deposit_tx_hash to bytes for comparison
+      let deposit_txid_bytes = hex::decode(&deposit_tx_hash)
+          .map_err(|_| "Invalid deposit tx hash hex".to_string())?;
+
+      // Find the deposit UTXO
+      let deposit_utxo = response.utxos.iter()
+          .find(|utxo| {
+              let txid_hex = hex::encode(&utxo.outpoint.txid);
+              txid_hex == deposit_tx_hash
+          })
+          .ok_or_else(|| {
+              ic_cdk::println!("❌ Deposit tx not found in confirmed UTXOs");
+              ic_cdk::println!("   Expected txid: {}", deposit_tx_hash);
+              ic_cdk::println!("   Available UTXOs:");
+              for utxo in &response.utxos {
+                  ic_cdk::println!("     - {}:{} ({} sats, height {})",
+                      hex::encode(&utxo.outpoint.txid),
+                      utxo.outpoint.vout,
+                      utxo.value,
+                      utxo.height
+                  );
+              }
+              format!("Deposit tx {} not found with ≥6 confirmations. Current tip: {}. Either tx is not confirmed yet, or tx hash is incorrect.",
+                  deposit_tx_hash, response.tip_height)
+          })?;
+
+      ic_cdk::println!("✅ Found deposit UTXO:");
+      ic_cdk::println!("   TXID: {}", hex::encode(&deposit_utxo.outpoint.txid));
+      ic_cdk::println!("   VOUT: {}", deposit_utxo.outpoint.vout);
+      ic_cdk::println!("   Value: {} sats", deposit_utxo.value);
+      ic_cdk::println!("   Block height: {}", deposit_utxo.height);
+      ic_cdk::println!("   Confirmations: {} (tip height: {})",
+          response.tip_height - deposit_utxo.height + 1,
+          response.tip_height);
+
+      // Verify amount matches (allow small variance for network fees)
+      let variance = if deposit_utxo.value > expected_amount_sats {
+          deposit_utxo.value - expected_amount_sats
+      } else {
+          expected_amount_sats - deposit_utxo.value
+      };
+
+      if variance > 1000 {  // Allow 1000 sat variance
+          return Err(format!(
+              "Amount mismatch: expected {} sats, received {} sats (variance: {} sats)",
+              expected_amount_sats, deposit_utxo.value, variance
+          ));
+      }
+
+      // Calculate BLST amount (1 sat = 1 BLST base unit)
+      let amount_blst = deposit_utxo.value;
+
+      // Create BLST mint record
+      let mint_record = BlstMintRecord {
+          user_btc_address: user_btc_address.clone(),
+          amount_blst,
+          amount_sats: deposit_utxo.value,
+          pool_address: pool_config.address.clone(),
+          finality_provider: pool_config.finality_provider.clone(),
+          timelock_blocks: pool_config.timelock_blocks,
+          deposit_tx_hash: deposit_tx_hash.clone(),
+          mint_tx_hash: None,  // Will be set after minting
+          mint_timestamp: ic_cdk::api::time(),
+          babylon_stake_tx: None,  // Will be set when pool stakes to Babylon
+      };
+
+      // Store mint record
+      BLST_MINT_RECORDS.with(|records| {
+          records.borrow_mut().insert(deposit_tx_hash.clone(), mint_record);
+      });
+
+      ic_cdk::println!("✅ Mint record created for deposit {}", deposit_tx_hash);
+
+      Ok(format!(
+          "Deposit confirmed! {} sats detected at block height {}.\nMint record created for {} BLST ({}.{:03} display) to address {}.\n\nNext step: Call mint_blst_for_deposit(\"{}\") to execute minting transaction.",
+          deposit_utxo.value,
+          deposit_utxo.height,
+          amount_blst,
+          amount_blst / 1000,
+          amount_blst % 1000,
+          user_btc_address,
+          deposit_tx_hash
+      ))
+  }
+
   /// Query pool statistics
   #[query]
   fn get_pool_stats() -> Result<PoolStats, String> {
@@ -3100,12 +3919,49 @@ impl Drop for ExecuteTxGuard {
       })
   }
 
-  /// Query user's BLST balance
+  /// Query user's BLST balance (from internal tracking)
   #[query]
   fn get_blst_balance(user_address: String) -> u64 {
       USER_BLST_BALANCES.with(|balances| {
           balances.borrow().get(&user_address).unwrap_or(0)
       })
+  }
+
+  /// Query actual on-chain BLST balance from Runes Indexer
+  #[update]
+  async fn get_onchain_blst_balance(outpoint: String) -> Result<u128, String> {
+      use crate::rune_indexer::Service;
+      use candid::Principal;
+
+      const RUNES_INDEXER_TESTNET: &str = "f2dwm-caaaa-aaaao-qjxlq-cai";
+
+      let indexer = Service(Principal::from_text(RUNES_INDEXER_TESTNET)
+          .map_err(|e| format!("Invalid indexer principal: {:?}", e))?);
+
+      ic_cdk::println!("Querying Runes Indexer for outpoint: {}", outpoint);
+
+      let (result,) = indexer.get_rune_balances_for_outputs(vec![outpoint.clone()])
+          .await
+          .map_err(|e| format!("Failed to call indexer: {:?}", e))?;
+
+      match result {
+          crate::rune_indexer::Result_::Ok(balances) => {
+              if let Some(Some(rune_list)) = balances.first() {
+                  for rune in rune_list {
+                      ic_cdk::println!("  Rune: {} = {} (divisibility: {})",
+                          rune.rune_id, rune.amount, rune.divisibility);
+                  }
+                  // Return first rune balance (should be BLST)
+                  if let Some(blst) = rune_list.first() {
+                      return Ok(blst.amount);
+                  }
+              }
+              Ok(0)
+          }
+          crate::rune_indexer::Result_::Err(_) => {
+              Err("Indexer error: MaxOutpointsExceeded".to_string())
+          }
+      }
   }
 
   // ============================
@@ -3414,7 +4270,12 @@ impl Drop for ExecuteTxGuard {
   }
 
   /// Mint BLST rune to user after deposit confirmation
-  /// Called manually after execute_tx() processes the deposit
+  ///
+  /// TODO (PRODUCTION): Auto-trigger after detect_and_process_deposit() succeeds
+  /// - detect_and_process_deposit() should call this automatically
+  /// - Or implement as a background timer job that processes ready mint records
+  ///
+  /// MVP Implementation: Manual call after detect_and_process_deposit() creates mint record
   #[update]
   async fn mint_blst_for_deposit(deposit_tx_hash: String) -> Result<String, String> {
       ic_cdk::println!("🪙 Minting BLST for deposit tx: {}", deposit_tx_hash);

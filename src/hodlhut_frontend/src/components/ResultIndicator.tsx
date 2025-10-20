@@ -60,60 +60,42 @@ const ResultIndicator: React.FC<ResultIndicatorProps> = ({
   }
 
   return (
-    <div className={`rounded-xl border p-4 ${styles.container}`}>
-      {/* Status Badge */}
-      <div className="flex items-center justify-between mb-3">
-        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${styles.badge}`}>
-          {styles.icon}
-          <span className="text-xs font-bold tracking-wide">{styles.label}</span>
-        </div>
-
-        {!actuallyReal && (
-          <div className="flex items-center gap-1 text-warning-400">
-            <AlertTriangle size={14} />
-            <span className="text-xs font-medium">Demo Mode</span>
-          </div>
-        )}
-      </div>
-
-      {/* Transaction Details */}
+    <div className="space-y-2">
+      {/* Demo TX ID Row - DEX compact style */}
       {transactionId && (
-        <div className="mb-3">
-          <div className="text-xs font-medium text-text-muted mb-1">
-            {actuallyReal ? 'Transaction ID' : 'Demo Transaction ID'}
+        <div className="dex-compact-row">
+          <div className="dex-compact-left">
+            <div className="dex-compact-info">
+              <div className="dex-compact-name">Demo TX ID</div>
+            </div>
           </div>
-          <div className="text-sm font-mono text-text-primary bg-surface-2 px-3 py-2 rounded-lg">
-            {transactionId}
+          <div className="dex-compact-right">
+            <div className="text-right">
+              <div className="text-xs font-mono text-text-primary code truncate max-w-[180px]">
+                {transactionId}
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Received Amount */}
+      {/* Amount Row - DEX compact style */}
       {receivedAmount && assetSymbol && (
-        <div className="mb-3">
-          <div className="text-xs font-medium text-text-muted mb-1">
-            {actuallyReal ? 'Amount Received' : 'Simulated Amount'}
+        <div className="dex-compact-row">
+          <div className="dex-compact-left">
+            <div className="dex-compact-info">
+              <div className="dex-compact-name">Amount</div>
+            </div>
           </div>
-          <div className="text-lg font-semibold text-text-primary">
-            {receivedAmount} {assetSymbol}
-          </div>
-        </div>
-      )}
-
-      {/* Additional Details */}
-      {details && (
-        <div className="mb-3">
-          <div className="text-sm text-text-secondary">
-            {details}
+          <div className="dex-compact-right">
+            <div className="text-right">
+              <div className="body-sm font-bold text-success-400">
+                {receivedAmount} {assetSymbol}
+              </div>
+            </div>
           </div>
         </div>
       )}
-
-      {/* Status Description */}
-      <div className="text-xs text-text-secondary italic">
-        {styles.description}
-      </div>
-
     </div>
   );
 };

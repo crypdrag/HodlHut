@@ -74,9 +74,7 @@ const OptimalDEXSelector: React.FC<OptimalDEXSelectorProps> = ({
 
       setIsLoadingQuotes(true);
       try {
-        const decimals = DEXUtils.getTokenDecimals(fromAsset);
-        const amount = Math.round(parseFloat(swapAmount || '0') * Math.pow(10, decimals));
-
+        // Map mainnet assets to intermediate ckAssets for DEX routing
         const getIntermediateAsset = (mainnetAsset: string): string => {
           const mapping: Record<string, string> = {
             'BTC': 'ckBTC',
@@ -87,11 +85,17 @@ const OptimalDEXSelector: React.FC<OptimalDEXSelectorProps> = ({
           return mapping[mainnetAsset] || mainnetAsset;
         };
 
+        // Map BOTH from and to assets to their ckAsset equivalents for DEX routing
+        const dexFromAsset = getIntermediateAsset(fromAsset);
         const dexToAsset = getIntermediateAsset(toAsset);
 
+        // Convert swapAmount to proper units using decimals for the intermediate ckAsset
+        const decimals = DEXUtils.getTokenDecimals(dexFromAsset);
+        const amount = Math.round(parseFloat(swapAmount || '0') * Math.pow(10, decimals));
+
         const quotes = await dexRoutingAgent.getBestRoutes({
-          fromToken: fromAsset,
-          toToken: dexToAsset,
+          fromToken: dexFromAsset, // Use intermediate ckAsset (e.g., ckETH instead of ETH)
+          toToken: dexToAsset,     // Use intermediate ckAsset (e.g., ckBTC instead of BTC)
           amount: amount,
           urgency: swapValueUSD > 10000 ? 'high' : 'medium',
           userPreference: swapValueUSD > 25000 ? 'most_liquid' : 'lowest_cost',
@@ -115,7 +119,14 @@ const OptimalDEXSelector: React.FC<OptimalDEXSelectorProps> = ({
     if (!from || !to) return false;
     const icpAssets = ['ICP', 'ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT'];
     const mainnetAssets = ['BTC', 'ETH', 'USDC', 'USDT'];
-    if (!icpAssets.includes(from)) return false;
+
+    // Accept both ICP ecosystem assets AND mainnet assets as FROM
+    // Mainnet assets will be bridged to ckAssets first, then routed via DEX
+    const fromIsICP = icpAssets.includes(from);
+    const fromIsMainnet = mainnetAssets.includes(from);
+
+    if (!fromIsICP && !fromIsMainnet) return false;
+
     return icpAssets.includes(to) || mainnetAssets.includes(to);
   };
 

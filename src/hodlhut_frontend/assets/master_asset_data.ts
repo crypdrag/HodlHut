@@ -439,7 +439,11 @@ export const MOCK_PORTFOLIO: Portfolio = {
   'ckETH': 2.0,
   'ckUSDC': 1000,
   'ckUSDT': 500,
-  'ICP': 1000
+  'ICP': 1000,
+  // Mock L1 wallet balances for testing Bitcoin-only onramp (pre-wallet integration)
+  'ETH': 1.5,
+  'USDC': 2500,
+  'USDT': 1500
 };
 
 export const MOCK_PRICES_UPDATE = {

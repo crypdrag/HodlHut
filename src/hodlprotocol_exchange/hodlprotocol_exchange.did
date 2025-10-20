@@ -229,6 +229,8 @@ service : {
 
   // Deposit flow
   "pre_deposit" : (text, nat64) -> (Result_1);
+  "detect_and_process_deposit" : (text, nat64, text) -> (Result);
+  "mint_blst_for_deposit" : (text) -> (Result);
   "get_blst_balance" : (text) -> (nat64) query;
 
   // REE Orchestrator callbacks

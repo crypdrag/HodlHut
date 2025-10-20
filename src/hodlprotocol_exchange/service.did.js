@@ -1,13 +1,36 @@
 export const idlFactory = ({ IDL }) => {
   const Result = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : IDL.Text });
-  const ExecutionResult = IDL.Record({
-    'confirmations' : IDL.Nat32,
-    'status' : IDL.Text,
-    'to_address' : IDL.Text,
-    'amount_sats' : IDL.Nat64,
-    'from_address' : IDL.Text,
+  const CoinBalance = IDL.Record({ 'id' : IDL.Text, 'value' : IDL.Nat });
+  const InputCoin = IDL.Record({ 'coin' : CoinBalance, 'from' : IDL.Text });
+  const OutputCoin = IDL.Record({ 'to' : IDL.Text, 'coin' : CoinBalance });
+  const Utxo = IDL.Record({
+    'coins' : IDL.Vec(CoinBalance),
+    'sats' : IDL.Nat64,
+    'txid' : IDL.Text,
+    'vout' : IDL.Nat32,
+  });
+  const Intention = IDL.Record({
+    'input_coins' : IDL.Vec(InputCoin),
+    'output_coins' : IDL.Vec(OutputCoin),
+    'action' : IDL.Text,
+    'exchange_id' : IDL.Text,
+    'pool_utxo_spent' : IDL.Vec(IDL.Text),
+    'action_params' : IDL.Text,
     'nonce' : IDL.Nat64,
-    'tx_hash' : IDL.Text,
+    'pool_address' : IDL.Text,
+    'pool_utxo_received' : IDL.Vec(Utxo),
+  });
+  const IntentionSet = IDL.Record({
+    'tx_fee_in_sats' : IDL.Nat64,
+    'initiator_address' : IDL.Text,
+    'intentions' : IDL.Vec(Intention),
+  });
+  const ExecuteTxArgs = IDL.Record({
+    'zero_confirmed_tx_queue_length' : IDL.Nat32,
+    'txid' : IDL.Text,
+    'intention_set' : IntentionSet,
+    'intention_index' : IDL.Nat32,
+    'psbt_hex' : IDL.Text,
   });
   const BabylonParams = IDL.Record({
     'min_commission_rate' : IDL.Text,
@@ -66,19 +89,19 @@ export const idlFactory = ({ IDL }) => {
     'finality_provider' : IDL.Text,
     'tweaked' : IDL.Opt(IDL.Vec(IDL.Nat8)),
   });
-  const PoolInfoQuery = IDL.Record({ 'pool_address' : IDL.Text });
+  const GetPoolInfoArgs = IDL.Record({ 'pool_address' : IDL.Text });
   const PoolInfo = IDL.Record({
-    'key' : IDL.Vec(IDL.Nat8),
+    'key' : IDL.Text,
     'name' : IDL.Text,
     'btc_reserved' : IDL.Nat64,
     'key_derivation_path' : IDL.Vec(IDL.Vec(IDL.Nat8)),
-    'coin_reserved' : IDL.Vec(IDL.Nat8),
+    'coin_reserved' : IDL.Vec(CoinBalance),
     'attributes' : IDL.Text,
     'address' : IDL.Text,
     'nonce' : IDL.Nat64,
-    'utxos' : IDL.Vec(IDL.Nat8),
+    'utxos' : IDL.Vec(Utxo),
   });
-  const PoolListItem = IDL.Record({ 'name' : IDL.Text, 'address' : IDL.Text });
+  const PoolBasic = IDL.Record({ 'name' : IDL.Text, 'address' : IDL.Text });
   const PoolStats = IDL.Record({
     'tvl_sats' : IDL.Nat64,
     'timelock_blocks' : IDL.Nat32,
@@ -88,6 +111,13 @@ export const idlFactory = ({ IDL }) => {
     'estimated_apy' : IDL.Float64,
   });
   const Result_2 = IDL.Variant({ 'Ok' : PoolStats, 'Err' : IDL.Text });
+  const NewBlockInfo = IDL.Record({
+    'block_hash' : IDL.Text,
+    'confirmed_txids' : IDL.Vec(IDL.Text),
+    'block_timestamp' : IDL.Nat64,
+    'block_height' : IDL.Nat32,
+  });
+  const Result_5 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : IDL.Text });
   const DepositOffer = IDL.Record({
     'expected_blst' : IDL.Nat64,
     'pool_utxo_blst_amount' : IDL.Nat64,
@@ -100,10 +130,11 @@ export const idlFactory = ({ IDL }) => {
     'estimated_apy' : IDL.Float64,
   });
   const Result_1 = IDL.Variant({ 'Ok' : DepositOffer, 'Err' : IDL.Text });
+  const RollbackTxArgs = IDL.Record({ 'txid' : IDL.Text });
   return IDL.Service({
     'check_delegation_status' : IDL.Func([IDL.Text], [Result], []),
     'etch_blst_rune' : IDL.Func([], [Result], []),
-    'execute_tx' : IDL.Func([IDL.Text, ExecutionResult], [], []),
+    'execute_tx' : IDL.Func([ExecuteTxArgs], [Result], []),
     'get_babylon_params' : IDL.Func([], [Result_3], []),
     'get_babylon_staking_record' : IDL.Func(
         [IDL.Text],
@@ -118,13 +149,17 @@ export const idlFactory = ({ IDL }) => {
     'get_blst_balance' : IDL.Func([IDL.Text], [IDL.Nat64], ['query']),
     'get_finality_providers' : IDL.Func([], [Result_4], []),
     'get_pool_config' : IDL.Func([], [IDL.Opt(PoolConfig)], ['query']),
-    'get_pool_info' : IDL.Func([PoolInfoQuery], [IDL.Opt(PoolInfo)], ['query']),
-    'get_pool_list' : IDL.Func([], [IDL.Vec(PoolListItem)], ['query']),
+    'get_pool_info' : IDL.Func(
+        [GetPoolInfoArgs],
+        [IDL.Opt(PoolInfo)],
+        ['query'],
+      ),
+    'get_pool_list' : IDL.Func([], [IDL.Vec(PoolBasic)], ['query']),
     'get_pool_stats' : IDL.Func([], [Result_2], ['query']),
     'init_pool' : IDL.Func([], [Result], []),
-    'new_block' : IDL.Func([IDL.Nat64, IDL.Text], [], []),
+    'new_block' : IDL.Func([NewBlockInfo], [Result_5], []),
     'pre_deposit' : IDL.Func([IDL.Text, IDL.Nat64], [Result_1], []),
-    'rollback_tx' : IDL.Func([IDL.Text], [], []),
+    'rollback_tx' : IDL.Func([RollbackTxArgs], [Result_5], []),
     'stake_pool_to_babylon' : IDL.Func([IDL.Nat64], [Result], []),
     'submit_babylon_delegation' : IDL.Func([IDL.Text], [Result], []),
     'update_pool_pubkeys' : IDL.Func([], [Result], []),

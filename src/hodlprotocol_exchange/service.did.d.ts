@@ -30,6 +30,7 @@ export interface BabylonStakingStats {
   'pending_babylon_txs' : number,
   'active_delegations' : number,
 }
+export interface CoinBalance { 'id' : string, 'value' : bigint }
 export interface DepositOffer {
   'expected_blst' : bigint,
   'pool_utxo_blst_amount' : bigint,
@@ -40,6 +41,13 @@ export interface DepositOffer {
   'pool_address' : string,
   'pool_utxo_vout' : number,
   'estimated_apy' : number,
+}
+export interface ExecuteTxArgs {
+  'zero_confirmed_tx_queue_length' : number,
+  'txid' : string,
+  'intention_set' : IntentionSet,
+  'intention_index' : number,
+  'psbt_hex' : string,
 }
 export interface ExecutionResult {
   'confirmations' : number,
@@ -63,6 +71,36 @@ export interface FinalityProvider {
   'estimated_apy' : number,
   'voting_power' : string,
 }
+export interface GetMinimalTxValueArgs {
+  'zero_confirmed_tx_queue_length' : number,
+  'pool_address' : string,
+}
+export interface GetPoolInfoArgs { 'pool_address' : string }
+export interface InputCoin { 'coin' : CoinBalance, 'from' : string }
+export interface Intention {
+  'input_coins' : Array<InputCoin>,
+  'output_coins' : Array<OutputCoin>,
+  'action' : string,
+  'exchange_id' : string,
+  'pool_utxo_spent' : Array<string>,
+  'action_params' : string,
+  'nonce' : bigint,
+  'pool_address' : string,
+  'pool_utxo_received' : Array<Utxo>,
+}
+export interface IntentionSet {
+  'tx_fee_in_sats' : bigint,
+  'initiator_address' : string,
+  'intentions' : Array<Intention>,
+}
+export interface NewBlockInfo {
+  'block_hash' : string,
+  'confirmed_txids' : Array<string>,
+  'block_timestamp' : bigint,
+  'block_height' : number,
+}
+export interface OutputCoin { 'to' : string, 'coin' : CoinBalance }
+export interface PoolBasic { 'name' : string, 'address' : string }
 export interface PoolConfig {
   'total_deposited_sats' : bigint,
   'timelock_blocks' : number,
@@ -75,18 +113,16 @@ export interface PoolConfig {
   'tweaked' : [] | [Uint8Array | number[]],
 }
 export interface PoolInfo {
-  'key' : Uint8Array | number[],
+  'key' : string,
   'name' : string,
   'btc_reserved' : bigint,
   'key_derivation_path' : Array<Uint8Array | number[]>,
-  'coin_reserved' : Uint8Array | number[],
+  'coin_reserved' : Array<CoinBalance>,
   'attributes' : string,
   'address' : string,
   'nonce' : bigint,
-  'utxos' : Uint8Array | number[],
+  'utxos' : Array<Utxo>,
 }
-export interface PoolInfoQuery { 'pool_address' : string }
-export interface PoolListItem { 'name' : string, 'address' : string }
 export interface PoolStats {
   'tvl_sats' : bigint,
   'timelock_blocks' : number,
@@ -105,10 +141,19 @@ export type Result_3 = { 'Ok' : BabylonParams } |
   { 'Err' : string };
 export type Result_4 = { 'Ok' : Array<FinalityProvider> } |
   { 'Err' : string };
+export type Result_5 = { 'Ok' : null } |
+  { 'Err' : string };
+export interface RollbackTxArgs { 'txid' : string }
+export interface Utxo {
+  'coins' : Array<CoinBalance>,
+  'sats' : bigint,
+  'txid' : string,
+  'vout' : number,
+}
 export interface _SERVICE {
   'check_delegation_status' : ActorMethod<[string], Result>,
   'etch_blst_rune' : ActorMethod<[], Result>,
-  'execute_tx' : ActorMethod<[string, ExecutionResult], undefined>,
+  'execute_tx' : ActorMethod<[ExecuteTxArgs], Result>,
   'get_babylon_params' : ActorMethod<[], Result_3>,
   'get_babylon_staking_record' : ActorMethod<
     [string],
@@ -118,13 +163,13 @@ export interface _SERVICE {
   'get_blst_balance' : ActorMethod<[string], bigint>,
   'get_finality_providers' : ActorMethod<[], Result_4>,
   'get_pool_config' : ActorMethod<[], [] | [PoolConfig]>,
-  'get_pool_info' : ActorMethod<[PoolInfoQuery], [] | [PoolInfo]>,
-  'get_pool_list' : ActorMethod<[], Array<PoolListItem>>,
+  'get_pool_info' : ActorMethod<[GetPoolInfoArgs], [] | [PoolInfo]>,
+  'get_pool_list' : ActorMethod<[], Array<PoolBasic>>,
   'get_pool_stats' : ActorMethod<[], Result_2>,
   'init_pool' : ActorMethod<[], Result>,
-  'new_block' : ActorMethod<[bigint, string], undefined>,
+  'new_block' : ActorMethod<[NewBlockInfo], Result_5>,
   'pre_deposit' : ActorMethod<[string, bigint], Result_1>,
-  'rollback_tx' : ActorMethod<[string], undefined>,
+  'rollback_tx' : ActorMethod<[RollbackTxArgs], Result_5>,
   'stake_pool_to_babylon' : ActorMethod<[bigint], Result>,
   'submit_babylon_delegation' : ActorMethod<[string], Result>,
   'update_pool_pubkeys' : ActorMethod<[], Result>,

@@ -12,6 +12,7 @@ ic-cdk = "0.17"
 ic-cdk-macros = "0.17"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+serde_bytes = "0.11"
 
 # REE Types - Using proven working version from ree-lending-demo
 ree-types = { git = "https://github.com/octopus-network/ree-types.git", rev = "3d0fb503384082bdeaf368305c4229801ee9ebd3" }

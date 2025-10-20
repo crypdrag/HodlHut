@@ -15,7 +15,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <header className="nav-header">
         <div className="container-app pad-section">
           {/* Mobile: Logo and brand name on top row */}
-          <div className="flex justify-center items-center gap-3 mb-3 sm:hidden">
+          <div className="flex justify-center items-center gap-3 mb-3 sm:hidden cursor-pointer" onClick={() => navigate('/')}>
             <AssetIcon asset="logo" size={50} className="w-12 h-12 object-contain" />
             <span className="text-2xl font-bold text-text-primary" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>hodl protocol</span>
           </div>

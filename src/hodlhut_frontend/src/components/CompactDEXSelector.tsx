@@ -41,6 +41,8 @@ interface CompactDEXSelectorProps {
   swapAnalysis?: any; // For checking if it's ICP-only vs cross-chain
   // Callback to trigger swap analysis generation with selected DEX
   onDEXSelectedForICPSwap?: (dexId: string) => void;
+  // Callback to provide cycling function to parent
+  onCycleDEX?: (cycleFunc: () => void) => void;
 }
 
 const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
@@ -54,12 +56,16 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
   slippageTolerance,
   onShowTransactionPreview,
   swapAnalysis,
-  onDEXSelectedForICPSwap
+  onDEXSelectedForICPSwap,
+  onCycleDEX
 }) => {
   const [expandedDEX, setExpandedDEX] = useState<string | null>(null);
 
   // Local slippage tolerance state for UI interaction
   const [localSlippageTolerance, setLocalSlippageTolerance] = useState<number>(slippageTolerance || 5.0);
+
+  // Current DEX index for cycling through options (0 = top recommended)
+  const [currentDEXIndex, setCurrentDEXIndex] = useState<number>(0);
 
   // State for agent-driven recommendations
   const [agentQuotes, setAgentQuotes] = useState<DEXQuote[]>([]);
@@ -103,11 +109,7 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
 
       setIsLoadingQuotes(true);
       try {
-        // Convert swapAmount to proper units using correct decimals for each token
-        const decimals = DEXUtils.getTokenDecimals(fromAsset);
-        const amount = Math.round(parseFloat(swapAmount || '0') * Math.pow(10, decimals));
-
-        // Map mainnet destinations to intermediate ckAssets for DEX routing
+        // Map mainnet assets to intermediate ckAssets for DEX routing
         const getIntermediateAsset = (mainnetAsset: string): string => {
           const mapping: Record<string, string> = {
             'BTC': 'ckBTC',
@@ -118,11 +120,17 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
           return mapping[mainnetAsset] || mainnetAsset;
         };
 
+        // Map BOTH from and to assets to their ckAsset equivalents for DEX routing
+        const dexFromAsset = getIntermediateAsset(fromAsset);
         const dexToAsset = getIntermediateAsset(toAsset);
 
+        // Convert swapAmount to proper units using decimals for the intermediate ckAsset
+        const decimals = DEXUtils.getTokenDecimals(dexFromAsset);
+        const amount = Math.round(parseFloat(swapAmount || '0') * Math.pow(10, decimals));
+
         const quotes = await dexRoutingAgent.getBestRoutes({
-          fromToken: fromAsset,
-          toToken: dexToAsset, // Use intermediate ckAsset for DEX routing
+          fromToken: dexFromAsset, // Use intermediate ckAsset (e.g., ckETH instead of ETH)
+          toToken: dexToAsset,     // Use intermediate ckAsset (e.g., ckBTC instead of BTC)
           amount: amount,
           urgency: swapValueUSD > 10000 ? 'high' : 'medium',
           userPreference: swapValueUSD > 25000 ? 'most_liquid' : 'lowest_cost',
@@ -143,7 +151,7 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
     return () => clearTimeout(timer);
   }, [swapValueUSD, fromAsset, toAsset, swapAmount]);
 
-  // Transform existing data to compact format with agent-driven smart sorting
+  // Transform existing data to compact format - ONLY SHOW TOP RECOMMENDED DEX
   const compactDEXes: CompactDEXView[] = useMemo(() => {
     const dexList = Object.entries(dexData).map(([key, dex]: [string, any]) => {
       // Find corresponding agent quote for this DEX
@@ -163,9 +171,10 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
       };
     });
 
-    // Agent-driven smart sorting: sort by agent score, then recommended DEX first
+    // Sort by agent score (highest first)
+    let sortedList = dexList;
     if (agentQuotes.length > 0) {
-      return dexList.sort((a, b) => {
+      sortedList = dexList.sort((a, b) => {
         const aQuote = a.agentQuote;
         const bQuote = b.agentQuote;
 
@@ -177,17 +186,31 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
         // Fallback to original order if no quotes
         return 0;
       });
-    }
-
-    // Fallback sorting: recommended DEX first if available
-    if (recommendation.recommendedDEX) {
+    } else if (recommendation.recommendedDEX) {
+      // Fallback sorting: recommended DEX first if available
       const recommended = dexList.find(dex => dex.id === recommendation.recommendedDEX);
       const others = dexList.filter(dex => dex.id !== recommendation.recommendedDEX);
-      return recommended ? [recommended, ...others] : dexList;
+      sortedList = recommended ? [recommended, ...others] : dexList;
     }
 
-    return dexList;
+    // Return ALL DEXs (sorted by score/recommendation)
+    return sortedList;
   }, [dexData, selectedDEX, recommendation.recommendedDEX, agentQuotes, setSelectedDEX]);
+
+  // Get the current DEX to display based on cycling index
+  const currentDEX = compactDEXes[currentDEXIndex] || compactDEXes[0];
+
+  // Cycle to next DEX when "DEX Options" button is clicked
+  const handleCycleDEX = () => {
+    setCurrentDEXIndex((prevIndex) => (prevIndex + 1) % compactDEXes.length);
+  };
+
+  // Provide cycling function to parent on mount
+  useEffect(() => {
+    if (onCycleDEX) {
+      onCycleDEX(handleCycleDEX);
+    }
+  }, [onCycleDEX]);
 
   const handleRowClick = (dexId: string) => {
     // Toggle expansion for details
@@ -201,8 +224,12 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
     const icpAssets = ['ICP', 'ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT'];
     const mainnetAssets = ['BTC', 'ETH', 'USDC', 'USDT'];
 
-    // If FROM is ICP ecosystem asset, we can route via DEX
-    if (!icpAssets.includes(from)) return false;
+    // Accept both ICP ecosystem assets AND mainnet assets as FROM
+    // Mainnet assets will be bridged to ckAssets first, then routed via DEX
+    const fromIsICP = icpAssets.includes(from);
+    const fromIsMainnet = mainnetAssets.includes(from);
+
+    if (!fromIsICP && !fromIsMainnet) return false;
 
     // Route to ICP ecosystem assets directly
     if (icpAssets.includes(to)) return true;
@@ -277,8 +304,10 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
       </div>
 
       <div className="space-y-2">
-        {compactDEXes.map((dex) => {
-          const isRecommended = dex.id === recommendation.recommendedDEX;
+        {/* Only show the current DEX (cycling through options) */}
+        {currentDEX && (()  => {
+          const dex = currentDEX;
+          const isRecommended = currentDEXIndex === 0; // First DEX is always recommended
           const isCompatible = isDEXCompatibleWithSlippage(dex.id);
           const slippageMessage = getSlippageStatusMessage(dex.id);
 
@@ -630,7 +659,7 @@ const CompactDEXSelector: React.FC<CompactDEXSelectorProps> = ({
             )}
           </div>
         );
-        })}
+        })()}
       </div>
     </div>
   );
