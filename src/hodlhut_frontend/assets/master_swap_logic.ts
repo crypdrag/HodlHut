@@ -310,8 +310,17 @@ export function calculateSwapRoute(fromAsset: string, toAsset: string): SwapRout
 
 /**
  * Determines if swap requires DEX selection
+ * Bitcoin-only onramp: TO asset is always BTC
+ * Only ckBTC → BTC is direct (no DEX needed)
+ * All other assets need DEX routing to get ckBTC first
  */
 export function needsDEXSelection(fromAsset: string, toAsset: string): boolean {
+  // Bitcoin-only onramp: Special handling for BTC destination
+  if (toAsset === 'BTC') {
+    return fromAsset !== 'ckBTC'; // DEX needed unless FROM is already ckBTC
+  }
+
+  // Original minter pairs logic for non-BTC destinations
   const minterPairs = [
     ['ckBTC', 'BTC'], ['BTC', 'ckBTC'],
     ['ckETH', 'ETH'], ['ETH', 'ckETH'],
@@ -319,12 +328,12 @@ export function needsDEXSelection(fromAsset: string, toAsset: string): boolean {
     ['ckUSDT', 'USDT'], ['USDT', 'ckUSDT'],
     ['ckUSDC', 'USDCs'], ['USDCs', 'ckUSDC']
   ];
-  
-  const isDirect = minterPairs.some(pair => 
+
+  const isDirect = minterPairs.some(pair =>
     (pair[0] === fromAsset && pair[1] === toAsset) ||
     (pair[1] === fromAsset && pair[0] === toAsset)
   );
-  
+
   return !isDirect;
 }
 
@@ -461,29 +470,29 @@ export function calculateFeeRequirements(
   const fees: FeeRequirement[] = [];
   const route = calculateSwapRoute(fromAsset, toAsset);
   const isMinterOp = route.operationType === 'Minter Operation';
-  
-  console.log('🔥 FEE CALC ROUTE:', { route, isMinterOp });
-  
-  // MyHut Fee (0.1%) - Always added first to appear at top of fee stack
-  const myHutFeeRate = 0.001; // 0.1%
-  const myHutFeeAmount = amount * myHutFeeRate;
-  const myHutFeeUSD = myHutFeeAmount * ASSET_PRICES[fromAsset];
 
-  // For native L1 withdrawals, MyHut fee can be deducted from final amount
+  console.log('🔥 FEE CALC ROUTE:', { route, isMinterOp });
+
+  // Swap Fee (2%) - Always added first to appear at top of fee stack
+  const swapFeeRate = 0.02; // 2%
+  const swapFeeAmount = amount * swapFeeRate;
+  const swapFeeUSD = swapFeeAmount * ASSET_PRICES[fromAsset];
+
+  // For native L1 withdrawals, swap fee can be deducted from final amount
   const isNativeWithdrawal = isMinterOp && isL1Withdrawal(toAsset) &&
     ((fromAsset === 'ckETH' && toAsset === 'ETH') ||
      (fromAsset === 'ckBTC' && toAsset === 'BTC'));
 
   fees.push({
     token: fromAsset,
-    amount: myHutFeeAmount,
-    description: 'MyHut Fees (0.1%)',
-    usdValue: myHutFeeUSD,
-    isUserSufficient: isNativeWithdrawal ? true : (portfolio[fromAsset] || 0) >= (amount + myHutFeeAmount),
+    amount: swapFeeAmount,
+    description: 'HODL Protocol Fee (2%)',
+    usdValue: swapFeeUSD,
+    isUserSufficient: isNativeWithdrawal ? true : (portfolio[fromAsset] || 0) >= (amount + swapFeeAmount),
     purpose: 'network'
   });
-  
-  console.log('💰 ADDED MYHUT FEE:', { myHutFeeAmount, myHutFeeUSD });
+
+  console.log('💰 ADDED SWAP FEE:', { swapFeeAmount, swapFeeUSD });
   console.log('💰 CURRENT FEES ARRAY:', fees);
   
   // DEX Trading Fees (for DEX swaps like ckUSDT → ckSOL or DEX + Minter operations)
@@ -491,9 +500,9 @@ export function calculateFeeRequirements(
     const dexFeeRate = selectedDEX === 'KongSwap' ? 0.003 : 0.003;
     const dexFeeAmount = amount * dexFeeRate;
     const dexFeeUSD = dexFeeAmount * ASSET_PRICES[fromAsset];
-    
-    // Check if user has sufficient funds for both MyHut fee and DEX fee
-    const totalFeesSoFar = myHutFeeAmount + dexFeeAmount;
+
+    // Check if user has sufficient funds for both swap fee and DEX fee
+    const totalFeesSoFar = swapFeeAmount + dexFeeAmount;
     
     fees.push({
       token: fromAsset,
@@ -505,7 +514,7 @@ export function calculateFeeRequirements(
     });
   }
   
-  // L1 Gas Fees - SIMPLIFIED LOGIC: Show fees in Transaction Preview, Smart Solutions only for USDC/USDT→ETH
+  // L1 Gas Fees - Bitcoin-only onramp: Show fees in Transaction Preview, no Smart Solutions
   console.log('🔥 L1 WITHDRAWAL CHECK:', { fromAsset, toAsset, isL1: isL1Withdrawal(toAsset) });
 
   if (isL1Withdrawal(toAsset)) {
@@ -513,23 +522,9 @@ export function calculateFeeRequirements(
     console.log('🔥 L1 GAS FEE RESULT:', gasFee);
 
     if (gasFee) {
-      // For L1 withdrawals: Smart Solutions needed (separate gas assets required)
-      const needsSmartSolutions = ['USDC', 'USDT', 'BTC', 'ETH'].includes(toAsset);
-
-      // For all L1 withdrawals: Show gas fee in Transaction Preview
-      // For Smart Solutions: Only trigger for L1 withdrawals needing separate gas
-      const gasWithSolutionsControl = {
-        ...gasFee,
-        isUserSufficient: !needsSmartSolutions // false only for L1 withdrawals needing separate gas
-      };
-
-      fees.push(gasWithSolutionsControl);
-
-      if (needsSmartSolutions) {
-        console.log('🔥 ERC-20 to Ethereum - Smart Solutions needed for separate ckETH gas');
-      } else {
-        console.log('🔥 L1 withdrawal - gas fee shown in preview but no Smart Solutions needed');
-      }
+      // Bitcoin-only: Gas fee shown in preview, no Smart Solutions needed
+      fees.push(gasFee);
+      console.log('🔥 Bitcoin withdrawal - gas fee shown in preview, deducted from final amount');
     }
   }
   
@@ -546,58 +541,24 @@ function isNativeL1Asset(toAsset: string): boolean {
 function calculateL1GasFee(toAsset: string, portfolio: Portfolio): FeeRequirement | null {
   console.log('🔍 calculateL1GasFee called with toAsset:', toAsset);
 
-  // UNIVERSAL RULE: Native Layer 1 assets - fees deducted from withdrawal amount
-  // CHECK THIS FIRST for BTC, ETH, SOL destinations
-  if (isNativeL1Asset(toAsset)) {
-    let feeAmount: number;
-    let feeToken: string;
-    let description: string;
-    
-    if (toAsset === 'BTC') {
-      feeAmount = 0.0005;
-      feeToken = 'ckBTC';
-      description = 'Bitcoin Network Fee (deducted from final amount)';
-    } else if (toAsset === 'ETH') {
-      feeAmount = 0.003;
-      feeToken = 'ckETH';
-      description = 'Ethereum Gas Fee (deducted from final amount)';
-    } else if (['SOL', 'USDCs'].includes(toAsset)) {
-      feeAmount = 0.001;
-      feeToken = 'ckSOL';
-      description = 'Solana Network Fee (deducted from final amount)';
-    } else {
-      return null;
-    }
-    
+  // Bitcoin-only onramp: Only BTC withdrawals supported
+  if (toAsset === 'BTC') {
+    const feeAmount = 0.0005;
+    const feeToken = 'ckBTC';
     const feeUSD = feeAmount * ASSET_PRICES[feeToken];
-    
+
     return {
       token: feeToken,
       amount: feeAmount,
-      description: description,
+      description: 'Bitcoin Network Fee (deducted from final amount)',
       usdValue: feeUSD,
-      isUserSufficient: true, // Native L1 assets use deduct-from-final, no Smart Solutions needed
+      isUserSufficient: true, // Bitcoin gas deducted from final amount, no Smart Solutions needed
       purpose: 'gas',
-      deductFromFinal: true, // Flag to indicate this fee is deducted from final withdrawal amount
-      preferredSolution: 'deduct_from_final' // Preferred payment method for native L1 assets
+      deductFromFinal: true,
+      preferredSolution: 'deduct_from_final'
     };
   }
-  
-  // Special case: Legacy USDC/USDT (direct Ethereum) - treat as ERC-20
-  if (['USDC', 'USDT'].includes(toAsset)) {
-    const ethGasAmount = 0.003;
-    const ethGasUSD = ethGasAmount * ASSET_PRICES['ckETH'];
-    
-    return {
-      token: 'ckETH',
-      amount: ethGasAmount,
-      description: 'Ethereum Gas Fee (ERC-20 transfer)',
-      usdValue: ethGasUSD,
-      isUserSufficient: (portfolio['ckETH'] || 0) >= ethGasAmount,
-      purpose: 'gas'
-    };
-  }
-  
+
   return null;
 }
 
@@ -606,161 +567,19 @@ function calculateL1GasFee(toAsset: string, portfolio: Portfolio): FeeRequiremen
 // ===============================================
 
 /**
- * CLEAN Smart Solutions - Following User Requirements
- * Purpose: Supply ckETH to EVMRPC for Ethereum transactions when ckUSDC and ckUSDT are settled on Ethereum
+ * CLEAN Smart Solutions - Bitcoin-Only Onramp
+ * Purpose: Bitcoin gas fees are deducted from final amount - no Smart Solutions needed
  */
 export function generateSmartSolutions(
   swapAnalysis: CompleteSwapAnalysis,
   portfolio: Portfolio,
   selectedDEX: string = 'ICPSwap'
 ): SmartSolution[] {
-  console.log('🚀 CLEAN Smart Solutions:', {
-    fromAsset: swapAnalysis.fromAsset,
-    toAsset: swapAnalysis.toAsset
-  });
+  console.log('🚀 Bitcoin-Only Onramp: No Smart Solutions needed (gas deducted from final)');
 
-  // ONLY trigger for L1 withdrawals that need separate gas assets
-  if (!['USDC', 'USDT', 'BTC', 'ETH'].includes(swapAnalysis.toAsset)) {
-    console.log('✅ No Smart Solutions needed - not L1 withdrawal requiring separate gas');
-    return [];
-  }
-
-  // Determine required gas asset and amount based on destination
-  const { gasAsset, network } = getRequiredGasAsset(swapAnalysis.toAsset);
-  const gasNeeded = gasAsset === 'ckBTC' ? 0.0005 : 0.003; // Bitcoin: 0.0005, Ethereum: 0.003
-  const gasBalance = portfolio[gasAsset] || 0;
-
-  // BYPASS: If gas asset will be generated by the swap route, no Smart Solutions needed
-  const gasAssetGeneratedBySwap = swapAnalysis.route.steps.includes(gasAsset);
-  if (gasAssetGeneratedBySwap) {
-    console.log(`✅ Gas asset ${gasAsset} will be generated by swap route - no Smart Solutions needed`);
-    return [];
-  }
-
-  const solutions: SmartSolution[] = [];
-
-  // OPTION 1: Does user have the required gas asset? Use this.
-  if (gasBalance >= gasNeeded) {
-    solutions.push({
-      id: `use_${gasAsset}_balance`,
-      type: 'use_balance',
-      title: `Use ${gasAsset} Balance`,
-      description: `You have ${gasAsset} in your portfolio! Use ${gasNeeded.toFixed(gasAsset === 'ckBTC' ? 4 : 3)} ${gasAsset} for ${network} gas fees?`,
-      badge: 'RECOMMENDED',
-      userReceives: {
-        amount: swapAnalysis.outputAmount,
-        asset: swapAnalysis.toAsset
-      },
-      cost: {
-        amount: gasNeeded.toString(),
-        asset: gasAsset,
-        description: `${network} gas fee`
-      }
-    });
-  }
-
-  // PRIORITY 2: Does user have other ckAssets? Choose best swap for best rate.
-  const availableAssets = ['ckBTC', 'ckETH', 'ckUSDC', 'ICP'].filter(asset =>
-    asset !== gasAsset && asset !== swapAnalysis.fromAsset && (portfolio[asset] || 0) > 0
-  );
-
-  // OPTION 2: Rank available assets by USD value for cycling
-  if (availableAssets.length > 0) {
-    const rankedAssets = availableAssets
-      .map(asset => ({
-        asset,
-        usdValue: (portfolio[asset] || 0) * ASSET_PRICES[asset]
-      }))
-      .sort((a, b) => b.usdValue - a.usdValue);
-
-    // Add swap options for each ranked asset
-    rankedAssets.forEach((rankedAsset, index) => {
-      const { asset: sourceAsset } = rankedAsset;
-
-      // Calculate swap details
-      const sourceAssetPrice = ASSET_PRICES[sourceAsset] || 0;
-      const gasAssetPrice = ASSET_PRICES[gasAsset] || 0;
-      const exchangeRate = sourceAssetPrice / gasAssetPrice;
-
-      const dexFeePercentage = selectedDEX === 'ICDEX' ? 0.1 : 0.3;
-      const sourceAmountNeeded = gasNeeded / exchangeRate;
-      const dexFee = sourceAmountNeeded * (dexFeePercentage / 100);
-      const totalSourceNeeded = sourceAmountNeeded + dexFee;
-      const totalCostUSD = totalSourceNeeded * sourceAssetPrice;
-
-      const remainingOptions = rankedAssets.length - index - 1;
-      const isLastOption = remainingOptions === 0;
-
-      solutions.push({
-        id: `swap_${sourceAsset}_for_${gasAsset}_${index}`,
-        type: 'auto_swap',
-        title: `Auto-Swap ${sourceAsset} → ${gasAsset}`,
-        description: `Swap ${totalSourceNeeded.toFixed(6)} ${sourceAsset} for ${gasNeeded.toFixed(gasAsset === 'ckBTC' ? 4 : 3)} ${gasAsset} for gas fees? (Includes DEX fees)${!isLastOption ? `\n${remainingOptions} more asset option${remainingOptions !== 1 ? 's' : ''} available` : '\nLast asset option'}`,
-        badge: index === 0 ? 'RECOMMENDED' : 'ALTERNATIVE',
-        userReceives: {
-          amount: swapAnalysis.outputAmount,
-          asset: swapAnalysis.toAsset
-        },
-        cost: {
-          amount: totalSourceNeeded.toFixed(6),
-          asset: sourceAsset,
-          description: `Includes ${dexFeePercentage}% DEX fee`
-        },
-        // Detailed swap breakdown for Transaction Preview
-        swapDetails: {
-          sourceAsset: sourceAsset,
-          sourceAmount: totalSourceNeeded,
-          targetAsset: gasAsset,
-          targetAmount: gasNeeded,
-          exchangeRate: exchangeRate,
-          dexFee: dexFee,
-          dexFeePercentage: dexFeePercentage,
-          recommendedDEX: selectedDEX,
-          totalCostUSD: totalCostUSD
-        }
-      });
-    });
-  }
-
-  // OPTION 3: Deposit ckETH to Your Portfolio (ICP wallet)
-  solutions.push({
-    id: `deposit_${gasAsset}_icp`,
-    type: 'manual_topup',
-    title: `Deposit ${gasAsset} to Your Portfolio`,
-    description: `Deposit ${gasAsset} to your HodlHut portfolio to have sufficient balance for gas fees.`,
-    badge: 'REQUIRED STEP',
-    userReceives: {
-      amount: swapAnalysis.outputAmount,
-      asset: swapAnalysis.toAsset
-    },
-    cost: {
-      amount: gasNeeded.toString(),
-      asset: gasAsset,
-      description: `${network} gas fee`
-    }
-  });
-
-  // OPTION 4: Deposit ETH to Your Portfolio (Ethereum wallet) - Final option
-  if (gasAsset === 'ckETH') {
-    solutions.push({
-      id: `deposit_${gasAsset.replace('ck', '')}_eth`,
-      type: 'manual_topup',
-      title: `Deposit ${gasAsset.replace('ck', '')} to Your Portfolio`,
-      description: `Deposit ${gasAsset.replace('ck', '')} to your Hut sufficient balance for gas fees.`,
-      badge: 'ALTERNATIVE',
-      userReceives: {
-        amount: swapAnalysis.outputAmount,
-        asset: swapAnalysis.toAsset
-      },
-      cost: {
-        amount: gasNeeded.toString(),
-        asset: gasAsset.replace('ck', ''),
-        description: `${network} gas fee`
-      }
-    });
-  }
-
-  return solutions;
+  // Bitcoin-only onramp: Gas fees deducted from final BTC amount
+  // No separate gas asset management needed
+  return [];
 }
 
 /**
@@ -874,10 +693,10 @@ export function recommendDEX(fromAsset: string, toAsset: string, amount: number)
   reasoning: string;
 } {
   const swapValueUSD = amount * ASSET_PRICES[fromAsset];
-  
+
   let preferredDEX = 'KongSwap'; // Default to lower fees
   let reasoning = '';
-  
+
   if (swapValueUSD > 10000) {
     preferredDEX = 'ICPSwap';
     reasoning = `Large trade ($${Math.round(swapValueUSD).toLocaleString()}) - prioritizing liquidity and price discovery`;
@@ -887,11 +706,25 @@ export function recommendDEX(fromAsset: string, toAsset: string, amount: number)
   } else {
     reasoning = `Medium trade ($${Math.round(swapValueUSD).toLocaleString()}) - balanced approach with lower fees`;
   }
-  
+
   return {
     recommended: DEX_OPTIONS[preferredDEX],
     reasoning
   };
+}
+
+/**
+ * AUTO-SELECT OPTIMAL DEX (Mobile-First UX)
+ * Automatically picks the best DEX for a swap without user intervention.
+ * Returns the DEX ID string that can be directly used in swap execution.
+ *
+ * Bitcoin-only onramp: All routes end at BTC, so we optimize for:
+ * - Speed (KongSwap for small/medium trades)
+ * - Liquidity (ICPSwap for large trades)
+ */
+export function autoSelectOptimalDEX(fromAsset: string, toAsset: string, amount: number): string {
+  const recommendation = recommendDEX(fromAsset, toAsset, amount);
+  return recommendation.recommended.id;
 }
 
 // ===============================================
@@ -1019,8 +852,8 @@ export function analyzeCompleteSwap(
   console.log('🚀 FEE REQUIREMENTS IN ANALYSIS:', feeRequirements);
   const totalFeesUSD = feeRequirements.reduce((sum, fee) => sum + fee.usdValue, 0);
   console.log('🚀 TOTAL FEES USD:', totalFeesUSD);
-  // CLEAN LOGIC: Smart Solutions needed for L1 withdrawals requiring separate gas assets
-  const needsSmartSolutions = ['USDC', 'USDT', 'BTC', 'ETH'].includes(toAsset);
+  // Bitcoin-only onramp: No Smart Solutions needed (gas deducted from final amount)
+  const needsSmartSolutions = false;
 
   const swapAnalysis: CompleteSwapAnalysis = {
     success: true,

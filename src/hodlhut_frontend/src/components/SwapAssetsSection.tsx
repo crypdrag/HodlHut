@@ -848,9 +848,9 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
 
               {/* HODL Protocol Fee */}
               <div className="fee-item-mobile">
-                <span className="text-text-secondary">HODL Fee (0.1%)</span>
+                <span className="text-text-secondary">HODL Fee (2%)</span>
                 <span className="font-semibold text-text-primary">
-                  {formatNumber(parseFloat(swapAmount) * 0.001)} {fromAsset}
+                  {formatNumber(parseFloat(swapAmount) * 0.02)} {fromAsset}
                 </span>
               </div>
 

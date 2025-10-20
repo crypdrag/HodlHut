@@ -46,7 +46,7 @@ export interface StakeOffer {
   psbts: StakingPSBTs;
   estimatedBlstAmount: number; // BLST tokens to receive (1:1 with BTC amount)
   estimatedApy: number; // From finality provider
-  babylonTxFee: number; // Protocol fee in satoshis
+  babylonTxFee: number; // Protocol fee (0 for deposits - deducted from BABY rewards later)
   networkFee: number; // Bitcoin network fee in satoshis
 }
 
@@ -185,7 +185,7 @@ class BitcoinStakingService {
 
       // Create Staking instance
       const stakingInstance = new Staking(
-        networks.testnet, // Bitcoin Signet uses testnet network params
+        networks.testnet, // Bitcoin Testnet4 uses testnet network params
         stakerInfo,
         stakingParams,
         [inputs.finalityProvider.consensus_pubkey], // FP public key array
@@ -250,7 +250,7 @@ class BitcoinStakingService {
       // ===================================
 
       const estimatedBlstAmount = inputs.amount; // 1:1 backing
-      const protocolFee = Math.floor(inputs.amount * 0.02); // 2% protocol fee (TODO: Calculate from APY)
+      const protocolFee = 0; // No upfront fee - fees deducted from BABY rewards later
       const totalNetworkFee = stakingFee + unbondingFee + stakingSlashingFee + unbondingSlashingFee;
 
       const stakeOffer: StakeOffer = {
@@ -300,7 +300,7 @@ class BitcoinStakingService {
 
     // Validate Taproot address (must start with tb1p for testnet)
     if (!inputs.userBtcAddress.startsWith('tb1p')) {
-      return { isValid: false, error: "Address must be a Taproot address (tb1p...) on Bitcoin Signet" };
+      return { isValid: false, error: "Address must be a Taproot address (tb1p...) on Bitcoin Testnet4" };
     }
 
     // Validate public key is 32 bytes hex (64 characters) - no coordinate byte
@@ -371,8 +371,8 @@ class BitcoinStakingService {
         const enrichedUtxos = await Promise.all(
           utxos.map(async (utxo: any) => {
             try {
-              // Fetch transaction data from mempool.space Signet API
-              const txResponse = await fetch(`https://mempool.space/signet/api/tx/${utxo.txid}`);
+              // Fetch transaction data from mempool.space Testnet4 API
+              const txResponse = await fetch(`https://mempool.space/testnet4/api/tx/${utxo.txid}`);
               if (!txResponse.ok) {
                 throw new Error(`Failed to fetch tx ${utxo.txid}`);
               }
@@ -418,12 +418,12 @@ class BitcoinStakingService {
 
   /**
    * Estimate fee rate for Bitcoin transaction
-   * Uses mempool.space API for Bitcoin Signet testnet
+   * Uses mempool.space API for Bitcoin Testnet4
    */
   private async estimateFeeRate(): Promise<number> {
     try {
-      // Fetch recommended fee rates from mempool.space Signet API
-      const response = await fetch('https://mempool.space/signet/api/v1/fees/recommended');
+      // Fetch recommended fee rates from mempool.space Testnet4 API
+      const response = await fetch('https://mempool.space/testnet4/api/v1/fees/recommended');
 
       if (!response.ok) {
         // Fallback to fixed rate if API fails
