@@ -31,14 +31,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {/* Navigation links - simple text-based modern DEX style */}
             <div className="flex gap-6 sm:gap-8 items-center mx-auto sm:mx-0">
               <a
-                href="/swap"
-                className="text-sm sm:text-base font-medium text-text-primary hover:text-primary-400 transition-colors duration-200"
-                onClick={(e) => { e.preventDefault(); navigate('/swap'); }}
-              >
-                Swap
-              </a>
-              <span className="text-text-muted">|</span>
-              <a
                 href="/stake"
                 className="text-sm sm:text-base font-medium text-text-primary hover:text-primary-400 transition-colors duration-200"
                 onClick={(e) => { e.preventDefault(); navigate('/stake'); }}
@@ -47,11 +39,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </a>
               <span className="text-text-muted">|</span>
               <a
-                href="/pool"
+                href="/swap"
                 className="text-sm sm:text-base font-medium text-text-primary hover:text-primary-400 transition-colors duration-200"
-                onClick={(e) => { e.preventDefault(); navigate('/pool'); }}
+                onClick={(e) => { e.preventDefault(); navigate('/swap'); }}
               >
-                Pool
+                Swap
               </a>
             </div>
           </nav>

@@ -265,7 +265,7 @@ const StakeBTCPage: React.FC = () => {
                       <Shield className="w-3.5 h-3.5 md:w-4 md:h-4 text-success-400" />
                       <span className="text-xs md:text-sm text-text-secondary">Finality Provider</span>
                     </div>
-                    <span className="text-xs font-mono text-text-primary">Top Performer</span>
+                    <span className="text-xs font-mono text-text-primary">Babylon Labs</span>
                   </div>
                   <div className="flex items-center justify-between pt-2 border-t border-white/5">
                     <span className="text-xs md:text-sm text-text-secondary">Pool APY</span>

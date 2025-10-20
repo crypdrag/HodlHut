@@ -55,48 +55,83 @@ const ExecutionProgressModal: React.FC<ExecutionProgressModalProps> = ({
       ];
     } else if (isCrossChain) {
       // Complex cross-chain operation - transaction-specific steps
-      const bridgeToken = getBridgeToken(transactionData.toAsset);
       const destinationNetwork = getDestinationNetwork(transactionData.toAsset);
 
-      // Check if DEX swap is actually needed (only if fromAsset != bridge token)
-      const needsDEXSwap = transactionData.fromAsset !== bridgeToken;
+      // Check if fromAsset is a mainnet asset that needs bridging first
+      const mainnetAssets = ['ETH', 'USDC', 'USDT'];
+      const isMainnetAsset = mainnetAssets.includes(transactionData.fromAsset);
 
       progressSteps = [];
 
-      // Only add DEX swap step if actually needed
-      if (needsDEXSwap) {
+      if (isMainnetAsset) {
+        // For mainnet assets: Chain Fusion → DEX → Chain Fusion → Complete
+        const ckVersion = `ck${transactionData.fromAsset}`;
+
+        // Step 1: Chain Fusion mainnet → ckAsset
+        progressSteps.push({
+          id: 'chain_fusion_inbound',
+          title: 'Chain Fusion',
+          description: `${transactionData.fromAsset} → ${ckVersion}`,
+          status: 'pending',
+          estimatedTime: '2-5 minutes'
+        });
+
+        // Step 2: DEX Swap ckAsset → ckBTC
         progressSteps.push({
           id: 'dex_swap',
           title: 'DEX Swapping',
-          description: `${transactionData.fromAsset} → ${bridgeToken}`,
+          description: `${ckVersion} → ckBTC`,
           status: 'pending',
           estimatedTime: '10-20 seconds'
         });
-      }
 
-      // Add chain fusion steps
-      progressSteps.push(
-        {
-          id: 'chain_fusion_preparation',
-          title: 'Sending to Chain Fusion',
-          description: `Sending ${bridgeToken} to Chain Fusion`,
-          status: 'pending',
-          estimatedTime: '30-60 seconds'
-        },
-        {
-          id: 'chain_fusion_execution',
-          title: `Sending to ${destinationNetwork}`,
-          description: `Sending ${transactionData.toAsset} to ${destinationNetwork}`,
+        // Step 3: Chain Fusion ckBTC → BTC
+        progressSteps.push({
+          id: 'chain_fusion_outbound',
+          title: 'Chain Fusion',
+          description: `ckBTC → BTC`,
           status: 'pending',
           estimatedTime: '2-5 minutes'
-        },
-        {
+        });
+
+        // Step 4: Complete
+        progressSteps.push({
           id: 'transaction_complete',
           title: 'Transaction Complete',
-          description: `${transactionData.toAsset} delivered to your wallet`,
+          description: `BTC delivered to your wallet`,
           status: 'pending'
+        });
+      } else {
+        // For ICP and ckAssets: DEX → Chain Fusion → Complete
+
+        // Step 1: DEX Swap to ckBTC (if needed)
+        if (transactionData.fromAsset !== 'ckBTC') {
+          progressSteps.push({
+            id: 'dex_swap',
+            title: 'DEX Swapping',
+            description: `${transactionData.fromAsset} → ckBTC`,
+            status: 'pending',
+            estimatedTime: '10-20 seconds'
+          });
         }
-      );
+
+        // Step 2: Chain Fusion ckBTC → BTC
+        progressSteps.push({
+          id: 'chain_fusion_outbound',
+          title: 'Chain Fusion',
+          description: `ckBTC → BTC`,
+          status: 'pending',
+          estimatedTime: '2-5 minutes'
+        });
+
+        // Step 3: Complete
+        progressSteps.push({
+          id: 'transaction_complete',
+          title: 'Transaction Complete',
+          description: `BTC delivered to your wallet`,
+          status: 'pending'
+        });
+      }
     }
 
     setSteps(progressSteps);

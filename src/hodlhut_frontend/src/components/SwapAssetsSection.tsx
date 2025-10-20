@@ -24,6 +24,10 @@ import { Portfolio, MASTER_ASSETS, ASSET_PRICES } from '../../assets/master_asse
 import { CompleteSwapAnalysis, SmartSolution, DEX_OPTIONS, autoSelectOptimalDEX } from '../../assets/master_swap_logic';
 import { type SwapRoute } from '../../assets/visual_brackets';
 import { SwapRequest, SwapResponse } from '../types/myhut';
+import MetaMaskLogo from '../../assets/images/MetaMask.svg';
+import PlugLogo from '../../assets/images/Plug.svg';
+import UnisatLogo from '../../assets/images/Unisat.svg';
+import XverseLogo from '../../assets/images/Xverse.svg';
 
 const DEX_OPTIONS_ENHANCED = {
   KongSwap: {
@@ -521,7 +525,7 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
                   }}
                   className="wallet-option"
                 >
-                  <span className="text-lg">🦊</span>
+                  <img src={MetaMaskLogo} alt="MetaMask" className="w-6 h-6" />
                   <span className="body-sm font-semibold text-text-primary">MetaMask</span>
                 </button>
               )}
@@ -534,7 +538,7 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
                   }}
                   className="wallet-option"
                 >
-                  <span className="text-lg">🔌</span>
+                  <img src={PlugLogo} alt="Plug Wallet" className="w-6 h-6" />
                   <span className="body-sm font-semibold text-text-primary">Plug Wallet</span>
                 </button>
               )}
@@ -765,7 +769,7 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
                           }}
                           className="wallet-option"
                         >
-                          <span className="text-lg">🔶</span>
+                          <img src={UnisatLogo} alt="Unisat Wallet" className="w-6 h-6" />
                           <span className="body-sm font-semibold text-text-primary">Unisat Wallet</span>
                         </button>
 
@@ -786,7 +790,7 @@ const SwapAssetsSection: React.FC<SwapAssetsSectionProps> = ({
                           }}
                           className="wallet-option"
                         >
-                          <span className="text-lg">⚡</span>
+                          <img src={XverseLogo} alt="Xverse Wallet" className="w-6 h-6" />
                           <span className="body-sm font-semibold text-text-primary">Xverse Wallet</span>
                         </button>
                       </div>

@@ -3,6 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AssetIcon from './AssetIcon';
 import InternetIdentityLogin from './InternetIdentityLogin';
+import REELogo from '../../assets/images/ree.svg';
+import ICPLogo from '../../assets/images/ICPlogo.svg';
+import BabylonLogo from '../../assets/images/Babylon.svg';
+import OmnityLogo from '../../assets/images/Omnity.svg';
+import OsmosisLogo from '../../assets/images/Osmosis.svg';
 // Tailwind CSS classes now handle all styling
 import {
   Radio,      // Personal Sovereignty - Broadcasting personal control
@@ -84,8 +89,18 @@ const HomePage: React.FC = () => {
       {/* Hero Section */}
       <section className="relative min-h-[40vh] sm:min-h-[70vh] flex items-center justify-center overflow-hidden section bg-gradient-to-br from-surface-1 via-surface-2 to-surface-3">
 
-        {/* Mobile Hero Content - CTA Cards */}
+        {/* Mobile Hero Content */}
         <div className="sm:hidden z-20 flex flex-col items-center justify-center text-center px-4 gap-6">
+          {/* Title and Subtitle */}
+          <div className="flex flex-col items-center gap-2">
+            <h2 className="text-2xl font-semibold text-white">
+              Bitcoin Staking. Bitcoin Rewards.
+            </h2>
+            <p className="text-sm text-text-muted">
+              On the Internet Computer
+            </p>
+          </div>
+
           {/* HODL Card */}
           <div className="rounded-2xl border border-white/10 bg-surface-2 p-6 max-w-sm">
             <h1 className="text-4xl font-bold text-text-primary mb-6" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>
@@ -102,30 +117,27 @@ const HomePage: React.FC = () => {
             </button>
           </div>
 
-          {/* SWAP Card */}
-          <div className="rounded-2xl border border-white/10 bg-surface-2 p-6 max-w-sm">
-            <h1 className="text-4xl font-bold text-text-primary mb-6" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>
-              SWAP
-            </h1>
-            <p className="text-sm sm:text-lg text-text-secondary mb-6 leading-snug">
-              Crosschain Swaps via Bridgeless Routing.
-            </p>
-            <button
-              className="btn-bitcoin btn-lg w-40"
-              onClick={() => navigate('/swap')}
-            >
-              Swap
-            </button>
+          {/* Animated Gradient Line */}
+          <div className="w-full max-w-md h-[2px] bg-gradient-to-r from-transparent via-primary-500 to-transparent animate-pulse"></div>
+
+          {/* Powered By Section */}
+          <div className="flex flex-col items-center gap-4">
+            <p className="text-sm text-text-muted uppercase tracking-wider">Powered by</p>
+            <div className="flex flex-wrap items-center justify-center gap-6">
+              <img src={REELogo} alt="REE" className="h-8 opacity-70 hover:opacity-100 transition-opacity" />
+              <img src={ICPLogo} alt="Internet Computer" className="h-8 opacity-70 hover:opacity-100 transition-opacity" />
+              <img src={BabylonLogo} alt="Babylon" className="h-8 opacity-70 hover:opacity-100 transition-opacity" />
+              <img src={OmnityLogo} alt="Omnity" className="h-8 opacity-70 hover:opacity-100 transition-opacity" />
+              <img src={OsmosisLogo} alt="Osmosis" className="h-8 opacity-70 hover:opacity-100 transition-opacity" />
+            </div>
           </div>
         </div>
 
-        {/* Desktop Hero Content - Two Rows */}
-        <div className="hidden sm:flex flex-col w-full gap-0">
-          {/* Row 1 - HODL with Bitcoin logo background */}
-          <div className="relative w-full min-h-[50vh] flex items-center justify-center overflow-hidden">
-            {/* Background Bitcoin logos - will add blur effect */}
+        {/* Desktop Hero Content - HODL with Bitcoin logo background */}
+        <div className="hidden sm:flex w-full">
+          <div className="relative w-full min-h-[70vh] flex items-center justify-center overflow-hidden">
+            {/* Background Bitcoin logos - blur effect */}
             <div className="absolute inset-0 flex items-center justify-center opacity-20">
-              {/* Bitcoin logo grid - we'll populate this with repeating logos */}
               <div className="grid grid-cols-8 gap-8 w-full h-full p-8">
                 {[...Array(24)].map((_, i) => (
                   <div key={i} className="flex items-center justify-center blur-sm hover:blur-none transition-all duration-300">
@@ -135,51 +147,46 @@ const HomePage: React.FC = () => {
               </div>
             </div>
 
-            {/* HODL Card - centered */}
-            <div className="relative z-20 rounded-2xl border border-white/10 bg-surface-2 p-8 max-w-lg text-center">
-              <h1 className="text-5xl font-bold text-text-primary mb-6" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>HODL</h1>
-              <p className="text-xl text-text-secondary mb-8 leading-snug">
-                Stake Sats, Earn Sats, Stack Sats
-              </p>
-              <button
-                className="btn-bitcoin btn-lg w-40"
-                onClick={() => navigate('/stake')}
-              >
-                Stake BTC
-              </button>
-            </div>
-          </div>
-
-          {/* Row 2 - SWAP with token icons background */}
-          <div className="relative w-full min-h-[50vh] flex items-center justify-center overflow-hidden">
-            {/* Background token icons - will add blur effect */}
-            <div className="absolute inset-0 flex items-center justify-center opacity-20">
-              {/* Token icons grid - cycling through supported assets */}
-              <div className="grid grid-cols-8 gap-8 w-full h-full p-8">
-                {[...Array(24)].map((_, i) => {
-                  const assets = ['BTC', 'ETH', 'ICP', 'ckBTC', 'ckETH', 'ckUSDC', 'ckUSDT'];
-                  const asset = assets[i % assets.length];
-                  return (
-                    <div key={i} className="flex items-center justify-center blur-sm hover:blur-none transition-all duration-300">
-                      <AssetIcon asset={asset} size={60} />
-                    </div>
-                  );
-                })}
+            {/* Content - centered */}
+            <div className="relative z-20 flex flex-col items-center gap-8">
+              {/* Title and Subtitle */}
+              <div className="flex flex-col items-center gap-3">
+                <h2 className="text-4xl font-semibold text-white">
+                  Bitcoin Staking. Bitcoin Rewards.
+                </h2>
+                <p className="text-lg text-text-muted">
+                  On the Internet Computer
+                </p>
               </div>
-            </div>
 
-            {/* SWAP Card - centered */}
-            <div className="relative z-20 rounded-2xl border border-white/10 bg-surface-2 p-8 max-w-lg text-center">
-              <h1 className="text-5xl font-bold text-text-primary mb-6" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>SWAP</h1>
-              <p className="text-xl text-text-secondary mb-8 leading-snug">
-                Crosschain Swaps via Bridgeless Routing.
-              </p>
-              <button
-                className="btn-bitcoin btn-lg w-40"
-                onClick={() => navigate('/swap')}
-              >
-                Swap
-              </button>
+              {/* HODL Card */}
+              <div className="rounded-2xl border border-white/10 bg-surface-2 p-8 max-w-lg text-center">
+                <h1 className="text-5xl font-bold text-text-primary mb-6" style={{fontFamily: 'Lilita One, system-ui, sans-serif'}}>HODL</h1>
+                <p className="text-xl text-text-secondary mb-8 leading-snug">
+                  Stake Sats, Earn Sats, Stack Sats
+                </p>
+                <button
+                  className="btn-bitcoin btn-lg w-40"
+                  onClick={() => navigate('/stake')}
+                >
+                  Stake BTC
+                </button>
+              </div>
+
+              {/* Animated Gradient Line */}
+              <div className="w-full max-w-2xl h-[2px] bg-gradient-to-r from-transparent via-primary-500 to-transparent animate-pulse"></div>
+
+              {/* Powered By Section */}
+              <div className="flex flex-col items-center gap-6">
+                <p className="text-base text-text-muted uppercase tracking-wider">Powered by</p>
+                <div className="flex items-center justify-center gap-8">
+                  <img src={REELogo} alt="REE" className="h-10 opacity-70 hover:opacity-100 transition-opacity" />
+                  <img src={ICPLogo} alt="Internet Computer" className="h-10 opacity-70 hover:opacity-100 transition-opacity" />
+                  <img src={BabylonLogo} alt="Babylon" className="h-10 opacity-70 hover:opacity-100 transition-opacity" />
+                  <img src={OmnityLogo} alt="Omnity" className="h-10 opacity-70 hover:opacity-100 transition-opacity" />
+                  <img src={OsmosisLogo} alt="Osmosis" className="h-10 opacity-70 hover:opacity-100 transition-opacity" />
+                </div>
+              </div>
             </div>
           </div>
         </div>
