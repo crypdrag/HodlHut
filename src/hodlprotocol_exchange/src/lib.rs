@@ -860,6 +860,7 @@ impl Drop for ExecuteTxGuard {
 
   /// Consolidate pool UTXOs: Merge BLST UTXO (1k sats) with other pool UTXOs
   /// Creates single UTXO with all sats + all BLST runes for efficient minting
+  /// FIXED: Use ree-types (bitcoin 0.32) exclusively to avoid version compatibility issues
   #[update]
   async fn consolidate_pool_utxos() -> Result<String, String> {
       let caller = ic_cdk::api::caller();
@@ -908,25 +909,37 @@ impl Drop for ExecuteTxGuard {
 
       ic_cdk::println!("   Consolidated output: {} sats", output_amount);
 
-      // Build transaction with all inputs → single output (pool address)
-      use bitcoin::{Transaction, TxIn, TxOut, OutPoint, ScriptBuf, Sequence};
-      use bitcoin::psbt::Psbt;
+      // ⚡ CRITICAL FIX: Use ree-types (bitcoin 0.32) for EVERYTHING to avoid cross-version bugs!
+      use ree_types::bitcoin::{
+          Transaction, TxIn, TxOut, OutPoint, ScriptBuf, Sequence, Address, Amount,
+          absolute::LockTime, transaction::Version, Txid as BtcTxid,
+      };
+      use ree_types::bitcoin::psbt::Psbt;
       use ordinals::{Edict, RuneId, Runestone};
 
-      let inputs: Vec<TxIn> = utxos.iter().map(|utxo| {
-          use bitcoin::hashes::Hash;
-          let txid = bitcoin::Txid::from_str(&utxo.txid).expect("valid txid");
+      // Build transaction inputs using ree-types
+      let inputs: Vec<TxIn> = utxos.iter().enumerate().map(|(idx, utxo)| {
+          // CRITICAL: utxo.txid is hex-encoded INTERNAL byte order (little-endian from ICP canister)
+          // Convert to DISPLAY format (big-endian hex string) for from_str()
+          ic_cdk::println!("Input {} - Internal TXID: {}", idx, utxo.txid);
+          let mut txid_bytes = hex::decode(&utxo.txid).expect("valid hex");
+          txid_bytes.reverse();  // Reverse to display format
+          let txid_display = hex::encode(&txid_bytes);
+          ic_cdk::println!("Input {} - Display TXID: {}", idx, txid_display);
+          let txid = BtcTxid::from_str(&txid_display).expect("valid txid");
+          ic_cdk::println!("Input {} - Parsed TXID: {}", idx, txid);
           TxIn {
               previous_output: OutPoint { txid, vout: utxo.vout },
               script_sig: ScriptBuf::new(),
               sequence: Sequence::MAX,
-              witness: bitcoin::Witness::new(),
+              witness: ree_types::bitcoin::Witness::new(),
           }
       }).collect();
 
-      let pool_addr = bitcoin::Address::from_str(&pool_config.address)
+      // Parse pool address using ree-types (bitcoin 0.32 - supports Testnet4!)
+      let pool_addr = Address::from_str(&pool_config.address)
           .map_err(|e| format!("Invalid pool address: {:?}", e))?
-          .require_network(bitcoin::Network::Testnet)
+          .require_network(ree_types::bitcoin::Network::Testnet4)
           .map_err(|e| format!("Pool address network mismatch: {:?}", e))?;
 
       // Create Runestone to consolidate ALL BLST runes to output 1
@@ -949,19 +962,19 @@ impl Drop for ExecuteTxGuard {
 
       // Output 0: OP_RETURN with runestone
       let op_return_output = TxOut {
-          value: 0,
+          value: Amount::ZERO,
           script_pubkey: op_return_script_buf,
       };
 
       // Output 1: Consolidated pool output (all sats + all BLST)
       let pool_output = TxOut {
-          value: output_amount,
+          value: Amount::from_sat(output_amount),
           script_pubkey: pool_addr.script_pubkey(),
       };
 
       let unsigned_tx = Transaction {
-          version: 2,
-          lock_time: bitcoin::absolute::LockTime::ZERO,
+          version: Version::TWO,
+          lock_time: LockTime::ZERO,
           input: inputs,
           output: vec![op_return_output, pool_output],
       };
@@ -969,28 +982,29 @@ impl Drop for ExecuteTxGuard {
       let mut psbt = Psbt::from_unsigned_tx(unsigned_tx)
           .map_err(|e| format!("Failed to create PSBT: {:?}", e))?;
 
-      // Add witness UTXO data for each input
+      // Add witness UTXO data for each input (using ree-types types!)
+      let pool_script = pool_addr.script_pubkey();
+      ic_cdk::println!("Pool scriptPubKey: {}", hex::encode(pool_script.as_bytes()));
+      ic_cdk::println!("Expected (from mempool): 51202fae29f53184a687b074440ec0bcf12cb7d0aefe64b17c1f842b88bd9bbf575c");
       for (i, utxo) in utxos.iter().enumerate() {
-          psbt.inputs[i].witness_utxo = Some(bitcoin::TxOut {
-              value: utxo.value,
-              script_pubkey: pool_addr.script_pubkey(),
+          psbt.inputs[i].witness_utxo = Some(TxOut {
+              value: Amount::from_sat(utxo.value),
+              script_pubkey: pool_script.clone(),
           });
+          ic_cdk::println!("Input {} witness_utxo: {} sats", i, utxo.value);
       }
 
-      let psbt_hex = hex::encode(psbt.serialize());
+      ic_cdk::println!("✅ Consolidation PSBT constructed");
 
-      ic_cdk::println!("✅ Consolidation PSBT constructed ({} bytes)", psbt_hex.len());
-
-      // Note: For simplicity, broadcast via ICP Bitcoin API (not REE)
-      // REE would require complex IntentionSet for multi-input rune transfer
-      use ree_types::bitcoin::psbt::Psbt as ReePsbt;
-      let mut ree_psbt = ReePsbt::deserialize(&hex::decode(&psbt_hex)
-          .map_err(|e| format!("hex decode: {:?}", e))?)
-          .map_err(|e| format!("psbt deserialize: {:?}", e))?;
-
-      // Sign with pool's ICP Chain Key
+      // Convert BitcoinUtxo to ree_types::Utxo for signing
+      // CRITICAL: Must use DISPLAY format TXIDs to match PSBT inputs (see chat.md Session 32)
       let utxo_refs: Vec<ree_types::Utxo> = utxos.iter().map(|u| {
-          let outpoint_str = format!("{}:{}", u.txid, u.vout);
+          // u.txid is in INTERNAL format (little-endian) from ICP Bitcoin canister
+          // Reverse to DISPLAY format to match PSBT transaction inputs
+          let mut txid_bytes = hex::decode(&u.txid).expect("valid hex");
+          txid_bytes.reverse();  // Convert to display format
+          let txid_display = hex::encode(&txid_bytes);
+          let outpoint_str = format!("{}:{}", txid_display, u.vout);
           ree_types::Utxo::try_from(
               outpoint_str,
               ree_types::CoinBalances::new(),
@@ -1000,23 +1014,40 @@ impl Drop for ExecuteTxGuard {
 
       let utxo_ref_ptrs: Vec<&ree_types::Utxo> = utxo_refs.iter().collect();
 
+      ic_cdk::println!("Signing {} inputs with ree_pool_sign()...", utxos.len());
+
+      // Use ree_pool_sign() - same as all our working single-input transactions
       ree_pool_sign(
-          &mut ree_psbt,
+          &mut psbt,
           utxo_ref_ptrs,
           SCHNORR_KEY_NAME,
           vec![b"hodlprotocol_blst_pool".to_vec()],
-      ).await.map_err(|e| format!("Signing failed: {:?}", e))?;
+      ).await.map_err(|e| format!("ree_pool_sign failed: {:?}", e))?;
 
-      ic_cdk::println!("✅ PSBT signed, extracting finalized transaction...");
+      // DEBUG: Check if witness data was set
+      for (i, input) in psbt.inputs.iter().enumerate() {
+          if let Some(ref witness) = input.final_script_witness {
+              ic_cdk::println!("Input {} has witness with {} items", i, witness.len());
+          } else {
+              ic_cdk::println!("⚠️ Input {} has NO witness data!", i);
+          }
+      }
 
-      // Extract finalized Bitcoin transaction from PSBT (critical fix!)
-      let finalized_tx = ree_psbt.extract_tx()
+      ic_cdk::println!("✅ All {} inputs signed, extracting finalized transaction...", utxos.len());
+
+      // Extract finalized Bitcoin transaction from PSBT
+      let finalized_tx = psbt.extract_tx()
           .map_err(|e| format!("Failed to extract transaction from PSBT: {:?}", e))?;
 
       // Serialize finalized transaction for broadcast
       let tx_bytes = bitcoin_serialize(&finalized_tx);
+      let tx_hex = hex::encode(&tx_bytes);
+      let txid = finalized_tx.compute_txid();
 
-      ic_cdk::println!("✅ Transaction finalized ({} bytes), broadcasting...", tx_bytes.len());
+      ic_cdk::println!("✅ Transaction finalized ({} bytes)", tx_bytes.len());
+      ic_cdk::println!("   TXID: {}", txid);
+      ic_cdk::println!("   Hex: {}", tx_hex);
+      ic_cdk::println!("📡 Broadcasting to Bitcoin network...");
 
       use ic_cdk::api::management_canister::bitcoin::{
           bitcoin_send_transaction, BitcoinNetwork, SendTransactionRequest
@@ -1033,8 +1064,8 @@ impl Drop for ExecuteTxGuard {
 
       ic_cdk::println!("✅ Consolidation transaction broadcast!");
 
-      Ok(format!("Pool UTXOs consolidated!\nInputs: {} UTXOs ({} sats total)\nOutput: 1 UTXO ({} sats + all BLST)\nFee: {} sats\nTransaction will appear on Bitcoin Testnet4 shortly.",
-          utxos.len(), total_sats, output_amount, fee))
+      Ok(format!("Pool UTXOs consolidated!\nInputs: {} UTXOs ({} sats total)\nOutput: 1 UTXO ({} sats + all BLST)\nFee: {} sats\nTXID: {}\nTransaction will appear on Bitcoin Testnet4 shortly.",
+          utxos.len(), total_sats, output_amount, fee, txid))
   }
 
   /// Split funding address balance 50/50 between pool and user wallet
@@ -1938,8 +1969,9 @@ impl Drop for ExecuteTxGuard {
 
       // Convert to BitcoinUtxo format
       let bitcoin_utxos: Vec<BitcoinUtxo> = response.utxos.into_iter().map(|utxo| {
-          let txid_bytes = utxo.outpoint.txid.clone();
-          let txid_hex = hex::encode(&txid_bytes[..]);
+          // ICP Bitcoin canister returns txid in INTERNAL byte order (little-endian)
+          // Just hex-encode as-is - we'll handle byte order when constructing transactions
+          let txid_hex = hex::encode(&utxo.outpoint.txid[..]);
 
           BitcoinUtxo {
               txid: txid_hex,
