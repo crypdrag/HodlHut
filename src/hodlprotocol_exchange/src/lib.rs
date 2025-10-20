@@ -1923,6 +1923,229 @@ impl Drop for ExecuteTxGuard {
   }
 
   // ============================
+  // BABYLON STAKING - Aggregate pool BTC and delegate to Babylon
+  // ============================
+
+  /// Stake aggregated pool BTC to Babylon chain
+  ///
+  /// **Architecture:**
+  /// 1. Construct Babylon staking transaction (special Bitcoin tx format)
+  /// 2. Sign with ICP Chain Key (pool's Schnorr key)
+  /// 3. Broadcast to Bitcoin Testnet4
+  /// 4. After 6 confirmations, call submit_staking_proof_to_omnity()
+  ///
+  /// **Transaction Structure (from btc-staking-ts):**
+  /// - Input: Pool's consolidated UTXO
+  /// - Output 0: Babylon staking script (OP_RETURN with covenant params)
+  /// - Output 1: Timelock output (user funds locked for ~90 days / 12,960 blocks)
+  /// - Output 2: Unbonding output (emergency withdrawal mechanism)
+  ///
+  /// **Parameters:**
+  /// - amount: Satoshis to stake (from pool's accumulated deposits)
+  /// - fp_pubkey: Finality Provider public key (32-byte hex, from get_finality_providers())
+  /// - timelock_blocks: 12,960 blocks (~90 days for testnet demo)
+  ///
+  /// **References:**
+  /// - btc-staking-ts: https://github.com/babylonlabs-io/btc-staking-ts
+  /// - Babylon docs: https://docs.babylonlabs.io/developers/dapps/simple_staking_dapp/
+  #[update]
+  async fn stake_to_babylon(
+      amount_sats: u64,
+      fp_pubkey_hex: String,
+      timelock_blocks: u32,
+  ) -> Result<String, String> {
+      let caller = ic_cdk::api::caller();
+      if !ic_cdk::api::is_controller(&caller) {
+          return Err("Unauthorized: admin only".to_string());
+      }
+
+      ic_cdk::println!("🏛️ Staking {} sats to Babylon", amount_sats);
+      ic_cdk::println!("   FP pubkey: {}", fp_pubkey_hex);
+      ic_cdk::println!("   Timelock: {} blocks (~{} days)", timelock_blocks, timelock_blocks / 144);
+
+      // TODO: Implement Babylon staking transaction construction
+      //
+      // Steps:
+      // 1. Fetch pool's consolidated UTXO (should have sufficient balance)
+      // 2. Parse finality provider pubkey (32-byte x-coordinate)
+      // 3. Get pool's public key from ICP Chain Key (Schnorr format)
+      // 4. Construct PSBT with Babylon covenant scripts:
+      //    - Staking script (OP_RETURN with params)
+      //    - Timelock script (OP_CHECKLOCKTIMEVERIFY)
+      //    - Unbonding script (emergency withdrawal path)
+      // 5. Sign PSBT with ree_pool_sign()
+      // 6. Broadcast via Bitcoin canister
+      // 7. Return staking_tx_hash for proof submission
+
+      Err("stake_to_babylon() not yet implemented - see code comments for architecture".to_string())
+  }
+
+  /// Submit Babylon staking proof to Omnity Hub for cross-chain delegation
+  ///
+  /// **Architecture:**
+  /// After Bitcoin staking tx confirms (6+ blocks), bridge the proof to Babylon chain:
+  ///
+  /// 1. Call Omnity Hub CosmWasm Proxy (testnet):
+  ///    get_btc_mint_address(babylon_account_id)
+  ///      → Returns: Omnity-controlled Bitcoin address
+  ///
+  /// 2. Call Omnity Hub CosmWasm Proxy:
+  ///    update_balance_after_finalization(babylon_account_id, staking_proof)
+  ///      → Creates scheduled task to update ckBTC balance
+  ///      → Calls generate_ticket on ICP customs
+  ///      → Bridges ticket to Babylon via CosmWasm Route
+  ///
+  /// 3. Omnity Hub light client verifies staking tx on Bitcoin
+  /// 4. CosmWasm Route sends delegation message to Babylon chain
+  /// 5. Babylon chain registers delegation → BABY rewards start accruing
+  ///
+  /// **Canister IDs (Testnet):**
+  /// - Omnity Hub: xykho-eiaaa-aaaag-qjrka-cai
+  /// - CosmWasm Route (Osmo): nfehe-haaaa-aaaar-qah3q-cai
+  /// - Bitcoin Customs: x7lb2-jqaaa-aaaag-qjrkq-cai
+  /// - ICP Routes: xwikg-7yaaa-aaaag-qjrla-cai
+  ///
+  /// **References:**
+  /// - Omnity CosmWasm docs: https://docs.omnity.network/docs/Omnity-Hub/cosmwasm
+  /// - Omnity Hub repo: https://github.com/octopus-network/omnity-docs
+  #[update]
+  async fn submit_staking_proof_to_omnity(
+      staking_tx_hash: String,
+      babylon_account_id: String,
+  ) -> Result<String, String> {
+      let caller = ic_cdk::api::caller();
+      if !ic_cdk::api::is_controller(&caller) {
+          return Err("Unauthorized: admin only".to_string());
+      }
+
+      ic_cdk::println!("🌉 Submitting staking proof to Omnity Hub");
+      ic_cdk::println!("   Staking TX: {}", staking_tx_hash);
+      ic_cdk::println!("   Babylon account: {}", babylon_account_id);
+
+      // TODO: Implement Omnity Hub integration
+      //
+      // Steps:
+      // 1. Verify staking tx has 6+ confirmations on Bitcoin
+      // 2. Get Omnity mint address:
+      //    let (mint_addr,) = call(omnity_proxy, "get_btc_mint_address", (babylon_account_id,)).await?;
+      // 3. Trigger balance update:
+      //    let () = call(omnity_proxy, "update_balance_after_finalization",
+      //                  (babylon_account_id, Some(staking_tx_hash))).await?;
+      // 4. Monitor ticket status via CosmWasm Route:
+      //    let status = call(cosmwasm_route, "mint_token_status", (ticket_id,)).await?;
+      // 5. Return ticket_id for tracking
+
+      Err("submit_staking_proof_to_omnity() not yet implemented - see code comments for architecture".to_string())
+  }
+
+  /// Query accumulated BABY rewards from Babylon chain
+  ///
+  /// **Architecture:**
+  /// 1. Query Babylon testnet API for delegation rewards:
+  ///    GET https://babylon-testnet-api.polkachu.com/cosmos/distribution/v1beta1/delegators/{addr}/rewards
+  ///
+  /// 2. Parse response to get BABY token amount
+  /// 3. Cache result (update hourly/daily)
+  /// 4. Return total BABY rewards accrued
+  ///
+  /// **Response Format:**
+  /// ```json
+  /// {
+  ///   "rewards": [{
+  ///     "validator_address": "babylonvaloper...",
+  ///     "reward": [{"denom": "ubaby", "amount": "1000000"}]
+  ///   }],
+  ///   "total": [{"denom": "ubaby", "amount": "1000000"}]
+  /// }
+  /// ```
+  ///
+  /// **References:**
+  /// - Babylon API: https://babylon-testnet-api.polkachu.com/cosmos/distribution/v1beta1
+  /// - Network: bbn-test-6
+  #[query]
+  fn query_babylon_rewards() -> Result<u64, String> {
+      // TODO: Implement Babylon rewards querying
+      //
+      // Steps:
+      // 1. Get Babylon delegation address (derived from pool's ICP Chain Key)
+      // 2. HTTP outcall to Babylon API
+      // 3. Parse JSON response
+      // 4. Convert ubaby (micro-BABY) to BABY
+      // 5. Cache and return total rewards
+
+      Err("query_babylon_rewards() not yet implemented - see code comments for architecture".to_string())
+  }
+
+  /// Distribute BABY rewards to BLST holders (convert to BTC via Omnity → Osmosis → Omnity)
+  ///
+  /// **Full Architecture (THE COMPLETE ROUTE):**
+  ///
+  /// A. Query BABY rewards from Babylon chain:
+  ///    - Call query_babylon_rewards() to get total BABY accrued
+  ///    - Deduct 2% protocol fee (per CLAUDE.md fee structure)
+  ///
+  /// B. Convert BABY → BTC via Omnity Hub + Osmosis DEX:
+  ///    1. Send pool BTC → Omnity Hub → ckBTC
+  ///       - Call Omnity Hub to convert native BTC to ckBTC
+  ///    2. Bridge ckBTC to Osmosis (Alloyed BTC basket)
+  ///       - Omnity bridges ckBTC to Osmosis chain
+  ///       - ckBTC becomes part of Osmosis Alloyed BTC basket
+  ///    3. Swap BABY → ckBTC on Osmosis DEX
+  ///       - BABY/BTC liquidity pool exists on Osmosis!
+  ///       - Use CosmWasm contract to execute swap
+  ///    4. Bridge ckBTC back from Osmosis → Omnity Hub → ICP
+  ///       - Reverse the bridge: Osmosis → Omnity Hub → ICP
+  ///    5. Convert ckBTC → native BTC via ICP Bitcoin canister
+  ///       - ckBTC minter converts back to native Bitcoin
+  ///
+  /// C. Distribute BTC proportionally to all BLST holders:
+  ///    - Query all BLST balances from Runes Indexer
+  ///    - Calculate each holder's proportional share
+  ///    - Construct batch payout transaction via REE
+  ///    - Send BTC to each BLST holder address
+  ///
+  /// **Fee Structure (from CLAUDE.md):**
+  /// - Staking fee: 2% deducted from BABY rewards (NOT from deposits)
+  /// - No upfront fee on BTC deposits
+  /// - Protocol revenue comes from reward distribution only
+  ///
+  /// **Canister IDs:**
+  /// - Omnity Hub: bkyz2-fmaaa-aaaaa-qaaaq-cai (mainnet)
+  /// - CosmWasm Route: ystyg-kaaaa-aaaar-qaieq-cai (osmosis-1)
+  /// - Runes Indexer: f2dwm-caaaa-aaaao-qjxlq-cai (testnet4)
+  ///
+  /// **References:**
+  /// - Omnity CosmWasm: https://docs.omnity.network/docs/Omnity-Hub/cosmwasm
+  /// - Osmosis DEX: https://github.com/osmosis-labs/testnets
+  /// - Fee structure: See CLAUDE.md "PLATFORM FLYWHEEL"
+  #[update]
+  async fn distribute_rewards() -> Result<String, String> {
+      let caller = ic_cdk::api::caller();
+      if !ic_cdk::api::is_controller(&caller) {
+          return Err("Unauthorized: admin only".to_string());
+      }
+
+      // TODO: Implement reward distribution (THE COMPLETE ROUTE)
+      //
+      // Steps:
+      // 1. Query BABY rewards total from Babylon
+      // 2. Calculate protocol fee (2% of BABY rewards)
+      // 3. Convert BABY → BTC via Omnity + Osmosis:
+      //    a. Pool BTC → Omnity Hub → ckBTC
+      //    b. Bridge ckBTC to Osmosis (Alloyed BTC)
+      //    c. Swap BABY → ckBTC on Osmosis DEX (BABY/BTC pool)
+      //    d. Bridge ckBTC back: Osmosis → Omnity → ICP
+      //    e. ckBTC → native BTC via ICP Bitcoin canister
+      // 4. Query all BLST holders from Runes Indexer
+      // 5. Calculate proportional BTC distribution per holder
+      // 6. Construct batch payout transaction
+      // 7. Sign and broadcast via REE
+      // 8. Return distribution summary (total BTC, recipient count, tx hash)
+
+      Err("distribute_rewards() not yet implemented - see code comments for THE COMPLETE ROUTE".to_string())
+  }
+
+  // ============================
   // BITCOIN API - UTXO Management & Transaction Construction
   // ============================
 
