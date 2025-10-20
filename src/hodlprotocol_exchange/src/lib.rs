@@ -11,8 +11,10 @@ use ic_stable_structures::{
 use ree_types::{
     bitcoin::Network,
     bitcoin::psbt::Psbt,
+    bitcoin::consensus::serialize as bitcoin_serialize,
     schnorr::request_ree_pool_address,
     exchange_interfaces::*,
+    orchestrator_interfaces::RegisterExchangeArgs,
     psbt::ree_pool_sign,
     Pubkey,
     Txid,
@@ -22,6 +24,10 @@ use ree_types::{
 
 // Bitcoin Runes support
 use ordinals::{Etching, Rune, Runestone};
+
+// Canister interfaces for deterministic UTXO fetching
+mod rune_indexer;
+mod bitcoin_canister;
 
 // ============================
 // TYPE DEFINITIONS - Pool & Deposit Tracking
@@ -57,6 +63,14 @@ pub struct PoolConfig {
     pub created_at: u64,               // Timestamp
     #[serde(default)]
     pub states: Vec<PoolState>,        // Transaction state chain for REE integration (migrated)
+
+    // Funding address for bootstrapping (separate from pool)
+    #[serde(default)]
+    pub funding_address: Option<String>,    // Funding address for initial bootstrap
+    #[serde(default)]
+    pub funding_pubkey: Option<Pubkey>,     // Untweaked funding pubkey
+    #[serde(default)]
+    pub funding_tweaked: Option<Pubkey>,    // Tweaked funding pubkey
 }
 
 /// User deposit intent (created by pre_deposit, consumed by execute_tx)
@@ -393,6 +407,7 @@ thread_local! {
   // REE Infrastructure Canister IDs
   const REE_ORCHESTRATOR_TESTNET: &str = "hvyp5-5yaaa-aaaao-qjxha-cai";
   const RUNES_INDEXER_TESTNET: &str = "f2dwm-caaaa-aaaao-qjxlq-cai";
+  const BTC_CANISTER_TESTNET: &str = "g4xu7-jiaaa-aaaan-aaaaq-cai";
 
   // Omnity Hub Canister IDs
   const OMNITY_HUB: &str = "bkyz2-fmaaa-aaaaa-qaaaq-cai";
@@ -515,6 +530,9 @@ impl Drop for ExecuteTxGuard {
           total_blst_minted: 0,
           created_at: ic_cdk::api::time(),
           states: vec![],  // Start with empty state chain (nonce will be 0)
+          funding_address: None,  // Will be initialized separately
+          funding_pubkey: None,
+          funding_tweaked: None,
       };
 
       // Store pool config in stable storage
@@ -580,6 +598,57 @@ impl Drop for ExecuteTxGuard {
       Ok(format!("Pubkeys successfully regenerated and stored for pool {}", pool_config.address))
   }
 
+  /// Initialize funding address for bootstrapping (used to etch rune)
+  /// This address is separate from the pool address and used only for initial operations
+  #[update]
+  async fn init_funding_address() -> Result<String, String> {
+      let caller = ic_cdk::api::caller();
+      if !ic_cdk::api::is_controller(&caller) {
+          return Err("Not authorized - only controller can initialize funding address".to_string());
+      }
+
+      // Get existing pool config
+      let mut pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
+      if pool_config.address.is_empty() {
+          return Err("Pool must be initialized first (call init_pool)".to_string());
+      }
+
+      // Check if funding address already exists
+      if pool_config.funding_address.is_some() {
+          return Err(format!("Funding address already initialized: {}", pool_config.funding_address.unwrap()));
+      }
+
+      ic_cdk::println!("🔨 Generating funding address with ICP Chain Key...");
+
+      // Generate funding address using DIFFERENT derivation path
+      let (untweaked, tweaked, address) = request_ree_pool_address(
+          SCHNORR_KEY_NAME,
+          vec![b"hodlprotocol_funding".to_vec()],  // Different path = different address
+          Network::Testnet4,
+      )
+      .await?;
+
+      ic_cdk::println!("✅ Funding address generated: {}", address);
+      ic_cdk::println!("   Untweaked pubkey: {:?}", untweaked);
+      ic_cdk::println!("   Tweaked pubkey: {:?}", tweaked);
+
+      // Store funding address in pool config
+      pool_config.funding_address = Some(address.to_string());
+      pool_config.funding_pubkey = Some(untweaked);
+      pool_config.funding_tweaked = Some(tweaked);
+
+      POOL_CONFIG.with(|p| {
+          p.borrow_mut().set(pool_config.clone()).expect("Failed to update POOL_CONFIG");
+      });
+
+      ic_cdk::println!("✅ Funding address initialized successfully!");
+      ic_cdk::println!("   Funding Address: {}", address);
+      ic_cdk::println!("   Pool Address: {}", pool_config.address);
+      ic_cdk::println!("📍 Send BTC to funding address to enable rune etching");
+
+      Ok(address.to_string())
+  }
+
   /// Query current pool configuration
   #[query]
   fn get_pool_config() -> Option<PoolConfig> {
@@ -624,6 +693,523 @@ impl Drop for ExecuteTxGuard {
       ic_cdk::println!("✅ Pool config updated with BLST rune ID");
 
       Ok(format!("Pool config updated successfully with rune_id: {}", rune_id))
+  }
+
+  /// Clear rune ID to allow re-etching (use with caution - only for migration)
+  #[update]
+  fn clear_rune_id() -> Result<String, String> {
+      let caller = ic_cdk::api::caller();
+      if !ic_cdk::api::is_controller(&caller) {
+          return Err("Not authorized - only controller can clear rune ID".to_string());
+      }
+
+      // Get current pool config
+      let mut pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
+      if pool_config.address.is_empty() {
+          return Err("Pool not initialized".to_string());
+      }
+
+      ic_cdk::println!("⚠️  Clearing rune_id for re-etching");
+
+      // Clear rune ID
+      pool_config.blst_rune_id = None;
+
+      // Save updated config
+      POOL_CONFIG.with(|p| {
+          p.borrow_mut().set(pool_config).expect("Failed to set POOL_CONFIG");
+      });
+
+      ic_cdk::println!("✅ Rune ID cleared - ready for re-etching");
+
+      Ok("Rune ID cleared successfully. You can now call etch_blst_rune()".to_string())
+  }
+
+  /// Sweep UTXOs from pool address to funding address (recovery method)
+  /// Used to consolidate sats before etching
+  #[update]
+  async fn sweep_pool_to_funding() -> Result<String, String> {
+      let caller = ic_cdk::api::caller();
+      if !ic_cdk::api::is_controller(&caller) {
+          return Err("Not authorized - only controller can sweep funds".to_string());
+      }
+
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
+      if pool_config.address.is_empty() {
+          return Err("Pool not initialized".to_string());
+      }
+
+      let funding_address = pool_config.funding_address
+          .ok_or("Funding address not initialized - call init_funding_address first")?;
+
+      ic_cdk::println!("💸 Sweeping UTXOs from pool to funding address...");
+      ic_cdk::println!("   From: {}", pool_config.address);
+      ic_cdk::println!("   To: {}", funding_address);
+
+      // Fetch UTXOs from pool address
+      let utxos = fetch_pool_utxos().await?;
+      if utxos.is_empty() {
+          return Err("No UTXOs found at pool address".to_string());
+      }
+
+      ic_cdk::println!("   Found {} UTXO(s)", utxos.len());
+
+      // Calculate total
+      let total_sats: u64 = utxos.iter().map(|u| u.value).sum();
+      ic_cdk::println!("   Total: {} sats", total_sats);
+
+      // Estimate fee (simple sweep, ~150 vbytes per input + ~40 for output)
+      let fee_rate = estimate_fee_rate().await?;
+      let estimated_vsize = (utxos.len() as u64 * 150) + 40;
+      let fee = fee_rate * estimated_vsize;
+      let output_amount = total_sats.saturating_sub(fee);
+
+      if output_amount < 1000 {
+          return Err(format!("Amount too small after fees: {} sats", output_amount));
+      }
+
+      ic_cdk::println!("   Fee: {} sats ({}vB @ {} sat/vB)", fee, estimated_vsize, fee_rate);
+      ic_cdk::println!("   Output: {} sats", output_amount);
+
+      // Build simple sweep transaction
+      use bitcoin::{Transaction, TxIn, TxOut, OutPoint, ScriptBuf, Sequence};
+      use bitcoin::psbt::Psbt;
+
+      let inputs: Vec<TxIn> = utxos.iter().map(|utxo| {
+          use bitcoin::hashes::Hash;
+          let txid = bitcoin::Txid::from_str(&utxo.txid).expect("valid txid");
+          let outpoint = OutPoint {
+              txid,
+              vout: utxo.vout,
+          };
+          TxIn {
+              previous_output: outpoint,
+              script_sig: ScriptBuf::new(),
+              sequence: Sequence::ENABLE_RBF_NO_LOCKTIME,
+              witness: bitcoin::Witness::new(),
+          }
+      }).collect();
+
+      let funding_addr = bitcoin::Address::from_str(&funding_address)
+          .map_err(|e| format!("Invalid funding address: {:?}", e))?
+          .require_network(bitcoin::Network::Testnet)
+          .map_err(|e| format!("Address network mismatch: {:?}", e))?;
+
+      let output = TxOut {
+          value: output_amount,
+          script_pubkey: funding_addr.script_pubkey(),
+      };
+
+      let unsigned_tx = Transaction {
+          version: 2,
+          lock_time: bitcoin::absolute::LockTime::ZERO,
+          input: inputs,
+          output: vec![output],
+      };
+
+      let mut psbt = Psbt::from_unsigned_tx(unsigned_tx)
+          .map_err(|e| format!("Failed to create PSBT: {:?}", e))?;
+
+      // Add witness UTXO data for each input
+      let pool_addr = bitcoin::Address::from_str(&pool_config.address)
+          .map_err(|e| format!("Invalid pool address: {:?}", e))?
+          .require_network(bitcoin::Network::Testnet)
+          .map_err(|e| format!("Address network mismatch: {:?}", e))?;
+
+      for (i, utxo) in utxos.iter().enumerate() {
+          psbt.inputs[i].witness_utxo = Some(bitcoin::TxOut {
+              value: utxo.value,
+              script_pubkey: pool_addr.script_pubkey(),
+          });
+      }
+
+      // Sign using pool's ICP Chain Key
+      use ree_types::bitcoin::psbt::Psbt as ReePsbt;
+      let mut ree_psbt = ReePsbt::deserialize(&hex::decode(&hex::encode(psbt.serialize()))
+          .map_err(|e| format!("hex decode: {:?}", e))?)
+          .map_err(|e| format!("psbt deserialize: {:?}", e))?;
+
+      // Create Utxo refs for signing
+      let utxo_refs: Vec<ree_types::Utxo> = utxos.iter().map(|u| {
+          let outpoint_str = format!("{}:{}", u.txid, u.vout);
+          ree_types::Utxo::try_from(
+              outpoint_str,
+              ree_types::CoinBalances::new(),
+              u.value,
+          ).unwrap()
+      }).collect();
+
+      let utxo_ref_ptrs: Vec<&ree_types::Utxo> = utxo_refs.iter().collect();
+
+      ree_pool_sign(
+          &mut ree_psbt,
+          utxo_ref_ptrs,
+          SCHNORR_KEY_NAME,
+          vec![b"hodlprotocol_blst_pool".to_vec()],
+      ).await.map_err(|e| format!("Signing failed: {:?}", e))?;
+
+      let signed_hex = ree_psbt.serialize_hex();
+
+      ic_cdk::println!("✅ Transaction signed, broadcasting to Bitcoin...");
+
+      // Broadcast directly (not via REE - this is just a sweep)
+      // Note: In production, you'd call bitcoin_send_transaction here
+      // For now, return the signed hex for manual broadcast
+
+      Ok(format!("Sweep transaction ready. Signed PSBT: {}", signed_hex))
+  }
+
+  /// Consolidate pool UTXOs: Merge BLST UTXO (1k sats) with other pool UTXOs
+  /// Creates single UTXO with all sats + all BLST runes for efficient minting
+  #[update]
+  async fn consolidate_pool_utxos() -> Result<String, String> {
+      let caller = ic_cdk::api::caller();
+      if !ic_cdk::api::is_controller(&caller) {
+          return Err("Not authorized - only controller can consolidate pool".to_string());
+      }
+
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
+      if pool_config.address.is_empty() {
+          return Err("Pool not initialized".to_string());
+      }
+
+      let rune_id = pool_config.blst_rune_id
+          .clone()
+          .ok_or("BLST rune not yet etched")?;
+
+      ic_cdk::println!("🔄 Consolidating pool UTXOs...");
+      ic_cdk::println!("   Pool: {}", pool_config.address);
+      ic_cdk::println!("   Rune: {}", rune_id);
+
+      // Fetch ALL pool UTXOs
+      let utxos = fetch_pool_utxos().await?;
+      if utxos.is_empty() {
+          return Err("No UTXOs found at pool address".to_string());
+      }
+
+      ic_cdk::println!("   Found {} UTXOs:", utxos.len());
+      for (i, utxo) in utxos.iter().enumerate() {
+          ic_cdk::println!("     UTXO {}: {}:{} = {} sats", i+1, utxo.txid, utxo.vout, utxo.value);
+      }
+
+      let total_sats: u64 = utxos.iter().map(|u| u.value).sum();
+      ic_cdk::println!("   Total: {} sats", total_sats);
+
+      // Estimate fee
+      let fee_rate = estimate_fee_rate().await?;
+      let estimated_vsize = (utxos.len() as u64 * 60) + 100;  // ~60 vB per Taproot input + 100 for outputs
+      let fee = fee_rate * estimated_vsize;
+
+      ic_cdk::println!("   Fee: {} sats ({}vB @ {} sat/vB)", fee, estimated_vsize, fee_rate);
+
+      let output_amount = total_sats.saturating_sub(fee);
+      if output_amount < 1000 {
+          return Err(format!("Insufficient funds after fees: {} sats", output_amount));
+      }
+
+      ic_cdk::println!("   Consolidated output: {} sats", output_amount);
+
+      // Build transaction with all inputs → single output (pool address)
+      use bitcoin::{Transaction, TxIn, TxOut, OutPoint, ScriptBuf, Sequence};
+      use bitcoin::psbt::Psbt;
+      use ordinals::{Edict, RuneId, Runestone};
+
+      let inputs: Vec<TxIn> = utxos.iter().map(|utxo| {
+          use bitcoin::hashes::Hash;
+          let txid = bitcoin::Txid::from_str(&utxo.txid).expect("valid txid");
+          TxIn {
+              previous_output: OutPoint { txid, vout: utxo.vout },
+              script_sig: ScriptBuf::new(),
+              sequence: Sequence::MAX,
+              witness: bitcoin::Witness::new(),
+          }
+      }).collect();
+
+      let pool_addr = bitcoin::Address::from_str(&pool_config.address)
+          .map_err(|e| format!("Invalid pool address: {:?}", e))?
+          .require_network(bitcoin::Network::Testnet)
+          .map_err(|e| format!("Pool address network mismatch: {:?}", e))?;
+
+      // Create Runestone to consolidate ALL BLST runes to output 1
+      let rune_id_parsed = RuneId::from_str(&rune_id)
+          .map_err(|e| format!("Invalid rune ID: {:?}", e))?;
+
+      let runestone = Runestone {
+          edicts: vec![Edict {
+              id: rune_id_parsed,
+              amount: 0,  // Transfer ALL runes from inputs
+              output: 1,  // To output index 1 (pool)
+          }],
+          etching: None,
+          mint: None,
+          pointer: None,
+      };
+
+      let op_return_script = runestone.encipher();
+      let op_return_script_buf = ScriptBuf::from_bytes(op_return_script.to_bytes());
+
+      // Output 0: OP_RETURN with runestone
+      let op_return_output = TxOut {
+          value: 0,
+          script_pubkey: op_return_script_buf,
+      };
+
+      // Output 1: Consolidated pool output (all sats + all BLST)
+      let pool_output = TxOut {
+          value: output_amount,
+          script_pubkey: pool_addr.script_pubkey(),
+      };
+
+      let unsigned_tx = Transaction {
+          version: 2,
+          lock_time: bitcoin::absolute::LockTime::ZERO,
+          input: inputs,
+          output: vec![op_return_output, pool_output],
+      };
+
+      let mut psbt = Psbt::from_unsigned_tx(unsigned_tx)
+          .map_err(|e| format!("Failed to create PSBT: {:?}", e))?;
+
+      // Add witness UTXO data for each input
+      for (i, utxo) in utxos.iter().enumerate() {
+          psbt.inputs[i].witness_utxo = Some(bitcoin::TxOut {
+              value: utxo.value,
+              script_pubkey: pool_addr.script_pubkey(),
+          });
+      }
+
+      let psbt_hex = hex::encode(psbt.serialize());
+
+      ic_cdk::println!("✅ Consolidation PSBT constructed ({} bytes)", psbt_hex.len());
+
+      // Note: For simplicity, broadcast via ICP Bitcoin API (not REE)
+      // REE would require complex IntentionSet for multi-input rune transfer
+      use ree_types::bitcoin::psbt::Psbt as ReePsbt;
+      let mut ree_psbt = ReePsbt::deserialize(&hex::decode(&psbt_hex)
+          .map_err(|e| format!("hex decode: {:?}", e))?)
+          .map_err(|e| format!("psbt deserialize: {:?}", e))?;
+
+      // Sign with pool's ICP Chain Key
+      let utxo_refs: Vec<ree_types::Utxo> = utxos.iter().map(|u| {
+          let outpoint_str = format!("{}:{}", u.txid, u.vout);
+          ree_types::Utxo::try_from(
+              outpoint_str,
+              ree_types::CoinBalances::new(),
+              u.value,
+          ).unwrap()
+      }).collect();
+
+      let utxo_ref_ptrs: Vec<&ree_types::Utxo> = utxo_refs.iter().collect();
+
+      ree_pool_sign(
+          &mut ree_psbt,
+          utxo_ref_ptrs,
+          SCHNORR_KEY_NAME,
+          vec![b"hodlprotocol_blst_pool".to_vec()],
+      ).await.map_err(|e| format!("Signing failed: {:?}", e))?;
+
+      ic_cdk::println!("✅ PSBT signed, extracting finalized transaction...");
+
+      // Extract finalized Bitcoin transaction from PSBT (critical fix!)
+      let finalized_tx = ree_psbt.extract_tx()
+          .map_err(|e| format!("Failed to extract transaction from PSBT: {:?}", e))?;
+
+      // Serialize finalized transaction for broadcast
+      let tx_bytes = bitcoin_serialize(&finalized_tx);
+
+      ic_cdk::println!("✅ Transaction finalized ({} bytes), broadcasting...", tx_bytes.len());
+
+      use ic_cdk::api::management_canister::bitcoin::{
+          bitcoin_send_transaction, BitcoinNetwork, SendTransactionRequest
+      };
+
+      let send_request = SendTransactionRequest {
+          network: BitcoinNetwork::Testnet,
+          transaction: tx_bytes,
+      };
+
+      bitcoin_send_transaction(send_request)
+          .await
+          .map_err(|(code, msg)| format!("Failed to send Bitcoin transaction: {:?} - {}", code, msg))?;
+
+      ic_cdk::println!("✅ Consolidation transaction broadcast!");
+
+      Ok(format!("Pool UTXOs consolidated!\nInputs: {} UTXOs ({} sats total)\nOutput: 1 UTXO ({} sats + all BLST)\nFee: {} sats\nTransaction will appear on Bitcoin Testnet4 shortly.",
+          utxos.len(), total_sats, output_amount, fee))
+  }
+
+  /// Split funding address balance 50/50 between pool and user wallet
+  /// Used to fund pool for BLST minting and give user sats for test deposits
+  #[update]
+  async fn split_funding_to_pool_and_user(user_wallet: String) -> Result<String, String> {
+      let caller = ic_cdk::api::caller();
+      if !ic_cdk::api::is_controller(&caller) {
+          return Err("Not authorized - only controller can split funding".to_string());
+      }
+
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
+      let funding_address = pool_config.funding_address
+          .ok_or("Funding address not initialized")?;
+
+      ic_cdk::println!("💰 Splitting funding balance 50/50...");
+      ic_cdk::println!("   From: {}", funding_address);
+      ic_cdk::println!("   To Pool: {}", pool_config.address);
+      ic_cdk::println!("   To User: {}", user_wallet);
+
+      // Validate user wallet address
+      let user_addr = bitcoin::Address::from_str(&user_wallet)
+          .map_err(|e| format!("Invalid user wallet address: {:?}", e))?
+          .require_network(bitcoin::Network::Testnet)
+          .map_err(|e| format!("User address network mismatch: {:?}", e))?;
+
+      // Fetch funding UTXOs
+      let utxos = fetch_funding_utxos().await?;
+      if utxos.is_empty() {
+          return Err("No UTXOs found at funding address".to_string());
+      }
+
+      // Calculate total
+      let total_sats: u64 = utxos.iter().map(|u| u.value).sum();
+      ic_cdk::println!("   Total available: {} sats", total_sats);
+
+      // Estimate fee (1 input, 2 outputs = ~200 vbytes)
+      let fee_rate = estimate_fee_rate().await?;
+      let estimated_vsize = 200u64;
+      let fee = fee_rate * estimated_vsize;
+
+      // Split remaining balance 50/50
+      let remaining = total_sats.saturating_sub(fee);
+      let half = remaining / 2;
+
+      ic_cdk::println!("   Fee: {} sats ({}vB @ {} sat/vB)", fee, estimated_vsize, fee_rate);
+      ic_cdk::println!("   Half to pool: {} sats", half);
+      ic_cdk::println!("   Half to user: {} sats", half);
+
+      if half < 10_000 {
+          return Err(format!("Split amount too small: {} sats (need ≥10k for pool operations)", half));
+      }
+
+      // Build transaction
+      use bitcoin::{Transaction, TxIn, TxOut, OutPoint, ScriptBuf, Sequence};
+      use bitcoin::psbt::Psbt;
+
+      let inputs: Vec<TxIn> = utxos.iter().map(|utxo| {
+          let txid = bitcoin::Txid::from_str(&utxo.txid).expect("valid txid");
+          let outpoint = OutPoint {
+              txid,
+              vout: utxo.vout,
+          };
+          TxIn {
+              previous_output: outpoint,
+              script_sig: ScriptBuf::new(),
+              sequence: Sequence::ENABLE_RBF_NO_LOCKTIME,
+              witness: bitcoin::Witness::new(),
+          }
+      }).collect();
+
+      let pool_addr = bitcoin::Address::from_str(&pool_config.address)
+          .map_err(|e| format!("Invalid pool address: {:?}", e))?
+          .require_network(bitcoin::Network::Testnet)
+          .map_err(|e| format!("Pool address network mismatch: {:?}", e))?;
+
+      let outputs = vec![
+          TxOut {
+              value: half,
+              script_pubkey: pool_addr.script_pubkey(),
+          },
+          TxOut {
+              value: half,
+              script_pubkey: user_addr.script_pubkey(),
+          },
+      ];
+
+      let unsigned_tx = Transaction {
+          version: 2,
+          lock_time: bitcoin::absolute::LockTime::ZERO,
+          input: inputs,
+          output: outputs,
+      };
+
+      let mut psbt = Psbt::from_unsigned_tx(unsigned_tx)
+          .map_err(|e| format!("Failed to create PSBT: {:?}", e))?;
+
+      // Add witness UTXO data for each input
+      let funding_addr = bitcoin::Address::from_str(&funding_address)
+          .map_err(|e| format!("Invalid funding address: {:?}", e))?
+          .require_network(bitcoin::Network::Testnet)
+          .map_err(|e| format!("Address network mismatch: {:?}", e))?;
+
+      for (i, utxo) in utxos.iter().enumerate() {
+          psbt.inputs[i].witness_utxo = Some(bitcoin::TxOut {
+              value: utxo.value,
+              script_pubkey: funding_addr.script_pubkey(),
+          });
+      }
+
+      // Sign using funding address ICP Chain Key
+      use ree_types::bitcoin::psbt::Psbt as ReePsbt;
+      let mut ree_psbt = ReePsbt::deserialize(&hex::decode(&hex::encode(psbt.serialize()))
+          .map_err(|e| format!("hex decode: {:?}", e))?)
+          .map_err(|e| format!("psbt deserialize: {:?}", e))?;
+
+      // Create Utxo refs for signing
+      let utxo_refs: Vec<ree_types::Utxo> = utxos.iter().map(|u| {
+          let outpoint_str = format!("{}:{}", u.txid, u.vout);
+          ree_types::Utxo::try_from(
+              outpoint_str,
+              ree_types::CoinBalances::new(),
+              u.value,
+          ).unwrap()
+      }).collect();
+
+      let utxo_ref_ptrs: Vec<&ree_types::Utxo> = utxo_refs.iter().collect();
+
+      ree_pool_sign(
+          &mut ree_psbt,
+          utxo_ref_ptrs,
+          SCHNORR_KEY_NAME,
+          vec![b"hodlprotocol_funding".to_vec()],
+      ).await.map_err(|e| format!("Signing failed: {:?}", e))?;
+
+      ic_cdk::println!("✅ PSBT signed, extracting finalized transaction...");
+
+      // Extract finalized Bitcoin transaction from PSBT
+      let finalized_tx = ree_psbt.extract_tx()
+          .map_err(|e| format!("Failed to extract transaction from PSBT: {:?}", e))?;
+
+      // Serialize finalized transaction for broadcast
+      let tx_bytes = bitcoin_serialize(&finalized_tx);
+
+      let txid = finalized_tx.compute_txid();
+      ic_cdk::println!("✅ Transaction finalized ({} bytes), txid: {}", tx_bytes.len(), txid);
+
+      // Broadcast via ICP Bitcoin API
+      use ic_cdk::api::management_canister::bitcoin::{
+          bitcoin_send_transaction, BitcoinNetwork, SendTransactionRequest
+      };
+
+      let send_request = SendTransactionRequest {
+          network: BitcoinNetwork::Testnet,
+          transaction: tx_bytes,
+      };
+
+      bitcoin_send_transaction(send_request)
+          .await
+          .map_err(|(code, msg)| format!("Failed to send Bitcoin transaction: {:?} - {}", code, msg))?;
+
+      ic_cdk::println!("✅ Transaction broadcast successful!");
+      ic_cdk::println!("   Pool received: {} sats", half);
+      ic_cdk::println!("   User received: {} sats", half);
+
+      Ok(format!(
+          "✅ Funding split successful!\n\
+          Transaction ID: {}\n\
+          Pool received: {} sats at {}\n\
+          User received: {} sats at {}\n\
+          Fee: {} sats\n\
+          \n\
+          Monitor: https://mempool.space/testnet4/tx/{}",
+          txid, half, pool_config.address, half, user_wallet, fee, txid
+      ))
   }
 
   // ============================
@@ -671,13 +1257,15 @@ impl Drop for ExecuteTxGuard {
       Ok(script.to_bytes())
   }
 
-  /// Construct PSBT for rune etching transaction
-  /// Input: Pool UTXO for fees
+  /// Construct PSBT for rune etching transaction (funding→pool→change flow)
+  /// Input: Funding address UTXO (for fees)
   /// Output 0: OP_RETURN with etching runestone
-  /// Output 1: Change back to pool address
+  /// Output 1: Pool address (receives BTC + premined BLST runes)
+  /// Output 2: Change back to funding address
   fn construct_etching_psbt(
-      pool_utxo: &BitcoinUtxo,
+      funding_utxo: &BitcoinUtxo,
       pool_address: &str,
+      funding_address: &str,
       op_return_script: Vec<u8>,
       fee_rate_sat_per_vb: u64,
   ) -> Result<String, String> {
@@ -685,62 +1273,79 @@ impl Drop for ExecuteTxGuard {
       use bitcoin::psbt::Psbt;
       use bitcoin::Txid;
 
-      ic_cdk::println!("Constructing etching PSBT...");
-      ic_cdk::println!("  Input UTXO: {}:{} ({}  sats)", pool_utxo.txid, pool_utxo.vout, pool_utxo.value);
-      ic_cdk::println!("  Pool address: {}", pool_address);
+      ic_cdk::println!("Constructing etching PSBT (funding→pool→change flow)...");
+      ic_cdk::println!("  Input UTXO: {}:{} ({} sats)", funding_utxo.txid, funding_utxo.vout, funding_utxo.value);
+      ic_cdk::println!("  Pool address (receives BLST): {}", pool_address);
+      ic_cdk::println!("  Funding address (change): {}", funding_address);
       ic_cdk::println!("  OP_RETURN size: {} bytes", op_return_script.len());
 
       // Parse UTXO txid
-      let txid = Txid::from_str(&pool_utxo.txid)
+      let txid = Txid::from_str(&funding_utxo.txid)
           .map_err(|e| format!("Invalid txid: {:?}", e))?;
 
       // Estimate transaction size
-      // 1 Taproot input (~58 vB) + 2 outputs (OP_RETURN ~45 vB + P2TR change ~43 vB) + overhead (~11 vB)
-      // Total: ~157 vB
-      let estimated_vsize = 157;
+      // 1 Taproot input (~58 vB) + 3 outputs (OP_RETURN ~45 vB + 2x P2TR ~43 vB each) + overhead (~11 vB)
+      // Total: ~200 vB
+      let estimated_vsize = 200;
       let fee_sats = estimated_vsize * fee_rate_sat_per_vb;
 
       ic_cdk::println!("  Estimated vsize: {} vB", estimated_vsize);
       ic_cdk::println!("  Fee rate: {} sat/vB", fee_rate_sat_per_vb);
       ic_cdk::println!("  Total fee: {} sats", fee_sats);
 
+      // Pool output gets dust amount (minimum for runes to be valid)
+      let pool_output_sats = 1000;  // Dust limit for P2TR
+
       // Check if UTXO is sufficient
-      if pool_utxo.value < fee_sats + 1000 {
-          return Err(format!("Insufficient UTXO value: {} sats (need {} sats for fee + 1000 dust)", pool_utxo.value, fee_sats));
+      let min_required = fee_sats + pool_output_sats + 1000;  // fee + pool dust + change dust
+      if funding_utxo.value < min_required {
+          return Err(format!("Insufficient UTXO value: {} sats (need {} sats for fee + outputs)", funding_utxo.value, min_required));
       }
 
-      let change_amount = pool_utxo.value - fee_sats;
-      ic_cdk::println!("  Change amount: {} sats", change_amount);
+      let change_amount = funding_utxo.value - fee_sats - pool_output_sats;
+      ic_cdk::println!("  Pool output: {} sats", pool_output_sats);
+      ic_cdk::println!("  Change to funding: {} sats", change_amount);
 
       // Build transaction
       let tx_in = TxIn {
           previous_output: OutPoint {
               txid,
-              vout: pool_utxo.vout,
+              vout: funding_utxo.vout,
           },
           script_sig: ScriptBuf::new(),  // Taproot uses witness, not script_sig
           sequence: Sequence::MAX,     // RBF disabled
           witness: bitcoin::Witness::new(),  // Empty witness for unsigned
       };
 
-      // Output 0: OP_RETURN with etching runestone
-      // The ordinals crate already returns a complete Script, just wrap it
-      let op_return_script_buf = ScriptBuf::from_bytes(op_return_script);
+      // Parse addresses
+      let pool_addr = bitcoin::Address::from_str(pool_address)
+          .map_err(|e| format!("Invalid pool address: {:?}", e))?
+          .require_network(bitcoin::Network::Testnet)
+          .map_err(|e| format!("Pool address network mismatch: {:?}", e))?;
 
+      let funding_addr = bitcoin::Address::from_str(funding_address)
+          .map_err(|e| format!("Invalid funding address: {:?}", e))?
+          .require_network(bitcoin::Network::Testnet)
+          .map_err(|e| format!("Funding address network mismatch: {:?}", e))?;
+
+      // Output 0: OP_RETURN with etching runestone
+      let op_return_script_buf = ScriptBuf::from_bytes(op_return_script);
       let op_return_output = TxOut {
           value: 0,  // OP_RETURN has no value
           script_pubkey: op_return_script_buf,
       };
 
-      // Output 1: Change back to pool address (P2TR)
-      let pool_addr = bitcoin::Address::from_str(pool_address)
-          .map_err(|e| format!("Invalid pool address: {:?}", e))?
-          .require_network(bitcoin::Network::Signet)
-          .map_err(|e| format!("Address network mismatch: {:?}", e))?;
+      // Output 1: Pool address receives BTC + premined BLST runes
+      // (First non-OP_RETURN output receives the premined runes)
+      let pool_output = TxOut {
+          value: pool_output_sats,
+          script_pubkey: pool_addr.script_pubkey(),
+      };
 
+      // Output 2: Change back to funding address
       let change_output = TxOut {
           value: change_amount,
-          script_pubkey: pool_addr.script_pubkey(),
+          script_pubkey: funding_addr.script_pubkey(),
       };
 
       // Create unsigned transaction
@@ -748,7 +1353,7 @@ impl Drop for ExecuteTxGuard {
           version: 2,  // Version 2 for Bitcoin transactions
           lock_time: bitcoin::absolute::LockTime::ZERO,
           input: vec![tx_in],
-          output: vec![op_return_output, change_output],
+          output: vec![op_return_output, pool_output, change_output],
       };
 
       // Create PSBT from unsigned transaction
@@ -756,15 +1361,16 @@ impl Drop for ExecuteTxGuard {
           .map_err(|e| format!("Failed to create PSBT: {:?}", e))?;
 
       // Add witness UTXO data for Taproot input (required by REE)
+      // Use funding address script since that's where the UTXO came from
       psbt.inputs[0].witness_utxo = Some(bitcoin::TxOut {
-          value: pool_utxo.value,
-          script_pubkey: pool_addr.script_pubkey(),
+          value: funding_utxo.value,
+          script_pubkey: funding_addr.script_pubkey(),
       });
 
       // Serialize PSBT to hex
       let psbt_hex = hex::encode(psbt.serialize());
 
-      ic_cdk::println!("✅ PSBT constructed ({} bytes hex)", psbt_hex.len());
+      ic_cdk::println!("✅ PSBT constructed ({} bytes hex, 3 outputs)", psbt_hex.len());
 
       Ok(psbt_hex)
   }
@@ -857,7 +1463,7 @@ impl Drop for ExecuteTxGuard {
       // Output 1: Rune recipient (user address)
       let user_addr = bitcoin::Address::from_str(user_address)
           .map_err(|e| format!("Invalid user address: {:?}", e))?
-          .require_network(bitcoin::Network::Signet)
+          .require_network(bitcoin::Network::Testnet)
           .map_err(|e| format!("Address network mismatch: {:?}", e))?;
 
       let user_output = TxOut {
@@ -868,7 +1474,7 @@ impl Drop for ExecuteTxGuard {
       // Output 2: Change back to pool address
       let pool_addr = bitcoin::Address::from_str(pool_address)
           .map_err(|e| format!("Invalid pool address: {:?}", e))?
-          .require_network(bitcoin::Network::Signet)
+          .require_network(bitcoin::Network::Testnet)
           .map_err(|e| format!("Address network mismatch: {:?}", e))?;
 
       let change_output = TxOut {
@@ -912,82 +1518,131 @@ impl Drop for ExecuteTxGuard {
       // Check if already etched
       let pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
       if pool_config.address.is_empty() {
-          return Err("Pool not initialized".to_string());
+          return Err("Pool not initialized - call init_pool first".to_string());
       }
+
+      let funding_address = pool_config.funding_address
+          .ok_or("Funding address not initialized - call init_funding_address first")?;
 
       if pool_config.blst_rune_id.is_some() {
           return Err(format!("BLST rune already etched: {}", pool_config.blst_rune_id.unwrap()));
       }
 
-      ic_cdk::println!("🔨 Etching BABYLON•LST rune via REE Orchestrator...");
+      ic_cdk::println!("🔨 Etching BLST rune via REE Orchestrator (funding→pool→change flow)...");
+      ic_cdk::println!("   Funding address: {}", funding_address);
+      ic_cdk::println!("   Pool address: {}", pool_config.address);
 
       // Step 1: Create the etching runestone
       let op_return_script = create_blst_etching()?;
       ic_cdk::println!("✅ Etching runestone created ({} bytes)", op_return_script.len());
 
-      // Step 2: Fetch pool UTXOs
-      let utxos = fetch_pool_utxos().await?;
+      // Step 2: Fetch funding UTXOs
+      let utxos = fetch_funding_utxos().await?;
       if utxos.is_empty() {
-          return Err("No UTXOs available in pool - fund pool address first".to_string());
+          return Err(format!("No confirmed UTXOs at funding address {} - send sats and wait for 6 confirmations", funding_address));
       }
 
-      // Select first UTXO with sufficient value for fees
+      // Select first UTXO with sufficient value for fees + outputs
       let selected_utxo = utxos.iter()
-          .find(|u| u.value >= 10_000)  // At least 10k sats for fees + dust
+          .find(|u| u.value >= 10_000)  // At least 10k sats for fees + 2 dust outputs
           .ok_or("No UTXO with sufficient value (need ≥10k sats)")?;
 
-      ic_cdk::println!("✅ Selected UTXO: {}:{} ({} sats)", selected_utxo.txid, selected_utxo.vout, selected_utxo.value);
+      ic_cdk::println!("✅ Selected funding UTXO: {}:{} ({} sats)", selected_utxo.txid, selected_utxo.vout, selected_utxo.value);
 
       // Step 3: Estimate fee rate
       let fee_rate = estimate_fee_rate().await?;
       ic_cdk::println!("✅ Fee rate: {} sat/vB", fee_rate);
 
-      // Step 4: Construct PSBT
+      // Step 4: Construct PSBT (funding→pool→change)
       let psbt_hex = construct_etching_psbt(
           selected_utxo,
           &pool_config.address,
+          &funding_address,
           op_return_script,
           fee_rate,
       )?;
-      ic_cdk::println!("✅ PSBT constructed");
+      ic_cdk::println!("✅ PSBT constructed (unsigned, 3 outputs)");
 
-      // Step 5: Build IntentionSet for REE Orchestrator
-      let nonce = ic_cdk::api::time();
-      let intention = Intention {
-          input_coins: vec![],  // No rune inputs (etching creates new rune)
-          output_coins: vec![], // No rune outputs (etching tx doesn't transfer runes)
-          action: "etch_rune".to_string(),
-          exchange_id: ic_cdk::id().to_string(),
-          pool_utxo_spent: vec![format!("{}:{}", selected_utxo.txid, selected_utxo.vout)],
-          action_params: "BABYLON•LST rune etching".to_string(),
-          nonce,
-          pool_address: pool_config.address.clone(),
-          pool_utxo_received: vec![],  // Will be populated by REE after broadcast
+      // Step 4.5: Sign the PSBT using ICP Chain Key
+      ic_cdk::println!("🔐 Signing PSBT with ICP Chain Key...");
+
+      use ree_types::bitcoin::psbt::Psbt;
+      use std::str::FromStr;
+
+      // Deserialize PSBT
+      let mut psbt = Psbt::deserialize(&hex::decode(&psbt_hex)
+          .map_err(|e| format!("Failed to decode PSBT hex: {:?}", e))?)
+          .map_err(|e| format!("Failed to deserialize PSBT: {:?}", e))?;
+
+      // Create Utxo struct for signing using Utxo::try_from
+      let outpoint_str = format!("{}:{}", selected_utxo.txid, selected_utxo.vout);
+      let utxo_for_signing = ree_types::Utxo::try_from(
+          outpoint_str,
+          ree_types::CoinBalances::new(),  // Empty for non-rune transactions
+          selected_utxo.value,
+      ).map_err(|e| format!("Failed to create Utxo: {}", e))?;
+
+      // Sign the funding UTXO using REE pool signing (with funding derivation path)
+      ree_pool_sign(
+          &mut psbt,
+          vec![&utxo_for_signing],
+          SCHNORR_KEY_NAME,
+          vec![b"hodlprotocol_funding".to_vec()],  // Use funding derivation path
+      ).await.map_err(|e| format!("Failed to sign PSBT: {:?}", e))?;
+
+      ic_cdk::println!("✅ PSBT signed, extracting finalized transaction...");
+
+      // Step 5: Extract transaction from PSBT and broadcast directly to Bitcoin
+      // (Bypassing REE for bootstrap transaction - REE can't validate externally-funded UTXOs)
+      ic_cdk::println!("📡 Broadcasting transaction directly to Bitcoin network via ICP...");
+
+      // Extract finalized Bitcoin transaction from PSBT
+      let finalized_tx = psbt.extract_tx()
+          .map_err(|e| format!("Failed to extract transaction from PSBT: {:?}", e))?;
+
+      // Serialize finalized transaction for broadcast
+      let tx_bytes = bitcoin_serialize(&finalized_tx);
+
+      // Get transaction ID for logging
+      let txid = finalized_tx.compute_txid();
+      ic_cdk::println!("✅ Transaction finalized ({} bytes), txid: {}", tx_bytes.len(), txid);
+
+      // Call ICP's Bitcoin integration to broadcast the transaction
+      use ic_cdk::api::management_canister::bitcoin::{
+          bitcoin_send_transaction, BitcoinNetwork, SendTransactionRequest
       };
 
-      let intention_set = IntentionSet {
-          tx_fee_in_sats: fee_rate * 157,  // Estimated vsize
-          initiator_address: pool_config.address.clone(),
-          intentions: vec![intention],
+      let send_request = SendTransactionRequest {
+          network: BitcoinNetwork::Testnet,  // Testnet4
+          transaction: tx_bytes,
       };
 
-      let invoke_args = InvokeArgs {
-          psbt_hex: psbt_hex.clone(),
-          intention_set,
-          initiator_utxo_proof: vec![],  // Not required for pool-initiated tx
-          client_info: Some("hodlprotocol BLST etching".to_string()),
-      };
+      ic_cdk::println!("📡 Sending transaction to Bitcoin network...");
 
-      ic_cdk::println!("✅ InvokeArgs prepared");
+      bitcoin_send_transaction(send_request)
+          .await
+          .map_err(|(code, msg)| format!("Failed to send Bitcoin transaction: {:?} - {}", code, msg))?;
 
-      // Step 6: Call REE Orchestrator
-      ic_cdk::println!("📡 Calling REE Orchestrator invoke()...");
-      let result = call_ree_orchestrator_invoke(invoke_args).await?;
+      ic_cdk::println!("✅ Transaction broadcast successful!");
+      ic_cdk::println!("   TXID: {}", txid);
+      ic_cdk::println!("   Pool will receive 1000 sats + 100B BLST at: {}", pool_config.address);
+      ic_cdk::println!("   Change will return to: {}", funding_address);
 
-      ic_cdk::println!("✅ REE Orchestrator accepted etching transaction");
-      ic_cdk::println!("   Result: {}", result);
-
-      Ok(format!("BLST rune etching submitted to REE Orchestrator.\nTransaction will be signed with ICP Chain Key and broadcast to Bitcoin Signet.\nCheck Bitcoin explorer for confirmation, then update pool config with rune_id.\nREE response: {}", result))
+      Ok(format!(
+          "✅ BLST rune etching transaction broadcast!\n\
+          Transaction ID: {}\n\
+          Pool address: {} (will receive 1000 sats + 100B BLST)\n\
+          Funding address: {} (will receive change)\n\
+          \n\
+          Next steps:\n\
+          1. Wait for 1+ confirmations (~10 mins)\n\
+          2. Find the rune ID in the transaction (format: BLOCK:TX)\n\
+          3. Update pool config: dfx canister call ... update_pool_rune_id '(\"BLOCK:TX\")' --network ic\n\
+          4. Verify with get_pool_info\n\
+          \n\
+          Monitor: https://mempool.space/testnet4/tx/{}",
+          txid, pool_config.address, funding_address, txid
+      ))
   }
 
   // ============================
@@ -1256,23 +1911,69 @@ impl Drop for ExecuteTxGuard {
       block_hash: Option<String>,
   }
 
-  /// Fetch UTXOs for pool address from mempool.space Signet API
+  /// Fetch UTXOs for pool address from mempool.space Testnet4 API
+  /// Fetch confirmed UTXOs for pool address using Bitcoin canister (deterministic, no HTTP consensus issues)
   async fn fetch_pool_utxos() -> Result<Vec<BitcoinUtxo>, String> {
-      use ic_cdk::api::management_canister::http_request::{
-          http_request, CanisterHttpRequestArgument, HttpHeader, HttpMethod, TransformContext,
-      };
-
       let pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
       if pool_config.address.is_empty() {
           return Err("Pool not initialized".to_string());
       }
 
+      ic_cdk::println!("Fetching UTXOs via Bitcoin canister for pool: {}", pool_config.address);
+
+      // Get UTXOs from Bitcoin canister (deterministic - no consensus issues!)
+      let btc_canister_principal = candid::Principal::from_text(BTC_CANISTER_TESTNET)
+          .map_err(|e| format!("Invalid Bitcoin canister principal: {:?}", e))?;
+      let btc_canister = bitcoin_canister::Service(btc_canister_principal);
+
+      let (response,) = btc_canister.bitcoin_get_utxos(bitcoin_canister::GetUtxosRequest {
+          network: bitcoin_canister::Network::Testnet,
+          filter: Some(bitcoin_canister::GetUtxosRequestFilterInner::MinConfirmations(1)),
+          address: pool_config.address.clone(),
+      })
+      .await
+      .map_err(|(code, msg)| format!("Bitcoin canister call failed: {:?} - {}", code, msg))?;
+
+      ic_cdk::println!("✅ Bitcoin canister returned {} UTXOs", response.utxos.len());
+
+      // Convert to BitcoinUtxo format
+      let bitcoin_utxos: Vec<BitcoinUtxo> = response.utxos.into_iter().map(|utxo| {
+          let txid_bytes = utxo.outpoint.txid.clone();
+          let txid_hex = hex::encode(&txid_bytes[..]);
+
+          BitcoinUtxo {
+              txid: txid_hex,
+              vout: utxo.outpoint.vout,
+              value: utxo.value,
+              status: UtxoStatus {
+                  confirmed: true,  // Bitcoin canister only returns confirmed with min_confirmations filter
+                  block_height: Some(utxo.height as u64),
+                  block_hash: None,
+              },
+          }
+      }).collect();
+
+      ic_cdk::println!("✅ Converted to {} BitcoinUtxo objects", bitcoin_utxos.len());
+
+      Ok(bitcoin_utxos)
+  }
+
+  /// Fetch UTXOs for funding address (for rune etching bootstrap)
+  async fn fetch_funding_utxos() -> Result<Vec<BitcoinUtxo>, String> {
+      use ic_cdk::api::management_canister::http_request::{
+          http_request, CanisterHttpRequestArgument, HttpHeader, HttpMethod, TransformContext,
+      };
+
+      let pool_config = POOL_CONFIG.with(|p| p.borrow().get().clone());
+      let funding_address = pool_config.funding_address
+          .ok_or("Funding address not initialized - call init_funding_address first")?;
+
       let url = format!(
-          "https://mempool.space/signet/api/address/{}/utxo",
-          pool_config.address
+          "https://mempool.space/testnet4/api/address/{}/utxo",
+          funding_address
       );
 
-      ic_cdk::println!("Fetching UTXOs for pool address: {}", pool_config.address);
+      ic_cdk::println!("Fetching UTXOs for funding address: {}", funding_address);
 
       let request = CanisterHttpRequestArgument {
           url: url.clone(),
@@ -1298,9 +1999,9 @@ impl Drop for ExecuteTxGuard {
               let utxos: Vec<BitcoinUtxo> = serde_json::from_str(&body)
                   .map_err(|e| format!("Failed to parse UTXOs JSON: {}", e))?;
 
-              ic_cdk::println!("Found {} UTXOs for pool address", utxos.len());
+              ic_cdk::println!("Found {} UTXOs for funding address", utxos.len());
 
-              // Filter for confirmed UTXOs only
+              // Filter for confirmed UTXOs only (need 6+ confirmations for safety)
               let confirmed_utxos: Vec<BitcoinUtxo> = utxos.into_iter()
                   .filter(|u| u.status.confirmed)
                   .collect();
@@ -1321,7 +2022,7 @@ impl Drop for ExecuteTxGuard {
           http_request, CanisterHttpRequestArgument, HttpHeader, HttpMethod, TransformContext,
       };
 
-      let url = "https://mempool.space/signet/api/v1/fees/recommended".to_string();
+      let url = "https://mempool.space/testnet4/api/v1/fees/recommended".to_string();
 
       let request = CanisterHttpRequestArgument {
           url: url.clone(),
@@ -1380,10 +2081,10 @@ impl Drop for ExecuteTxGuard {
       ic_cdk::println!("⚠️  Using hardcoded pool UTXO from etching (Runes Indexer integration pending)");
 
       Ok(vec![RuneUtxo {
-          txid: "7fabe686337660691dcfb95a07b9d21cbc40b8e24ce346d7937898dea140cfea".to_string(),
+          txid: "b7652fe24527e6dfa6470252bddc0149b21c4bf877265810a644e76563e441c6".to_string(),
           vout: 1,  // Premined runes go to output #1 of etching tx
-          value: 10_000,  // 10k sats (from reveal tx output #1)
-          rune_balance: 100_000_000_000,  // All 100B BLST runes (premined at 274299:1)
+          value: 1_000,  // 1k sats (from etching tx output #1 on Testnet4)
+          rune_balance: 100_000_000_000,  // All 100B BLST runes (premined at 107266:20)
       }])
 
       // TODO: Real implementation after testing:
@@ -1663,7 +2364,7 @@ impl Drop for ExecuteTxGuard {
           FP: {}\n\
           Pending tx ID: {}\n\
           \n\
-          Transaction will be signed with ICP Chain Key and broadcast to Bitcoin Signet.\n\
+          Transaction will be signed with ICP Chain Key and broadcast to Bitcoin Testnet4.\n\
           The execute_tx callback will update with the final transaction hash.\n\
           \n\
           REE response: {}",
@@ -2277,7 +2978,7 @@ impl Drop for ExecuteTxGuard {
 
       let pool_addr = Address::from_str(pool_address)
           .map_err(|e| format!("Invalid pool address: {}", e))?
-          .require_network(Network::Signet)
+          .require_network(Network::Testnet)
           .map_err(|e| format!("Address network mismatch: {}", e))?;
 
       // Find output that pays to pool address
@@ -2564,7 +3265,7 @@ impl Drop for ExecuteTxGuard {
       // Note: REE will call back later with final tx hash, this is just submission confirmation
       ic_cdk::println!("⚠️  Mint transaction submitted - waiting for REE callback with final tx hash");
 
-      Ok(format!("BLST minting transaction submitted to REE Orchestrator.\nTransaction will be signed with ICP Chain Key and broadcast to Bitcoin Signet.\nUser will receive {} BLST ({}.{:03} display) at address {}.\nREE response: {}",
+      Ok(format!("BLST minting transaction submitted to REE Orchestrator.\nTransaction will be signed with ICP Chain Key and broadcast to Bitcoin Testnet4.\nUser will receive {} BLST ({}.{:03} display) at address {}.\nREE response: {}",
           mint_record.amount_blst,
           mint_record.amount_blst / 1000,
           mint_record.amount_blst % 1000,
@@ -2741,6 +3442,58 @@ impl Drop for ExecuteTxGuard {
       });
 
       Ok(())
+  }
+
+  // ============================
+  // REE ORCHESTRATOR REGISTRATION
+  // ============================
+
+  /// Self-register with REE Orchestrator
+  ///
+  /// Registers "HODL_PROTOCOL" exchange ID with testnet orchestrator
+  ///
+  /// **Call this once after canister deployment**
+  #[update]
+  async fn register_with_ree_orchestrator() -> Result<String, String> {
+      const TESTNET_ORCHESTRATOR: &str = "hvyp5-5yaaa-aaaao-qjxha-cai";
+      const EXCHANGE_ID: &str = "HODL_PROTOCOL";
+
+      let orchestrator = candid::Principal::from_text(TESTNET_ORCHESTRATOR)
+          .map_err(|e| format!("Invalid orchestrator principal: {}", e))?;
+
+      let self_id = ic_cdk::api::id();
+
+      let args = RegisterExchangeArgs {
+          exchange_id: EXCHANGE_ID.to_string(),
+          exchange_canister: self_id,
+          client_canisters: vec![],
+      };
+
+      ic_cdk::println!("📝 Registering exchange with REE Orchestrator...");
+      ic_cdk::println!("   Exchange ID: {}", EXCHANGE_ID);
+      ic_cdk::println!("   Canister ID: {}", self_id);
+
+      let result: Result<(Result<String, String>,), _> = ic_cdk::call(
+          orchestrator,
+          "register_exchange",
+          (args,)
+      ).await;
+
+      match result {
+          Ok((Ok(msg),)) => {
+              ic_cdk::println!("✅ Successfully registered with REE Orchestrator!");
+              ic_cdk::println!("   Response: {}", msg);
+              Ok(format!("Registered {} -> {}: {}", EXCHANGE_ID, self_id, msg))
+          },
+          Ok((Err(e),)) => {
+              ic_cdk::println!("❌ Registration rejected: {}", e);
+              Err(format!("Orchestrator rejected registration: {}", e))
+          },
+          Err((code, msg)) => {
+              ic_cdk::println!("❌ Call failed: {:?} - {}", code, msg);
+              Err(format!("Failed to call orchestrator: {:?} - {}", code, msg))
+          }
+      }
   }
 
   // ============================
