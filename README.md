@@ -3,6 +3,9 @@
 
 > Stake BTC, earn BTC, onboard with multiple assets via DEX Aggregation + Chain Fusion
 
+<img width="2481" height="3510" alt="Global Finale Qualified Participant" src="https://github.com/user-attachments/assets/7afedf0b-2d2c-46ff-85f6-409582c4f318" />
+
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![ICP](https://img.shields.io/badge/ICP-Canister-blue)](https://internetcomputer.org)
 [![Bitcoin](https://img.shields.io/badge/Bitcoin-Testnet4-orange)](https://mempool.space/testnet4)
@@ -445,3 +448,4 @@ MIT License
 ---
 
 **Built with:** Internet Computer + REE + Babylon + Omnity + Osmosis
+
